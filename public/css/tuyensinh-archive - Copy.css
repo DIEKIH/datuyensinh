@@ -1,0 +1,249 @@
+#news-archive {
+    margin-top: 40px;
+    margin-bottom: 80px;
+}
+
+@media(max-width: 991px) {
+    #news-archive {
+        margin-top: 55px;
+    }
+}
+
+.col-item-block {
+    margin-bottom: 50px;
+}
+
+.item-block img {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+}
+
+#news-archive .item-block .image {
+    margin-bottom: 15px;
+}
+
+#news-archive .item-block .title {
+    margin-bottom: 10px;
+}
+
+#news-archive .item-block .title a {
+    font-family: 'SVN-Gilroy XBold', sans-serif;
+    font-size: 20px;
+    line-height: 20px;
+    color: var(--sub-color);
+}
+
+#news-archive .item-block .desc {
+    color: var(--sub-color);
+}
+
+
+
+
+
+.ts-news-main-title {
+    position: relative;
+    font-size: 32px;
+    font-family: 'SVN-Gilroy XBold', sans-serif;
+    color: var(--red-color);
+    margin-bottom: 40px;
+    margin-top: 40px;
+    text-transform: uppercase;
+}
+
+.ts-news-main-title:before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    left: -300px;
+    width: 280px;
+    height: 2px;
+    background: var(--primary-color);
+    margin-right: 10px;
+}
+
+.ts-news-main-title:after {
+    content: '';
+    position: absolute;
+    height: 10px;
+    width: 10px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    left: -20px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+@media(max-width: 991px) {
+    .ts-news-main-title:before {
+        visibility: hidden;
+    }
+
+    .ts-news-main-title:after {
+        visibility: hidden;
+    }
+}
+
+
+
+
+/* BREADCRUMB =============== */
+
+#ts-breadcrumb {
+    display: flex;
+    align-items: center;
+}
+
+#ts-breadcrumb .slash {
+    padding: 0 10px;
+}
+
+#ts-breadcrumb * {
+    font-size: 18px;
+    color: var(--sub-color);
+    text-decoration: none;
+}
+
+#ts-breadcrumb .last-a {
+    color: var(--red-color);
+}
+
+.ts-share .share-title {
+    font-size: 18px;
+}
+
+@media all and (min-width: 992px) {
+
+    #ts-breadcrumb .line-breadcrumb {
+        position: relative;
+        width: 180px;
+        height: 2px;
+        background: var(--primary-color);
+        margin-right: 10px;
+    }
+
+    #ts-breadcrumb .line-breadcrumb:before {
+        content: '';
+        position: absolute;
+        height: 10px;
+        width: 10px;
+        border-radius: 50%;
+        background: var(--primary-color);
+        right: 0;
+        top: 50%;
+        transform: translateY(-50%);
+    }
+}
+
+@media (max-width: 991px) {
+    .first-block {
+        padding-top: 20px;
+    }
+}
+
+
+
+
+
+
+/* TAG ============= */
+/* .ts-tag-block {
+    display: flex;
+} */
+
+.ts-tag-container {
+    margin-top: 50px;
+    margin-bottom: 50px;
+}
+
+@media(max-width: 991px) {
+    .ts-tag-container {
+        margin-top: 30px;
+        margin-bottom: 30px;
+    }
+}
+
+.ts-tag-block {
+    overflow: hidden;
+}
+
+.ts-tag-item {
+    position: relative;
+    padding: 0 10px;
+    border-left: 1px solid #ccc;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* .ts-tag-item:after {
+    content: '';
+    height: 16px;
+    width: 1px;
+    background: #134D8B;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    right: 0px;
+    z-index: 999;
+} */
+
+.ts-tag-item:last-child {
+    border-right: 1px solid #ccc;
+}
+
+.ts-tag-text {
+    text-align: center;
+}
+
+.ts-tag-text .text {
+    font-size: 18px;
+    padding: 8px 25px;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--sub-color);
+    cursor: pointer;
+    transition: .2s ease-in-out;
+}
+
+.ts-tag-text.active .text,
+.ts-tag-text:hover .text {
+    background: var(--primary-color);
+    color: #fff;
+}
+
+
+
+.tag-arrow {
+    height: 50px;
+    width: 50px;
+    border-radius: 50%;
+
+    background: #fff !important;
+    display: flex;
+}
+
+.swiper-button-next.swiper-button-disabled,
+.swiper-button-prev.swiper-button-disabled {
+    opacity: 1;
+}
+
+.swiper-button-next:after,
+.swiper-button-prev:after {
+    font-size: 30px;
+    font-weight: bold;
+}
+
+.swiper-button-next.tag-arrow {
+    right: -25px !important;
+    top: 19px;
+    z-index: 2;
+}
+
+.swiper-button-prev.tag-arrow {
+    left: -25px !important;
+    top: 19px;
+    z-index: 2;
+}

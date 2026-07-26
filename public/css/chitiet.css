@@ -1,0 +1,1068 @@
+.note-editor.note-frame {
+    overflow-y: visible !important;
+    height: auto !important;
+}
+
+.note-editable {
+    overflow-y: visible !important;
+    height: auto !important;
+}
+
+:root {
+    --primary-color: #2c5aa0;
+    --secondary-color: #0d6efd;
+    --accent-color: #f8f9fa;
+    --text-dark: #212529;
+    --text-muted: #6c757d;
+    --border-color: #dee2e6;
+}
+
+/* body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f8f9fa;
+    color: var(--text-dark);
+} */
+
+.parent {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    grid-template-rows: repeat(12, auto);
+    gap: 20px;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.div1 {
+    grid-column: span 8 / span 8;
+    grid-row: span 5 / span 5;
+    background: white;
+    border-radius: 8px;
+    padding: 30px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.page-container {
+    flex: 1;
+}
+
+/* .img-fluid {
+max-width: 100%;
+height: auto;
+} */
+
+.div2 {
+    grid-column: span 4 / span 4;
+    grid-row: span 5 / span 5;
+    /* Thay đổi từ span 7 thành span 5 để bằng với div1 */
+    grid-column-start: 9;
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.div3 {
+    grid-column: span 12 / span 12;
+    grid-row: span 3 / span 3;
+    grid-row-start: 6;
+    /* Thay đổi từ 8 thành 6 */
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.div4 {
+    grid-column: span 12 / span 12;
+    grid-row: span 2 / span 2;
+    grid-row-start: 9;
+    /* Thay đổi từ 11 thành 9 */
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.section-title {
+    color: var(--primary-color);
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--primary-color);
+    flex-shrink: 0;
+}
+
+.main-title {
+    color: var(--primary-color);
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 20px;
+    line-height: 1.3;
+}
+
+.meta-info {
+    background: var(--accent-color);
+    padding: 15px;
+    border-radius: 6px;
+    margin-bottom: 25px;
+    border-left: 4px solid var(--primary-color);
+}
+
+.meta-item {
+    display: inline-block;
+    margin-right: 20px;
+    margin-bottom: 5px;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
+.meta-item i {
+    color: var(--primary-color);
+    margin-right: 5px;
+}
+
+.status-badge {
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-show {
+    background: #d1ecf1;
+    color: #0c5460;
+}
+
+.news-item {
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 10px;
+    margin-bottom: 13px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    display: flex;
+    align-items: flex-start;
+    gap: 15px;
+}
+
+.div3 .news-item,
+.div4 .news-item {
+    /* width: 450px; */
+}
+
+.news-item:hover {
+    border-color: var(--primary-color);
+    transform: translateY(1px);
+    box-shadow: 0 4px 15px rgba(44, 90, 160, 0.1);
+}
+
+.div4 .news-item h4 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;       /* 🔥 giới hạn 2 dòng */
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    line-height: 1.4;
+    min-height: calc(1.4em * 2); /* 🔥 giữ chiều cao đều */
+}
+
+.div2 .news-item img {
+    width: 130px;
+    height: 100px;
+    object-fit: cover;
+    border-radius: 4px;
+    flex-shrink: 0;
+}
+
+/* Content bên phải */
+.div2 .news-item .news-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+.div2 .news-item h4 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;       /* 🔥 2 dòng */
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.div2 .news-item h4 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 6px;
+    line-height: 1.3;
+}
+
+.div2 .news-item p {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    margin-bottom: 6px;
+    line-height: 1.4;
+}
+
+.suggested-news-container {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.news-item h4 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 8px;
+    line-height: 1.4;
+}
+
+.news-item p {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    margin-bottom: 8px;
+}
+
+.news-date {
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    display: flex;
+    align-items: center;
+    margin-top: auto;
+}
+
+.news-date i {
+    margin-right: 5px;
+}
+
+
+.next-news-horizontal {
+    display: flex;
+    align-items: flex-start;
+    gap: 15px;
+}
+
+.next-news-horizontal img {
+    width: 200px;
+    height: 130px;
+    object-fit: cover;
+    border-radius: 6px;
+}
+
+.next-news-horizontal .content {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+/* .next-news-horizontal .content {
+    flex: 1;
+} */
+
+.related-grid,
+.featured-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+}
+
+.related-grid .news-item,
+.featured-grid .news-item {
+    display: block;
+}
+
+.related-grid .news-item img,
+.featured-grid .news-item img {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+    border-radius: 4px;
+    margin-bottom: 10px;
+}
+
+
+.post-content img {
+    max-width: 100%;
+    /* Không vượt container */
+    height: auto;
+    /* Giữ tỉ lệ */
+    display: block;
+    /* Tránh inline ảnh làm vỡ margin */
+    margin: 1rem 0;
+    /* Khoảng cách trên/dưới */
+    border-radius: 6px;
+    /* nếu muốn bo góc */
+}
+
+
+
+/* Mobile ≤ 768px */
+@media (max-width: 768px) {
+    .parent {
+        grid-template-columns: 1fr;
+        /* 1 cột */
+        grid-template-rows: auto;
+    }
+    
+     .related-grid,
+    .featured-grid {
+        grid-template-columns: 1fr;
+        gap: 0px !important;  /* ← nhỏ hơn cho mobile */
+    }
+
+    .div1,
+    .div2,
+    .div3,
+    .div4 {
+        grid-column: 1 / -1;
+grid-row: auto;
+        padding: 15px;
+    }
+
+    .main-title {
+        font-size: 1.5rem;
+    }
+
+    .div2 .news-item img {
+        width: 100px;
+        height: 70px;
+    }
+
+    .next-news-horizontal {
+        flex-direction: column;
+    }
+
+    .next-news-horizontal img {
+        width: 100%;
+        height: auto;
+    }
+
+    .related-grid,
+    .featured-grid {
+        grid-template-columns: 1fr;
+        /* 1 tin / hàng */
+    }
+
+    .div3 .news-item,
+    .div4 .news-item {
+        width: 100%;
+        /* bỏ cố định 450px */
+    }
+}
+
+/* Tablet 769px–1024px */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .parent {
+        grid-template-columns: repeat(6, 1fr);
+    }
+
+    .div1 {
+        grid-column: span 6;
+    }
+
+    .div2 {
+        grid-column: span 6;
+        order: 3;
+        /* Đẩy xuống dưới div1 */
+    }
+
+    .div3,
+    .div4 {
+        grid-column: span 6;
+    }
+
+    .related-grid,
+    .featured-grid {
+        grid-template-columns: repeat(2, 1fr);
+        /* 2 tin / hàng */
+    }
+
+    .div2 .news-item img {
+        width: 110px;
+        height: 80px;
+    }
+
+    .div3 .news-item,
+    .div4 .news-item {
+        width: 100%;
+        /* bỏ cố định 450px */
+    }
+}
+
+
+.btn-document {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: #E8EFF8;
+    color: #2C5AA0;
+    text-decoration: none;
+    border-radius: 6px;
+    font-size: 15px;
+    font-weight: 500;
+    transition: all 0.3s;
+    cursor: pointer;
+}
+
+.btn-document:hover {
+    background: #D1E0F2;
+    color: #234780;
+}
+
+.btn-document i {
+    font-size: 16px;
+}
+
+/* ===== NEXT NEWS (BÀI VIẾT TIẾP THEO) ===== */
+
+.next-news-horizontal {
+    display: flex;
+    gap: 15px;
+}
+
+/* Link bao toàn bộ */
+.next-news-horizontal a {
+    display: flex;
+    gap: 8px;
+    width: 100%;
+    text-decoration: none;
+    color: inherit;
+    align-items: stretch; /* 🔥 QUAN TRỌNG */
+}
+
+/* Ảnh */
+.next-news-horizontal img {
+    width: 200px;
+    height: 130px;
+    object-fit: cover;
+    border-radius: 6px;
+    flex-shrink: 0;
+}
+
+/* Content bên phải */
+.next-news-horizontal .content {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between; /* 🔥 đẩy date xuống */
+    height: 130px; /* 🔥 bằng ảnh => fix 100% */
+}
+
+/* Tiêu đề */
+.next-news-horizontal h4 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 6px;
+    line-height: 1.4;
+
+    /* giới hạn 2 dòng cho đẹp */
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* Mô tả */
+.next-news-horizontal p {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* Ngày */
+.next-news-horizontal .news-date {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+}
+
+@media (max-width: 768px) {
+    .parent {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto;
+    }
+
+    .div1, .div2, .div3, .div4 {
+        grid-column: 1 / -1;
+        grid-row: auto;
+        padding: 15px;
+    }
+
+    .main-title { font-size: 1.5rem; }
+
+    .next-news-horizontal { flex-direction: column; }
+    .next-news-horizontal img { width: 100%; height: auto; }
+
+    /* === DIV2 - layout giống sự kiện === */
+    .div2 .news-item {
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: stretch !important;
+        height: auto !important;
+        min-height: 100px !important;
+        border-radius: 14px !important;
+        border: 1px solid #e8edf2 !important;
+        overflow: hidden !important;
+        padding: 0 !important;
+        gap: 0 !important;
+    }
+
+    .div2 .news-item a.news-thumb {
+        display: block;
+        width: 120px;
+        min-width: 120px;
+        flex-shrink: 0;
+        align-self: stretch;
+    }
+
+    .div2 .news-item img {
+        width: 120px !important;
+        min-width: 120px !important;
+        max-width: 120px !important;
+        height: 100% !important;
+        min-height: 100px !important;
+        object-fit: cover !important;
+        border-radius: 0 !important;
+        flex-shrink: 0 !important;
+        margin-bottom: 0 !important;
+    }
+
+    .div2 .news-item .news-content {
+        flex: 1 !important;
+        min-width: 0 !important;
+        overflow: hidden !important;
+        padding: 10px 12px !important;
+        border-left: 3px solid #e3edf8 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: space-between !important;
+    }
+
+    .div2 .news-item h4 {
+        font-size: 14px !important;
+        -webkit-line-clamp: 3 !important;
+        word-break: break-word !important;
+        overflow: hidden !important;
+        margin-bottom: 4px !important;
+    }
+
+    .div2 .news-item p {
+        display: none !important;
+    }
+
+    .div2 .news-item .news-date {
+        font-size: 11px !important;
+        margin-top: auto !important;
+    }
+
+    /* === DIV3, DIV4 - related và featured === */
+    .related-grid, .featured-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .related-grid .news-item,
+    .featured-grid .news-item {
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: stretch !important;
+        height: auto !important;
+        min-height: 100px !important;
+        border-radius: 14px !important;
+        overflow: hidden !important;
+        padding: 0 !important;
+        gap: 0 !important;
+    }
+
+    .related-grid .news-item a.news-thumb,
+    .featured-grid .news-item a.news-thumb {
+        display: block;
+        width: 120px;
+        min-width: 120px;
+        flex-shrink: 0;
+        align-self: stretch;
+    }
+
+    .related-grid .news-item img,
+    .featured-grid .news-item img {
+        width: 120px !important;
+        min-width: 120px !important;
+        max-width: 120px !important;
+        height: 100% !important;
+        min-height: 100px !important;
+        object-fit: cover !important;
+        border-radius: 0 !important;
+        margin-bottom: 0 !important;
+        flex-shrink: 0 !important;
+    }
+
+    .related-grid .news-item .news-content,
+    .featured-grid .news-item .news-content {
+        flex: 1 !important;
+        min-width: 0 !important;
+        overflow: hidden !important;
+        padding: 10px 12px !important;
+        border-left: 3px solid #e3edf8 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: space-between !important;
+    }
+
+    .related-grid .news-item h4,
+    .featured-grid .news-item h4 {
+        font-size: 14px !important;
+        -webkit-line-clamp: 3 !important;
+        word-break: break-word !important;
+        overflow: hidden !important;
+        min-height: unset !important;
+    }
+
+    .related-grid .news-item p,
+    .featured-grid .news-item p {
+        display: none !important;
+    }
+
+    .div3 .news-item, .div4 .news-item { width: 100%; }
+}
+
+@media (max-width: 768px) {
+    /* === NEXT NEWS fix === */
+    .next-news-horizontal a {
+        flex-direction: row !important;  /* giữ ngang */
+    }
+
+    .next-news-horizontal img {
+        width: 120px !important;
+        min-width: 120px !important;
+        max-width: 120px !important;
+        height: 90px !important;
+        object-fit: cover !important;
+        flex-shrink: 0 !important;
+    }
+
+    .next-news-horizontal .content {
+        flex: 1 !important;
+        min-width: 0 !important;
+        height: auto !important;
+        overflow: hidden !important;
+        padding: 4px 8px !important;
+    }
+
+    .next-news-horizontal h4 {
+        font-size: 14px !important;
+        -webkit-line-clamp: 3 !important;
+        word-break: break-word !important;
+    }
+
+    .next-news-horizontal p {
+        display: none !important;
+    }
+}
+
+
+
+/* FIX VIDEO KHÔNG TRÀN */
+.post-content iframe,
+.post-content video,
+.post-content embed,
+.post-content object {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    display: block;
+}
+
+
+/* chống tràn layout */
+.div1,
+.post-content,
+.page-container {
+    overflow: visible;
+    max-width: 100%;
+}
+
+.post-content {
+    word-break: break-word;
+}
+
+.post-content pre,
+.post-content code {
+    white-space: pre-wrap !important;
+    word-wrap: break-word !important;
+    overflow-x: auto;
+    max-width: 100%;
+}
+
+.post-content {
+    width: 100%;
+    overflow: hidden;
+}
+
+
+.video-wrapper iframe {
+    position: absolute;
+    inset: 0;
+    width: 100% !important;
+    height: 100% !important;
+    border: 0;
+}
+
+.post-content {
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+.post-content * {
+    max-width: 100%;
+}
+
+.page-container,
+.div1 {
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+}
+
+.post-content pre {
+    max-width: 100%;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.post-content code {
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.parent {
+    overflow-x: hidden;
+}
+
+.div1,
+.div2,
+.div3,
+.div4 {
+    min-width: 0;
+}
+
+
+/* Force hiển thị video */
+
+
+.note-editable video {
+    display: block !important;
+    max-width: 100% !important;
+    height: auto !important;
+}
+
+
+/* Đảm bảo video nằm trong nội dung */
+.post-content {
+    overflow: visible !important;
+    position: relative;
+    z-index: 1;
+}
+
+.post-content video {
+    max-width: 100% !important;
+    width: 100% !important;
+    height: auto !important;
+    display: block !important;
+    margin: 0px 0 !important;
+   
+    position: relative !important;
+    z-index: 2 !important;
+}
+
+.video-wrapper {
+    position: relative;
+    width: 100%;
+    margin: 20px 0;
+    background: #000;
+    /* border-radius: 8px; */
+    overflow: hidden;
+}
+
+.video-wrapper video {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+/* Fix cho div1 chứa nội dung */
+.div1 {
+    overflow: visible !important;
+    background: white;
+}
+
+.page-container {
+    overflow: visible !important;
+}
+
+
+
+/* ===== VIDEO STYLES - ĐẸP TRÊN CẢ DESKTOP & MOBILE ===== */
+
+/* Container cho video */
+.post-content .video-container {
+    position: relative;
+    width: 100%;
+    margin: 25px 0;
+    background: #000;
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.post-content .video-container:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+}
+
+/* Video element */
+.post-content video {
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    background: #000;
+    cursor: pointer;
+}
+
+/* Custom controls styling */
+.post-content video::-webkit-media-controls-panel {
+    background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
+    /* border-radius: 0; */
+}
+
+.post-content video::-webkit-media-controls-play-button {
+    background-color: rgba(255,255,255,0.2);
+    /* border-radius: 50%; */
+}
+
+/* Iframe wrapper (giữ nguyên cho youtube) */
+.post-content .video-wrapper {
+    position: relative;
+    width: 100%;
+    padding-bottom: 56.25%;
+    height: 0;
+    overflow: hidden;
+    margin: 25px 0;
+    /* border-radius: 12px; */
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+    background: #000;
+}
+
+.post-content .video-wrapper iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100% !important;
+    height: 100% !important;
+    border: none;
+}
+
+/* Label cho video (tùy chọn) */
+.post-content .video-caption {
+    text-align: center;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-top: 8px;
+    font-style: italic;
+}
+
+/* ===== RESPONSIVE MOBILE ===== */
+@media (max-width: 768px) {
+    .post-content .video-container,
+    .post-content .video-wrapper {
+        margin: 15px 0;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    .post-content video {
+        border-radius: 8px;
+    }
+    
+    .post-content .video-caption {
+        font-size: 0.75rem;
+        margin-top: 6px;
+    }
+}
+
+/* ===== FIX CHO DIV1 KHÔNG BỊ TRÀN ===== */
+.div1,
+.page-container,
+.post-content {
+    overflow: visible !important;
+    max-width: 100%;
+}
+
+/* Đảm bảo video không bị che */
+/* ===== VIDEO STYLES - RESPONSIVE + CĂNG GIỮA ===== */
+
+/* Bọc video thường */
+.post-content .video-container {
+    display: flex;             
+    justify-content: center;
+    width: 100%;
+    max-width: 800px;         
+    margin: 25px auto;        
+    background: #000;
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+}
+
+/* Video element bên trong container */
+.post-content .video-container video {
+    display: block !important;
+    width: 100% !important;     /* luôn full width của container */
+    height: auto !important;    /* tự giữ tỉ lệ */
+    max-height: 70vh;           /* không cao quá 70% màn hình */
+    object-fit: contain;
+    background: #000;
+}
+
+/* Bọc iframe youtube/embed - giữ tỉ lệ 16:9 */
+.post-content .video-wrapper {
+    position: relative;
+    width: 100%;
+    max-width: 800px;
+    padding-bottom: 56.25%;    /* tỉ lệ 16:9 */
+    height: 0;
+    overflow: hidden;
+    margin: 25px auto;         /* căn giữa */
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+    background: #000;
+}
+
+.post-content .video-wrapper iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100% !important;
+    height: 100% !important;
+    border: none;
+}
+
+/* Mobile: full width, bỏ max-width */
+@media (max-width: 768px) {
+    .post-content .video-container,
+    .post-content .video-wrapper {
+        max-width: 100%;        /* full width trên mobile */
+        margin: 15px auto;
+        border-radius: 8px;
+    }
+
+    .post-content .video-container video {
+        border-radius: 8px;
+        max-height: 50vh;
+    }
+}
+
+/* Chống tràn chung */
+.post-content {
+    word-break: break-word;
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+.post-content * {
+    max-width: 100%;
+}
+
+.post-content img {
+    max-width: 100% !important;
+    height: auto !important;
+    width: auto !important;
+}
+/* ===== WRAP DIV1 + DIV2: DIV2 CHỈ STICKY TRONG PHẠM VI DIV1 ===== */
+@media (min-width: 1025px) {
+    .parent {
+        display: block !important;
+        padding: 20px !important;
+        overflow: visible !important;
+    }
+
+    .detail-main-row {
+        display: grid !important;
+        grid-template-columns: minmax(0, 8fr) minmax(320px, 4fr);
+        gap: 20px;
+        align-items: stretch;
+        overflow: visible !important;
+    }
+
+    .detail-main-row .div1 {
+        grid-column: auto !important;
+        grid-row: auto !important;
+        grid-column-start: auto !important;
+
+        min-width: 0;
+        align-self: stretch;
+    }
+
+    .detail-main-row .div2 {
+        grid-column: auto !important;
+        grid-row: auto !important;
+        grid-column-start: auto !important;
+
+        position: sticky !important;
+        top: 79px !important;
+
+        align-self: start !important;
+        height: fit-content !important;
+        max-height: none !important;
+        overflow: visible !important;
+
+        z-index: 10;
+    }
+
+    .suggested-news-container {
+        flex: unset !important;
+        height: auto !important;
+        max-height: none !important;
+        overflow: visible !important;
+    }
+
+    .div3,
+    .div4 {
+        grid-column: auto !important;
+        grid-row: auto !important;
+        grid-row-start: auto !important;
+        margin-top: 20px;
+    }
+}
+
+/* Tablet + mobile: bỏ sticky, xếp 1 cột */
+@media (max-width: 1024px) {
+    .parent {
+        display: block !important;
+        padding: 15px !important;
+    }
+
+    .detail-main-row {
+        display: block !important;
+    }
+
+    .div2 {
+        position: static !important;
+        top: auto !important;
+        height: auto !important;
+        max-height: none !important;
+        overflow: visible !important;
+    }
+
+    .suggested-news-container {
+        height: auto !important;
+        max-height: none !important;
+        overflow: visible !important;
+    }
+}

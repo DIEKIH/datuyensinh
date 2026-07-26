@@ -1,0 +1,1376 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "text": "={{ $json.message }}",
+        "additionalFields": {}
+      },
+      "id": "5bbd3bb2-245f-446f-a495-f427db465645",
+      "name": "Send Error Alert",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        -37904,
+        9008
+      ],
+      "webhookId": "3451981e-06b4-42e2-b4e2-c18c29307934",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "return { message: 'Lỗi hệ thống N8N ở Node: ' + $json.execution.lastNodeExecuted };"
+      },
+      "id": "2505e37c-6ccc-4426-9a54-e1b6e68a29a0",
+      "name": "Format Error Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        -38112,
+        9008
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "020a7b31-538c-45e4-9e7d-1492f4b8799a",
+      "name": "Error Trigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        -38304,
+        9008
+      ]
+    },
+    {
+      "parameters": {
+        "subject": "Trường gửi bạn thông tin học phí",
+        "options": {}
+      },
+      "id": "361a8aa9-7048-44d4-b197-951fa8b07592",
+      "name": "Gửi Nurture Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [
+        -36000,
+        10112
+      ],
+      "webhookId": "b28229e9-111e-4a39-9d9b-e69a9faa9b25",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.data.is_contacted }}"
+            }
+          ]
+        }
+      },
+      "id": "078bd3a8-2994-4b8c-9abd-26eb0378ccdb",
+      "name": "Chưa ai gọi?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -36192,
+        10112
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst token = 'your_secret_token_here';\n\nfor (const item of items) {\n  const id = item.json.body?.data?.id || '';\n\n  try {\n    const response = await this.helpers.httpRequest({\n      method: 'GET',\n      url: `http://tuyensinhtest.test/api/n8n/leads/${id}/status`,\n      headers: {\n        'X-N8N-Token': token\n      },\n      json: true\n    });\n    item.json.status_response = response;\n  } catch (err) {\n    item.json.status_error = err.message;\n  }\n}\n\nreturn items;"
+      },
+      "id": "79b9c833-fdbb-4553-a2f0-1d8568570efa",
+      "name": "Check Trạng Thái",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        -36400,
+        10112
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 24
+      },
+      "id": "e53af4b3-e59e-44f8-9d18-0cd2fdf84fdc",
+      "name": "Đợi 24 giờ",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [
+        -36592,
+        10112
+      ],
+      "webhookId": "aa1c8d61-7fde-4d33-bd44-6a1e925e0fdd"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "d924a32d-4cef-4c78-925d-f6be181a98ef",
+      "name": "Lưu Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 1,
+      "position": [
+        -36800,
+        10112
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "text": "HOT LEAD!!! Gọi ngay!!!",
+        "additionalFields": {}
+      },
+      "id": "4d6948d8-8095-47ed-b359-37731df93a85",
+      "name": "Báo động Sales",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        -36800,
+        9920
+      ],
+      "webhookId": "0649a53c-cdbd-4bc1-8a4e-fc53ab28bd3d",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "rules": {
+          "rules": [
+            {}
+          ]
+        }
+      },
+      "id": "fd4adcac-5fb2-45fd-9f5a-b53f3882617e",
+      "name": "Check Lead Score",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [
+        -36992,
+        10016
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "6bab90d2-8ab8-47de-96fc-99bac34c9697",
+      "name": "Format Lead Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        -37200,
+        10016
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "removeDuplicates"
+      },
+      "id": "42b1e059-9cd5-488d-8eee-2044e49262c2",
+      "name": "Lọc Trùng Lead",
+      "type": "n8n-nodes-base.itemLists",
+      "typeVersion": 1,
+      "position": [
+        -37392,
+        10016
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://openapi.zalo.me/v2.0/oa/message",
+        "options": {}
+      },
+      "id": "52f7d209-ab82-4c50-aee6-8be7d5563400",
+      "name": "Zalo OA Reply",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        -35392,
+        9808
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst token = 'EAAWmL3xMwUUBSPD6x4Su9AtZAb9VC8Lt31C3aOiceT5AFCUORpYM5h9QMOG1o44qjpED7LNu8GFNEi1HV3e5lALgT4z72SrYXu1R7ajUlO0CGiUA4M94yxMi3kLykZCIZCR05UYLvRd56qLVx0ZCRkWZB6MwHYbwq8c4IZAaZC2lVQbR16pwK1zm8czVzcVP67i8sA0Qc4xJQZDZD';\n\n// Trạm xuất phát\nconst transformNode = $('Transform FB Message').first();\n\nfor (const item of items) {\n  // Lấy lại sender_id gốc\n  const originalData = transformNode ? transformNode.json.body?.data : {};\n  const sender_id = originalData?.sender_id || item.json.sender_id || '';\n  \n  // Lấy câu trả lời AI từ payload hiện tại\n  const messageText = item.json.message || item.json.body?.data?.message || 'Xin lỗi, hệ thống đang bận.';\n\n  if (!sender_id) {\n    item.json.fb_error = 'Thiếu sender_id để gửi tin.';\n    continue;\n  }\n\n  try {\n    const response = await this.helpers.httpRequest({\n      method: 'POST',\n      url: 'https://graph.facebook.com/v18.0/me/messages',\n      qs: { access_token: token },\n      body: {\n        recipient: { id: sender_id },\n        message: { text: messageText }\n      },\n      json: true\n    });\n    item.json.fb_reply_response = response;\n  } catch (err) {\n    item.json.fb_reply_error = err.message;\n  }\n}\n\nreturn items;"
+      },
+      "id": "6db3d27d-762c-4563-b9c1-f55315615fdb",
+      "name": "FB Messenger Reply",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        -35392,
+        9616
+      ]
+    },
+    {
+      "parameters": {
+        "dataType": "string",
+        "value1": "={{ $('Transform FB Message').first().json.body?.data?.is_comment ? 'facebook_comment' : ($('Transform FB Message').first().json.body?.data?.raw_fb ? 'facebook' : 'zalo') }}",
+        "rules": {
+          "rules": [
+            {
+              "value2": "facebook"
+            },
+            {
+              "value2": "zalo",
+              "output": 1
+            },
+            {
+              "value2": "facebook_comment",
+              "output": 2
+            }
+          ]
+        }
+      },
+      "id": "bea4c0a0-3d4a-41ad-9b48-bdeb2a4d5c0a",
+      "name": "Channel Router",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [
+        -35600,
+        9712
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "65cca365-8f24-4026-a9e7-a003821da5ef",
+      "name": "Prepare Routing",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        -35792,
+        9712
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return items;"
+      },
+      "id": "ce673247-c7ed-4601-a170-652d11531218",
+      "name": "Format Output (Cắt Chữ)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        -36000,
+        9712
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst token = 'your_secret_token_here';\nconst transformNode = $('Transform FB Message').first();\n\nfor (const item of items) {\n  const originalData = transformNode ? transformNode.json.body?.data : {};\n  const message = originalData?.message || item.json.message || '';\n  const sender_id = originalData?.sender_id || item.json.sender_id || '';\n  const is_comment = originalData?.is_comment || false;\n  const comment_id = originalData?.comment_id || '';\n\n  try {\n    const response = await this.helpers.httpRequest({\n      method: 'POST',\n      url: 'http://tuyensinhtest.test/api/n8n/rag/answer',\n      headers: {\n        'X-N8N-Token': token,\n        'Content-Type': 'application/json'\n      },\n      body: {\n        question: message,\n        sender_id: sender_id,\n        is_comment: is_comment,\n        comment_id: comment_id\n      },\n      json: true\n    });\n    item.json.rag_response = response;\n    if (response && response.data && response.data.answer) {\n      item.json.message = response.data.answer;\n    }\n  } catch (err) {\n    item.json.rag_error = err.message;\n    item.json.message = 'Lỗi khi gọi AI: ' + err.message;\n  }\n}\n\nreturn items;"
+      },
+      "id": "b0df925d-b436-4cc7-89cb-6f8379a3d9ef",
+      "name": "Gọi Laravel RAG",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        -36192,
+        9712
+      ]
+    },
+    {
+      "parameters": {
+        "text": "Cảnh báo: Khách đang tức giận. Yêu cầu NV can thiệp!",
+        "additionalFields": {}
+      },
+      "id": "de41ad84-2469-47da-a6c5-5a2f39f5319c",
+      "name": "Báo Sales Can Thiệp",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        -36192,
+        9520
+      ],
+      "webhookId": "a82edb8f-faac-4383-a0f5-169951d937dd",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.sentiment_result }}",
+              "value2": "negative"
+            }
+          ]
+        }
+      },
+      "id": "812047e9-4e56-46d2-b885-e1a995d7e10b",
+      "name": "Khách giận dữ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -36400,
+        9616
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "fe71fabc-6b43-4afe-833a-7bd4902f4044",
+      "name": "Extract Sentiment",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        -36592,
+        9616
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nfor (const item of items) {\n  item.json.sentiment_result = \"neutral\";\n}\nreturn items;"
+      },
+      "id": "d03d0949-5086-4e18-b9ba-0cf6805e4e38",
+      "name": "Sentiment AI",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        -36800,
+        9616
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.body.data.media_url }}",
+        "options": {}
+      },
+      "id": "e0e6fa74-d734-466a-8879-95c93d5da7c2",
+      "name": "Tải Ảnh Tạm",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        -36992,
+        9520
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.body.data.media_url }}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        }
+      },
+      "id": "e0e3511a-b734-4e0d-90a3-b6d375e569c0",
+      "name": "Có Ảnh Không?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -37200,
+        9616
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return items;"
+      },
+      "id": "82354a1d-bf8d-4deb-a16d-101c3281b154",
+      "name": "Sanitize Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        -37392,
+        9616
+      ]
+    },
+    {
+      "parameters": {
+        "requestMethod": "POST",
+        "url": "http://tuyensinhtest.test/api/n8n/notifications",
+        "options": {},
+        "bodyParametersUi": {
+          "parameter": [
+            {
+              "name": "status",
+              "value": "success"
+            },
+            {
+              "name": "message",
+              "value": "Đã đăng bài thành công lên MXH"
+            }
+          ]
+        },
+        "headerParametersUi": {
+          "parameter": [
+            {
+              "name": "X-N8N-Token",
+              "value": "your_secret_token_here"
+            }
+          ]
+        }
+      },
+      "id": "785e6e1f-4ba2-4f32-9d6a-67977e6a7fd6",
+      "name": "Laravel Log Callback",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        -34464,
+        9200
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "f1ba04e6-5840-4cc7-b4c2-1f32b7145b64",
+      "name": "Merge",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2,
+      "position": [
+        -34832,
+        9152
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://api.trello.com/1/cards",
+        "options": {}
+      },
+      "id": "3a0e39dd-6112-4bf4-a62a-47e009599f84",
+      "name": "Trello (TikTok Task)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        -35600,
+        9360
+      ],
+      "onError": "continueErrorOutput",
+      "notes": "Chưa có method/body/auth/card fields nên chỉ là placeholder."
+    },
+    {
+      "parameters": {
+        "url": "https://openapi.zalo.me/v2.0/article/create",
+        "options": {}
+      },
+      "id": "63b0deb3-c6a2-40c4-9b5e-79573751b9fa",
+      "name": "Đăng Zalo",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        -35600,
+        9216
+      ],
+      "notes": "Chưa có method/body/auth nên chưa thể xem là node hoạt động hoàn chỉnh."
+    },
+    {
+      "parameters": {
+        "requestMethod": "POST",
+        "url": "https://graph.facebook.com/v18.0/me/feed?access_token=EAAWmL3xMwUUBSMi9FuiiJxxZBoOI9M2rVCiRxqIoWD015BGZB4PhoiubWRddP6tqX6yMZAZAPk3cZA1LZC0XjFyHZCyKYmI0ZBSSOZCKj7RDT6BAZAr7rRXpKzsFY2HZCY8Msya9yi8qZBXtxTHIXPAMTCURrj43CuJX7b8rWI7Nt0VZCiz1bvLZAgJHuZCITUb4T4CanNST5yDRxb62HJBw7YmgoNZBZBu9ZCAS3EZCE9zQhUNgosZD",
+        "options": {},
+        "bodyParametersUi": {
+          "parameter": [
+            {
+              "name": "message",
+              "value": "={{ $json.facebook_message }}"
+            },
+            {
+              "name": "link",
+              "value": "={{ $json.article_url }}"
+            }
+          ]
+        }
+      },
+      "id": "adc08d24-20e3-4019-a9fb-98aee214d4c7",
+      "name": "Đăng FB (Không Ảnh)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        -35392,
+        9168
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const token = 'EAAWmL3xMwUUBSPD6x4Su9AtZAb9VC8Lt31C3aOiceT5AFCUORpYM5h9QMOG1o44qjpED7LNu8GFNEi1HV3e5lALgT4z72SrYXu1R7ajUlO0CGiUA4M94yxMi3kLykZCIZCR05UYLvRd56qLVx0ZCRkWZB6MwHYbwq8c4IZAaZC2lVQbR16pwK1zm8czVzcVP67i8sA0Qc4xJQZDZD';\nconst inputItems = $input.all();\n\nif (!token) throw new Error('Thiếu Facebook Page Access Token.');\n\nasync function doRequest(options) {\n    try {\n        return await this.helpers.httpRequest(options);\n    } catch (e) {\n        const fbErr = e.response && e.response.data ? JSON.stringify(e.response.data) : e.message;\n        throw new Error('Lỗi từ Facebook: ' + fbErr + ' | Payload: ' + JSON.stringify(options.body));\n    }\n}\n\n// Lấy ngrok url tự động\nlet ngrokUrl = '';\ntry {\n  const ngrokRes = await this.helpers.httpRequest({ method: 'GET', url: 'http://127.0.0.1:4040/api/tunnels', json: true });\n  if (ngrokRes && ngrokRes.tunnels && ngrokRes.tunnels.length > 0) {\n    ngrokUrl = ngrokRes.tunnels[0].public_url;\n  }\n} catch(e) { console.log('Không lấy được ngrok'); }\n\nfor (const item of inputItems) {\n  let images = Array.isArray(item.json.content_images)\n    ? item.json.content_images.filter(Boolean).slice(0, 5)\n    : [];\n    \n  // Thay thế domain local thành public ngrok\n  images = images.map(img => {\n    if (ngrokUrl && img.includes('tuyensinhtest.test')) {\n      return img.replace(/http[s]?:\\/\\/tuyensinhtest\\.test/g, ngrokUrl);\n    }\n    return img;\n  });\n\n  const message = String(item.json.facebook_message || '').trim();\n\n  if (!message) throw new Error('Thiếu facebook_message.');\n  if (images.length === 0) throw new Error('Nhánh có ảnh nhưng content_images rỗng.');\n\n  if (images.length === 1) {\n    item.json.fb_response = await doRequest.call(this, {\n      method: 'POST',\n      url: 'https://graph.facebook.com/v18.0/me/photos',\n      qs: { access_token: token },\n      body: { url: images[0], message },\n      json: true,\n    });\n    continue;\n  }\n\n  const attachedMedia = [];\n  for (const imageUrl of images) {\n    const upload = await doRequest.call(this, {\n      method: 'POST',\n      url: 'https://graph.facebook.com/v18.0/me/photos',\n      qs: { access_token: token },\n      body: { url: imageUrl, published: false },\n      json: true,\n    });\n\n    if (upload?.id) attachedMedia.push({ media_fbid: upload.id });\n  }\n\n  if (attachedMedia.length === 0) {\n    throw new Error('Facebook không trả về media_fbid cho các ảnh đã tải.');\n  }\n\n  item.json.fb_response = await doRequest.call(this, {\n    method: 'POST',\n    url: 'https://graph.facebook.com/v18.0/me/feed',\n    qs: { access_token: token },\n    body: { message, attached_media: attachedMedia },\n    json: true,\n  });\n}\n\nreturn inputItems;"
+      },
+      "id": "a7d21599-a75d-4b08-9660-7f19ccf89406",
+      "name": "Đăng FB (Có Ảnh)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        -35392,
+        8960
+      ],
+      "notes": "Đã sửa: chuẩn hóa lại URL ảnh trước khi gọi Facebook, chặn host local và ghi image_url_used để kiểm tra."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.has_images }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "654f3c7d-2495-45a1-9b6e-d7deaeb6f123",
+      "name": "FB Có Ảnh Không?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -35600,
+        9072
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const inputItems = $input.all();\nconst source = $('Data Validator').first().json.body?.data || {};\n\nfor (const item of inputItems) {\n  const caption = String(item.json.caption || '').trim();\n  const hashtags = String(item.json.hashtags || '').trim();\n  const articleUrl = String(source.url || '').trim();\n\n  item.json.article_id = source.id || null;\n  item.json.article_title = source.title || '';\n  item.json.article_url = articleUrl;\n  item.json.content_images = Array.isArray(source.content_images) ? source.content_images : [];\n  item.json.has_images = Boolean(source.has_images);\n  item.json.facebook_message = [caption, articleUrl, hashtags]\n    .filter(Boolean)\n    .join('\\n\\n');\n}\n\nreturn inputItems;"
+      },
+      "id": "7501d0e5-3c01-4d70-8bb3-8ddf570639f7",
+      "name": "Prepare Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -35792,
+        9216
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.query.action }}",
+              "value2": "approve"
+            }
+          ]
+        }
+      },
+      "id": "51df8216-a5f2-44e9-a4c3-08b3849eed10",
+      "name": "Check Approval",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -36000,
+        9312
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "0d643970-4c3f-4cbb-a530-d07fd410ea94",
+      "name": "Wait (Duyệt)",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [
+        -36192,
+        9312
+      ],
+      "webhookId": "f6fb3ad6-d3be-438e-96b1-4079da57a3dc"
+    },
+    {
+      "parameters": {
+        "text": "Có bài viết mới cần duyệt!",
+        "additionalFields": {}
+      },
+      "id": "acf49ebf-fc78-4194-80d1-498bfe092130",
+      "name": "Telegram Approval",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        -36400,
+        9312
+      ],
+      "webhookId": "0bb2a82d-40f8-4dc3-98fe-66ba97269f8e",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $('Data Validator').item.json.body.data.auto_publish }}",
+              "operation": "equal",
+              "value2": 1
+            }
+          ]
+        }
+      },
+      "id": "87640f0b-3f38-41e9-a3ea-6a4be318759b",
+      "name": "IF Auto Publish?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -36560,
+        9312
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const inputItems = $input.all();\nconst source = $('Data Validator').first().json.body?.data || {};\n\nfunction normalize(value) {\n  return String(value || '')\n    .normalize('NFD')\n    .replace(/[\\u0300-\\u036f]/g, '')\n    .toLowerCase()\n    .replace(/đ/g, 'd')\n    .replace(/[^a-z0-9]/g, '');\n}\n\nconst normalizedSource = normalize(`${source.title || ''} ${source.plain_content || ''}`);\n\nfor (const item of inputItems) {\n  let content = item.json.choices?.[0]?.message?.content || '';\n  content = String(content)\n    .replace(/^```(?:text|markdown)?\\s*/i, '')\n    .replace(/\\s*```$/i, '')\n    .trim();\n\n  if (!content) {\n    throw new Error('OpenAI không trả về choices[0].message.content.');\n  }\n\n  // Không cho AI tự chèn URL hoặc lời dẫn đến liên kết.\n  content = content\n    .replace(/https?:\\/\\/\\S+/gi, '')\n    .replace(/(?:👉\\s*)?(?:xem\\s+chi\\s+tiết(?:\\s+tại)?|chi\\s+tiết\\s+bài\\s+viết|link)\\s*:?/giu, '')\n    .replace(/[ \\t]+\\n/g, '\\n')\n    .replace(/\\n{3,}/g, '\\n\\n')\n    .trim();\n\n  const found = content.match(/#[\\p{L}\\p{N}_]+/gu) || [];\n  const hashtags = [];\n  const seen = new Set();\n\n  for (const tag of found) {\n    const key = normalize(tag);\n    if (!key || seen.has(key)) continue;\n\n    // #CTUT được phép cố định; hashtag còn lại phải liên hệ trực tiếp với nguồn.\n    const alphaPart = key.replace(/ctut/g, '').replace(/\\d+/g, '');\n    const numberParts = key.match(/\\d+/g) || [];\n    const related = key === 'ctut'\n      || normalizedSource.includes(key)\n      || (alphaPart.length >= 4\n        && normalizedSource.includes(alphaPart)\n        && numberParts.every((number) => normalizedSource.includes(number)));\n    if (related) {\n      hashtags.push(tag);\n      seen.add(key);\n    }\n  }\n\n  if (hashtags.length < 4 || hashtags.length > 5) {\n    throw new Error(`AI tạo ${hashtags.length} hashtag hợp lệ; yêu cầu 4-5 hashtag bám sát nội dung nguồn.`);\n  }\n\n  const caption = content\n    .replace(/#[\\p{L}\\p{N}_]+/gu, '')\n    .replace(/[ \\t]+\\n/g, '\\n')\n    .replace(/\\n{3,}/g, '\\n\\n')\n    .trim();\n\n  if (!caption) throw new Error('AI không tạo phần mô tả Facebook.');\n\n  item.json.caption = caption;\n  item.json.hashtags = hashtags.slice(0, 5).join(' ');\n  item.json.text = `${caption}\\n\\n${item.json.hashtags}`;\n  item.json.ai_valid = true;\n}\n\nreturn inputItems;"
+      },
+      "id": "fb6434ff-fc37-48e1-8143-e1d96556e878",
+      "name": "Extract AI JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        -36800,
+        9216
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\n  model: 'gpt-4o-mini',\n  messages: [\n    {\n      role: 'system',\n      content: 'Bạn là chuyên gia Content Marketing chính xác cho Trường Đại học Kỹ thuật - Công nghệ Cần Thơ (CTUT). Chỉ được sử dụng thông tin có trong nguồn được cung cấp; không suy diễn, không bịa tên ngành, chương trình, mốc thời gian, số liệu hoặc quyền lợi.'\n    },\n    {\n      role: 'user',\n      content: 'Hãy viết nội dung đăng Facebook theo đúng các yêu cầu sau:\\n- Phần mô tả gồm đúng 3-4 câu ngắn gọn, tự nhiên, hấp dẫn.\\n- Chỉ nêu thông tin có thật trong nguồn.\\n- Dùng 1-3 emoji phù hợp, không lạm dụng.\\n- Dòng cuối phải có đúng 4-5 hashtag, không trùng nhau.\\n- Hashtag phải bám trực tiếp vào chủ đề, tên sự kiện/ngành/chương trình hoặc năm thật sự xuất hiện trong nguồn; chỉ #CTUT được phép dùng như hashtag thương hiệu cố định.\\n- Không ghi tiêu đề phụ, không dùng Markdown, không đặt nội dung trong dấu ngoặc kép.\\n- Không ghi các cụm như “xem chi tiết”, “link”, “chi tiết bài viết”, và không tự chèn URL.\\n\\nTIÊU ĐỀ: ' + ($json.body?.data?.title || '') + '\\nCHUYÊN MỤC: ' + ($json.body?.data?.category || '') + '\\nNỘI DUNG NGUỒN:\\n' + String($json.body?.data?.plain_content || '').slice(0, 12000)\n    }\n  ],\n  temperature: 0.2,\n  max_tokens: 500\n} }}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "0e20b356-71d9-4906-a3ce-57e7475465e1",
+      "name": "AI Content Gen",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -36992,
+        9216
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "openAiApi": {
+          "id": "zHWSNywbTXqtEXrB",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "return items;"
+      },
+      "id": "c7634df5-5d9a-450c-a436-c971c70579c7",
+      "name": "Remove HTML Tags",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        -37200,
+        9216
+      ],
+      "notes": "Node cũ không còn nằm trên nhánh new_article đang chạy; Data Validator đã chuẩn hóa plain_content."
+    },
+    {
+      "parameters": {},
+      "id": "10906123-c955-4a92-a9a3-9c88f8020526",
+      "name": "HTML/Markdown Parser",
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1,
+      "position": [
+        -37392,
+        9216
+      ],
+      "notes": "Node cũ không còn nằm trên nhánh new_article đang chạy; có thể xóa sau khi xác nhận không dùng."
+    },
+    {
+      "parameters": {
+        "dataType": "string",
+        "value1": "={{ $json.body.event_type }}",
+        "rules": {
+          "rules": [
+            {
+              "value2": "new_article"
+            },
+            {
+              "value2": "incoming_message",
+              "output": 1
+            },
+            {
+              "value2": "new_lead",
+              "output": 2
+            }
+          ]
+        }
+      },
+      "id": "b5e1968f-483f-419c-9b9a-135cbff5d012",
+      "name": "Router (Switch)",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [
+        -37696,
+        9616
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "4ecb0726-1d51-4886-b5b5-0681f3814834",
+      "name": "Set Metadata",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        -37904,
+        9616
+      ],
+      "notes": "Hiện là node truyền dữ liệu; chưa có metadata cần gán."
+    },
+    {
+      "parameters": {
+        "jsCode": "const inputItems = $input.all();\n\nfunction decodeHtmlEntities(value) {\n  return String(value || '')\n    .replace(/&nbsp;/gi, ' ')\n    .replace(/&amp;/gi, '&')\n    .replace(/&quot;/gi, '\"')\n    .replace(/&#39;|&apos;/gi, \"'\")\n    .replace(/&lt;/gi, '<')\n    .replace(/&gt;/gi, '>');\n}\n\nfunction htmlToPlainText(value) {\n  return decodeHtmlEntities(value)\n    .replace(/<(br|\\/p|\\/div|\\/li|\\/h[1-6])\\b[^>]*>/gi, '\\n')\n    .replace(/<[^>]+>/g, ' ')\n    .replace(/[ \\t]+/g, ' ')\n    .replace(/\\n[ \\t]+/g, '\\n')\n    .replace(/\\n{3,}/g, '\\n\\n')\n    .trim();\n}\n\nfunction normalizeImageUrl(rawUrl, baseUrl) {\n  let url = String(rawUrl || '').trim();\n  if (!url || url.startsWith('data:')) return '';\n\n  if (url.includes(',')) url = url.split(',')[0].trim();\n  url = url.split(/\\s+/)[0];\n\n  try {\n    let parsedUrl = new URL(url, baseUrl || undefined);\n    \n    if (['tuyensinhtest.test', 'localhost', '127.0.0.1'].includes(parsedUrl.hostname)) {\n        if (baseUrl) {\n            let baseParsed = new URL(baseUrl);\n            parsedUrl.protocol = baseParsed.protocol;\n            parsedUrl.hostname = baseParsed.hostname;\n            parsedUrl.port = baseParsed.port;\n        }\n    }\n    return parsedUrl.href;\n  } catch (error) {\n    return url;\n  }\n}\n\nfor (const item of inputItems) {\n  const body = item.json.body;\n  if (!body || typeof body !== 'object') {\n    throw new Error('Webhook thiếu body JSON.');\n  }\n\n  if (!body.event_type) {\n    throw new Error('Webhook thiếu body.event_type.');\n  }\n\n  if (!body.data || typeof body.data !== 'object') {\n    throw new Error('Webhook thiếu body.data.');\n  }\n\n  const d = body.data;\n  const htmlContent = d.content || d.noidung || '';\n  const fallbackPlainContent = htmlToPlainText(htmlContent);\n  d.title = String(d.title || '').trim();\n  d.plain_content = String(d.plain_content || fallbackPlainContent)\n    .replace(/\\r\\n/g, '\\n')\n    .replace(/[ \\t]+/g, ' ')\n    .replace(/\\n[ \\t]+/g, '\\n')\n    .replace(/\\n{3,}/g, '\\n\\n')\n    .trim();\n\n  if (body.event_type === 'new_article') {\n    if (!d.title) throw new Error('Bài viết thiếu body.data.title.');\n    if (!d.plain_content) {\n      throw new Error('Bài viết thiếu body.data.plain_content và không thể tạo lại từ content.');\n    }\n  }\n\n  d.auto_publish = [1, true, '1', 'true'].includes(d.auto_publish) ? 1 : 0;\n\n  const baseUrl = d.url || d.thumbnail || '';\n  const images = [];\n  const imageRegex = /<(?:img|source)\\b[^>]*\\b(?:src|data-src|data-original|srcset)=[\"']([^\"']+)[\"']/gi;\n  let match;\n\n  while ((match = imageRegex.exec(String(htmlContent))) !== null) {\n    const normalized = normalizeImageUrl(match[1], baseUrl);\n    if (normalized && !images.includes(normalized)) images.push(normalized);\n  }\n\n  if (images.length === 0 && d.thumbnail) {\n    const thumbnail = normalizeImageUrl(d.thumbnail, baseUrl);\n    if (thumbnail) images.push(thumbnail);\n  }\n\n  d.content_images = images;\n  d.has_images = images.length > 0;\n  d.validation = {\n    plain_content_length: d.plain_content.length,\n    image_count: images.length,\n  };\n}\n\nreturn inputItems;"
+      },
+      "id": "2d31780c-295d-4d40-a739-fbf869c8f02a",
+      "name": "Data Validator",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        -38112,
+        9616
+      ],
+      "notes": "Đã sửa: đổi URL ảnh local sang domain công khai, chuẩn hóa URL bài viết/thumbnail và ghi validation.first_image."
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "master-receiver",
+        "options": {}
+      },
+      "id": "c5c1163e-b204-4d8d-a0a7-b1ab5fd08239",
+      "name": "Master Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -38304,
+        9616
+      ],
+      "webhookId": "master-receiver"
+    },
+    {
+      "parameters": {
+        "path": "facebook-messenger",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "f072f453-2438-44e5-8038-07f6f3d37646",
+      "name": "Facebook Messenger Verify",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -38304,
+        9856
+      ],
+      "webhookId": "facebook-messenger-get"
+    },
+    {
+      "parameters": {
+        "jsCode": "const query = $input.first().json.query || {};\n\nconst mode = query['hub.mode'];\nconst verifyToken = query['hub.verify_token'];\nconst challenge = query['hub.challenge'];\n\nif (\n    mode === 'subscribe'\n    && verifyToken === 'ctut'\n    && challenge\n) {\n    return [\n        {\n            json: {\n                statusCode: 200,\n                responseBody: String(challenge),\n            },\n        },\n    ];\n}\n\nreturn [\n    {\n        json: {\n            statusCode: 403,\n            responseBody: 'Invalid verify token',\n        },\n    },\n];"
+      },
+      "id": "c62a89bf-4df9-47ff-bf6a-e1e27c102554",
+      "name": "Verify Facebook Token",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        -38112,
+        9856
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.responseBody }}",
+        "options": {
+          "responseCode": "={{ $json.statusCode }}"
+        }
+      },
+      "id": "cbd1d105-d807-432f-840b-a1d7c16ea040",
+      "name": "Respond to Webhook FB",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        -37904,
+        9856
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "facebook-messenger",
+        "options": {}
+      },
+      "id": "e41563cd-70ba-466a-bfff-9e13148b8ca8",
+      "name": "Facebook Messenger Events",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -38304,
+        10048
+      ],
+      "webhookId": "facebook-messenger-post"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body || {};\n\nlet text = '';\nlet senderId = '';\nlet is_comment = false;\nlet comment_id = '';\nlet post_id = '';\n\nif (body.entry && body.entry[0]) {\n    let entry = body.entry[0];\n    \n    // Check for messages\n    if (entry.messaging && entry.messaging[0]) {\n        let msg = entry.messaging[0];\n        text = msg.message ? msg.message.text : '';\n        senderId = msg.sender ? msg.sender.id : '';\n    } \n    // Check for comments\n    else if (entry.changes && entry.changes[0]) {\n        let change = entry.changes[0];\n        if (change.field === 'feed' && change.value && change.value.item === 'comment' && change.value.verb === 'add') {\n            text = change.value.message || '';\n            senderId = change.value.from ? change.value.from.id : '';\n            is_comment = true;\n            comment_id = change.value.comment_id;\n            post_id = change.value.post_id;\n        }\n    }\n}\n\nreturn [\n    {\n        json: {\n            body: {\n                event_type: 'incoming_message',\n                data: {\n                    message: text,\n                    sender_id: senderId,\n                    is_comment: is_comment,\n                    comment_id: comment_id,\n                    post_id: post_id,\n                    raw_fb: body\n                }\n            }\n        }\n    }\n];"
+      },
+      "id": "c5345cf5-1c84-455d-9549-211254371409",
+      "name": "Transform FB Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        -38000,
+        10048
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst token = 'EAAWmL3xMwUUBSPD6x4Su9AtZAb9VC8Lt31C3aOiceT5AFCUORpYM5h9QMOG1o44qjpED7LNu8GFNEi1HV3e5lALgT4z72SrYXu1R7ajUlO0CGiUA4M94yxMi3kLykZCIZCR05UYLvRd56qLVx0ZCRkWZB6MwHYbwq8c4IZAaZC2lVQbR16pwK1zm8czVzcVP67i8sA0Qc4xJQZDZD';\n\nconst transformNode = $('Transform FB Message').first();\n\nfor (const item of items) {\n  const originalData = transformNode ? transformNode.json.body?.data : {};\n  const comment_id = originalData?.comment_id || '';\n  \n  const messageText = item.json.message || item.json.body?.data?.message || 'Xin lỗi, hệ thống đang bận.';\n\n  if (!comment_id) {\n    item.json.fb_error = 'Thiếu comment_id để gửi trả lời.';\n    continue;\n  }\n\n  try {\n    const response = await this.helpers.httpRequest({\n      method: 'POST',\n      url: 'https://graph.facebook.com/v18.0/' + comment_id + '/comments',\n      qs: { access_token: token },\n      body: {\n        message: messageText\n      },\n      json: true\n    });\n    item.json.fb_reply_response = response;\n  } catch (err) {\n    item.json.fb_reply_error = err.message;\n  }\n}\n\nreturn items;"
+      },
+      "id": "681cfc40-2f44-4839-a6fb-8f7009c866ec",
+      "name": "FB Comment Reply",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        -35392,
+        9824
+      ]
+    }
+  ],
+  "connections": {
+    "Format Error Message": {
+      "main": [
+        [
+          {
+            "node": "Send Error Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Format Error Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chưa ai gọi?": {
+      "main": [
+        [
+          {
+            "node": "Gửi Nurture Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Trạng Thái": {
+      "main": [
+        [
+          {
+            "node": "Chưa ai gọi?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Đợi 24 giờ": {
+      "main": [
+        [
+          {
+            "node": "Check Trạng Thái",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lưu Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Đợi 24 giờ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Báo động Sales": {
+      "main": [
+        [
+          {
+            "node": "Lưu Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Lead Score": {
+      "main": [
+        [
+          {
+            "node": "Báo động Sales",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Lưu Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Lead Data": {
+      "main": [
+        [
+          {
+            "node": "Check Lead Score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lọc Trùng Lead": {
+      "main": [
+        [
+          {
+            "node": "Format Lead Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Channel Router": {
+      "main": [
+        [
+          {
+            "node": "FB Messenger Reply",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Zalo OA Reply",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "FB Comment Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Routing": {
+      "main": [
+        [
+          {
+            "node": "Channel Router",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Output (Cắt Chữ)": {
+      "main": [
+        [
+          {
+            "node": "Prepare Routing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gọi Laravel RAG": {
+      "main": [
+        [
+          {
+            "node": "Format Output (Cắt Chữ)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Khách giận dữ?": {
+      "main": [
+        [
+          {
+            "node": "Báo Sales Can Thiệp",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Gọi Laravel RAG",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Sentiment": {
+      "main": [
+        [
+          {
+            "node": "Khách giận dữ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sentiment AI": {
+      "main": [
+        [
+          {
+            "node": "Extract Sentiment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tải Ảnh Tạm": {
+      "main": [
+        [
+          {
+            "node": "Sentiment AI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Có Ảnh Không?": {
+      "main": [
+        [
+          {
+            "node": "Tải Ảnh Tạm",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Sentiment AI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sanitize Input": {
+      "main": [
+        [
+          {
+            "node": "Có Ảnh Không?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Laravel Log Callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Đăng Zalo": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Đăng FB (Không Ảnh)": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Đăng FB (Có Ảnh)": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FB Có Ảnh Không?": {
+      "main": [
+        [
+          {
+            "node": "Đăng FB (Có Ảnh)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Đăng FB (Không Ảnh)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Payload": {
+      "main": [
+        [
+          {
+            "node": "Trello (TikTok Task)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Đăng Zalo",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "FB Có Ảnh Không?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Approval": {
+      "main": [
+        [
+          {
+            "node": "Prepare Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait (Duyệt)": {
+      "main": [
+        [
+          {
+            "node": "Check Approval",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Approval": {
+      "main": [
+        [
+          {
+            "node": "Wait (Duyệt)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Auto Publish?": {
+      "main": [
+        [
+          {
+            "node": "Prepare Payload",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Telegram Approval",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract AI JSON": {
+      "main": [
+        [
+          {
+            "node": "IF Auto Publish?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Content Gen": {
+      "main": [
+        [
+          {
+            "node": "Extract AI JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Remove HTML Tags": {
+      "main": [
+        [
+          {
+            "node": "AI Content Gen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTML/Markdown Parser": {
+      "main": [
+        [
+          {
+            "node": "Remove HTML Tags",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Router (Switch)": {
+      "main": [
+        [
+          {
+            "node": "AI Content Gen",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Sanitize Input",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Lọc Trùng Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Metadata": {
+      "main": [
+        [
+          {
+            "node": "Router (Switch)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Data Validator": {
+      "main": [
+        [
+          {
+            "node": "Set Metadata",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Master Webhook": {
+      "main": [
+        [
+          {
+            "node": "Data Validator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Facebook Messenger Verify": {
+      "main": [
+        [
+          {
+            "node": "Verify Facebook Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify Facebook Token": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook FB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Facebook Messenger Events": {
+      "main": [
+        [
+          {
+            "node": "Transform FB Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transform FB Message": {
+      "main": [
+        [
+          {
+            "node": "Router (Switch)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "cb64f5172bbd3f09073916fb5c9f2bc3df78bc314d1f32942d3b793878741ee7"
+  }
+}

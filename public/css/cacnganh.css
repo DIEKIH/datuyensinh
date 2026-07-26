@@ -1,0 +1,144 @@
+.nganh-item {
+    box-sizing: border-box;
+    vertical-align: baseline;
+    margin: 0px;
+    padding: 0px;
+    border-width: 0px;
+    border-style: initial;
+    border-color: initial;
+    border-image: initial;
+    font: inherit;
+    position: relative;
+    cursor: pointer;
+    box-shadow: rgba(255, 255, 255, 0.25) 0px 5px 12px 0px;
+    overflow: hidden;
+    transition: 0.5s;
+    margin: 10px;
+}
+
+.nganh-item {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.nganh-item:hover {
+    transform: scale(1.02);
+    box-shadow: rgb(138, 138, 138) 0px 5px 12px 0px;
+}
+
+.nganh-item img {
+    cursor: pointer;
+    width: 100%;
+    object-fit: cover;
+}
+
+.education-program-item__info {
+    position: absolute;
+    left: 0px;
+    bottom: 0px;
+    width: 100%;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(0, 0, 0, 0.78);
+    padding: 10px 5px;
+}
+
+/* ---- Section tour nganh hoc ---- */
+#section-tour-nganhhoc {
+    position: relative;
+    padding-top: 50px;
+    padding-bottom: 10px;
+}
+
+#section-tour-nganhhoc.ts-section {
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+#section-tour-nganhhoc .nhomnganh-block {
+    position: relative;
+    height: 100%;
+    padding: 35px;
+}
+
+#section-tour-nganhhoc .nhomnganh-block {
+    aspect-ratio: 1/1;
+    padding: 15px 25px;
+}
+
+@media all and (min-width: 992px) {
+    #section-tour-nganhhoc .col-nganh-custom:nth-child(odd) {
+        padding-right: 25px;
+    }
+
+    #section-tour-nganhhoc .col-nganh-custom:nth-child(even) {
+        padding-left: 25px;
+    }
+}
+
+.ts-section {
+    margin: 100px auto;
+}
+
+@media(max-width: 991px) {
+    .ts-section {
+        margin: 40px auto;
+    }
+}
+
+.ts-nhomnganh-title {
+    margin-bottom: 50px;
+}
+
+@media (max-width: 991px) {
+    .ts-nhomnganh-title {
+        margin-bottom: 0px;
+    }
+}
+
+.title-topic h2 {
+    font-weight: 600;
+    color: #D72134;
+    font-family: 'SVN-Poppins-Bold', sans-serif;
+    text-align: center;
+}
+
+.backlink-v2 {
+    max-width: 1430px;
+    margin: 0 auto;
+    padding: 10px;
+    color: #25359D;
+    font-size: 16px;
+    margin-top: 40px;
+    /* margin-left: 40px; */
+    text-decoration: none;
+}
+
+.backlink-v2 a {
+    color: #25359D;
+    text-decoration: none;
+}
+
+.backlink-v2 .last-a {
+    text-decoration: none;
+    color: #D72134;
+}
+
+.two-lines {
+    font: inherit;
+    vertical-align: baseline;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    -webkit-line-clamp: 2;
+    text-overflow: ellipsis;
+    color: #fff;
+    text-align: center;
+    font-style: normal;
+    font-weight: 400;
+    text-transform: uppercase;
+    font-size: 16px;
+    line-height: 150%;
+    margin-bottom: 0px;
+}
