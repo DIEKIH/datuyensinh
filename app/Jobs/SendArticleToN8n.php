@@ -88,6 +88,11 @@ class SendArticleToN8n implements ShouldQueue
             ]
         ];
 
+        // [MỚI] Gửi mail lưu vết TRƯỚC khi bắn sang n8n để chờ AI/duyệt tay đăng FB.
+        // Mục đích: nếu sau này có sai sót (đăng nhầm nội dung, bị report...) thì
+        // quản lý có sẵn email chứa đúng data gốc lúc gửi đi để đối chiếu.
+        $this->sendAuditMail($payload['data']);
+
         try {
             $response = Http::timeout(15)->post($webhookUrl, $payload);
 
@@ -110,6 +115,40 @@ class SendArticleToN8n implements ShouldQueue
         } catch (\Exception $e) {
             Log::error('N8N Webhook Exception: ' . $e->getMessage());
             throw $e; // Throw để queue tự retry theo config
+        }
+    }
+
+    /**
+     * [MỚI] Gửi mail lưu vết cho quản lý trước khi bài được AI/duyệt tay đăng lên Facebook.
+     * Không throw exception nếu gửi mail lỗi — không được để lỗi mail chặn luồng đăng bài chính.
+     */
+    private function sendAuditMail(array $data): void
+    {
+        $adminEmail = env('ADMIN_AUDIT_EMAIL');
+        if (!$adminEmail) {
+            Log::warning('ADMIN_AUDIT_EMAIL chưa cấu hình trong .env, bỏ qua gửi mail lưu vết.');
+            return;
+        }
+
+        try {
+            \Illuminate\Support\Facades\Mail::raw(
+                "Bài viết sắp được gửi sang n8n để AI/duyệt tay đăng Facebook.\n\n"
+                . "ID: {$data['id']}\n"
+                . "Tiêu đề: {$data['title']}\n"
+                . "Chuyên mục: {$data['category']}\n"
+                . "URL: {$data['url']}\n"
+                . "Chế độ: " . ($data['auto_publish'] ? 'Tự động đăng (qua AI duyệt)' : 'Chờ duyệt tay') . "\n"
+                . "Thời điểm gửi: {$data['publish_time']}\n\n"
+                . "Nội dung gốc (rút gọn):\n" . mb_substr($data['plain_content'] ?? '', 0, 1500) . "\n\n"
+                . "Email này chỉ để lưu vết đối chiếu sau này, không cần trả lời.",
+                function ($message) use ($adminEmail, $data) {
+                    $message->to($adminEmail)
+                            ->subject('[CTUT][Lưu vết] Bài viết chuẩn bị đăng FB: ' . $data['title']);
+                }
+            );
+        } catch (\Throwable $e) {
+            // Chỉ log, không để việc gửi mail lưu vết làm gãy job chính
+            Log::error('Gửi mail lưu vết thất bại: ' . $e->getMessage());
         }
     }
 }

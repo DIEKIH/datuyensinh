@@ -24,7 +24,8 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
-        // $schedule->command('inspire')->hourly();
+        // Chạy tự động vào 9 giờ sáng mỗi ngày để gửi Email chăm sóc Lead
+        $schedule->command('leads:nurture')->dailyAt('09:00');
     }
 
     /**

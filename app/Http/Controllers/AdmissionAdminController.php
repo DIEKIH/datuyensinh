@@ -24,16 +24,134 @@ class AdmissionAdminController extends Controller
         return view('admins.pages.admission_cms');
     }
 
+    public function triggerNurture()
+    {
+        try {
+            \Illuminate\Support\Facades\Artisan::call('leads:nurture');
+            $output = \Illuminate\Support\Facades\Artisan::output();
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Đã chạy chiến dịch chăm sóc thành công!',
+                'output' => $output
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi khi chạy: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function listApprovals()
+    {
+        $approvals = \App\Models\AiApproval::where('status', 'pending')
+                        ->orderBy('created_at', 'desc')
+                        ->get();
+        return response()->json(['success' => true, 'data' => $approvals]);
+    }
+
+    public function handleApprovalAction(Request $request, $id)
+    {
+        $approval = \App\Models\AiApproval::findOrFail($id);
+        $action = $request->input('action'); // 'approve', 'rewrite', 'reject'
+        $newAnswer = $request->input('ai_answer');
+        $feedback = $request->input('admin_feedback');
+
+        if ($action === 'approve') {
+            $approval->status = 'approved';
+            $approval->ai_answer = $newAnswer ?: $approval->ai_answer;
+            $approval->save();
+
+            if ($approval->channel === 'email' && $approval->customer_email) {
+                try {
+                    $n8nUrl = env('N8N_EMAIL_WEBHOOK_URL', 'http://localhost:5678/webhook/send-approved-email');
+                    $response = \Illuminate\Support\Facades\Http::withoutVerifying()->post($n8nUrl, [
+                        'event_type' => 'send_approved_email',
+                        'data' => [
+                            'email' => $approval->customer_email,
+                            'subject' => '[CTUT] Trả lời thắc mắc của bạn',
+                            'body' => $approval->ai_answer
+                        ]
+                    ]);
+                    \Illuminate\Support\Facades\Log::info("Gui n8n webhook approve: " . $response->status() . " " . $response->body());
+
+                    if (!$response->successful()) {
+                        return response()->json(['success' => false, 'message' => 'Gửi n8n thất bại: ' . $response->body()], 500);
+                    }
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::error('Error sending approved email via n8n: ' . $e->getMessage());
+                    return response()->json(['success' => false, 'message' => 'Lỗi kết nối n8n: ' . $e->getMessage()], 500);
+                }
+            } else {
+                // MỚI THÊM: báo rõ ràng khi thiếu email, không gửi được
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Đã duyệt nhưng KHÔNG gửi được mail — khách hàng chưa có email liên hệ.'
+                ]);
+            }
+
+            return response()->json(['success' => true, 'message' => 'Đã duyệt và gửi nội dung thành công!']);
+        } elseif ($action === 'rewrite') {
+            $approval->admin_feedback = $feedback;
+            $prompt = "Câu hỏi ban đầu: {$approval->question}\n\nLưu ý từ Admin để sửa lại: {$feedback}\n\nHãy viết lại câu trả lời thật chính xác.";
+            try {
+                $ragService = app(\App\Services\AdmissionRagService::class);
+                $result = $ragService->answer($prompt);
+                $approval->ai_answer = $result['answer'] ?? "Lỗi AI";
+            } catch (\Exception $e) {
+                // Ignore for now
+            }
+            $approval->save();
+            return response()->json(['success' => true, 'message' => 'Đã gửi yêu cầu AI viết lại!', 'new_answer' => $approval->ai_answer]);
+
+        } elseif ($action === 'reject') {
+            $approval->status = 'rejected';
+            $approval->save();
+            return response()->json(['success' => true, 'message' => 'Đã từ chối câu trả lời này.']);
+        }
+
+        return response()->json(['success' => false, 'message' => 'Hành động không hợp lệ.']);
+    }
+
     public function stats()
     {
+        $totalLeads = DB::table('admission_leads')->count();
+        $hotLeads = DB::table('admission_leads')->where('score_grade', 'hot')->count();
+        $warmLeads = DB::table('admission_leads')->where('score_grade', 'warm')->count();
+
+        // Nguồn Traffic
+        $sources = DB::table('admission_leads')
+            ->select('channel', DB::raw('count(*) as total'))
+            ->groupBy('channel')
+            ->get();
+
+        // Bot Deflection Rate
+        $totalTickets = DB::table('chatbot_tickets')->count();
+        $answeredTickets = DB::table('chatbot_tickets')->where('status', 'answered')->count();
+        $pendingTickets = DB::table('chatbot_tickets')->where('status', 'pending')->count();
+
         return response()->json([
             'success' => true,
             'data' => [
-                'total_leads' => DB::table('admission_leads')->count(),
-                'hot_leads' => DB::table('admission_leads')->where('score_grade', 'hot')->count(),
+                'total_leads' => $totalLeads,
+                'hot_leads' => $hotLeads,
                 'new_leads' => DB::table('admission_leads')->where('status', 'new')->count(),
                 'rag_documents' => DB::table('admission_rag_documents')->count(),
                 'n8n_events' => DB::table('admission_n8n_logs')->whereDate('created_at', now()->toDateString())->count(),
+                
+                // Chart Data
+                'funnel' => [
+                    'total' => $totalLeads,
+                    'warm' => $warmLeads,
+                    'hot' => $hotLeads,
+                ],
+                'sources' => $sources,
+                'tickets' => [
+                    'total' => $totalTickets,
+                    'answered' => $answeredTickets,
+                    'pending' => $pendingTickets
+                ]
             ],
         ]);
     }

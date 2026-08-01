@@ -61,6 +61,24 @@ class AdmissionWebhookController extends Controller
                     'updated_at' => now(),
                 ]);
                 
+                // 2.5 AI Extract Profile
+                $extracted = $this->rag->extractLeadInfo($content);
+                if (!empty($extracted)) {
+                    $profile = json_decode($lead->profile ?? '{}', true) ?? [];
+                    $updated = false;
+                    foreach (['phone', 'email', 'major', 'intent'] as $key) {
+                        if (!empty($extracted[$key])) {
+                            $profile[$key] = $extracted[$key];
+                            $updated = true;
+                        }
+                    }
+                    if ($updated) {
+                        $encodedProfile = json_encode($profile);
+                        DB::table('admission_leads')->where('id', $leadId)->update(['profile' => $encodedProfile]);
+                        $lead->profile = $encodedProfile;
+                    }
+                }
+                
                 // 3. Rescore lead
                 $activities = DB::table('admission_lead_activities')
                     ->where('lead_id', $leadId)
@@ -78,10 +96,70 @@ class AdmissionWebhookController extends Controller
                 ]);
             }
             
-            // 4. Call RAG
+            // 4. Call RAG or Human Handoff
             $ragResult = null;
             if (!empty($content) || !empty($mediaUrl)) {
-                $ragResult = $this->rag->answer($content, $senderId, $mediaUrl);
+                
+                // KIỂM TRA: Có đang đợi Nhân viên thật trả lời không? (Livechat Handoff)
+                $sessionId = DB::table('chatbot_sessions')->where('session_key', $senderId)->value('id');
+                $isPending = false;
+                if ($sessionId) {
+                    $hasPendingTicket = DB::table('chatbot_tickets')
+                        ->where('session_id', $sessionId)
+                        ->where('status', 'pending')
+                        ->exists();
+                    if ($hasPendingTicket) {
+                        $isPending = true;
+                    }
+                }
+
+                if ($isPending) {
+                    // Cướp quyền Bot: Không gọi RAG nữa, trả về tin nhắn giữ chân khách
+                    $ragResult = [
+                        'answer' => 'Tin nhắn của bạn đã được chuyển đến Thầy/Cô tư vấn viên. Thầy/Cô sẽ phản hồi bạn ngay, bạn đợi một chút nhé!',
+                        'sources' => [],
+                        'generated' => false,
+                    ];
+                    
+                    // Cập nhật câu hỏi mới vào ticket đang pending
+                    DB::table('chatbot_tickets')
+                        ->where('session_id', $sessionId)
+                        ->where('status', 'pending')
+                        ->update([
+                            'question' => DB::raw("CONCAT(question, '\n\n[Tin nhắn mới]: ', " . DB::getPdo()->quote($content) . ")"),
+                            'updated_at' => now()
+                        ]);
+                } else {
+                    // Gọi RAG bình thường
+                    $ragResult = $this->rag->answer($content, $senderId, $mediaUrl);
+                    
+                    // CREATE TICKET cho Giao diện Quản trị
+                    $answerText = $ragResult['answer'] ?? '';
+                    $isFallback = strpos($answerText, 'nằm ngoài thông tin') !== false || strpos($answerText, 'để lại Tên và') !== false;
+                    
+                    if (!$sessionId) {
+                        $sessionId = DB::table('chatbot_sessions')->insertGetId([
+                            'session_key' => $senderId,
+                            'ip_address' => 'webhook',
+                            'user_agent' => $channel,
+                            'started_at' => now(),
+                            'last_active_at' => now(),
+                        ]);
+                    } else {
+                        DB::table('chatbot_sessions')->where('id', $sessionId)->update(['last_active_at' => now()]);
+                    }
+                    
+                    $ticketCode = strtoupper(substr($channel, 0, 2)) . now()->format('Ymd') . '-' . strtoupper(\Illuminate\Support\Str::random(4));
+                    DB::table('chatbot_tickets')->insert([
+                        'session_id' => $sessionId,
+                        'ticket_code' => $ticketCode,
+                        'question' => "[$channel] {$content}",
+                        'status' => $isFallback ? 'pending' : 'answered',
+                        'staff_answer' => $isFallback ? null : $answerText,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
             }
 
             return response()->json([
@@ -96,8 +174,16 @@ class AdmissionWebhookController extends Controller
 
     public function ragAnswer(Request $request)
     {
-        // Route to upsertLead so scoring works
-        return $this->upsertLead($request);
+        $question = $request->input('question');
+        $ragService = app(\App\Services\AdmissionRagService::class);
+        $result = $ragService->answer($question);
+        
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'answer' => $result['answer']
+            ]
+        ]);
     }
 
     public function checkLeadStatus($id)

@@ -1,0 +1,50 @@
+{
+  "name": "Luồng Gửi Email Đã Duyệt",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "send-approved-email",
+        "options": {}
+      },
+      "name": "Webhook Gửi Email",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        100,
+        300
+      ],
+      "webhookId": "send-approved-email"
+    },
+    {
+      "parameters": {
+        "fromEmail": "noreply@ctut.edu.vn",
+        "toEmail": "={{ $json.body.data.email }}",
+        "subject": "={{ $json.body.data.subject }}",
+        "text": "={{ $json.body.data.body }}"
+      },
+      "name": "Gửi Email (Gmail/SMTP)",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [
+        300,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook Gửi Email": {
+      "main": [
+        [
+          {
+            "node": "Gửi Email (Gmail/SMTP)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {}
+}

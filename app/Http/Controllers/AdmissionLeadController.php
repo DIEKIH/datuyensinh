@@ -44,6 +44,7 @@ class AdmissionLeadController extends Controller
             'utm_medium' => 'nullable|string|max:80',
             'utm_campaign' => 'nullable|string|max:255',
             'utm_content' => 'nullable|string|max:255',
+            'high_school' => 'nullable|string|max:255',
         ], [
             'full_name.required' => 'Vui long nhap ho ten.',
             'phone.required' => 'Vui long nhap so dien thoai.',
@@ -75,16 +76,17 @@ class AdmissionLeadController extends Controller
         ];
 
         $scored = $this->scoring->score($leadData, [['type' => 'form_submit']]);
-        $leadData['score'] = $scored['score'];
-        $leadData['score_grade'] = $scored['grade'];
+        $leadData['score'] = $scored['lead_score'] ?? 0;
+        $leadData['score_grade'] = strtolower($scored['lead_level'] ?? 'cold');
         $leadData['profile'] = json_encode([
-            'score_reasons' => $scored['reasons'],
+            'score_reasons' => $scored['matched_criteria'] ?? [],
             'utm' => [
                 'source' => $data['utm_source'] ?? null,
                 'medium' => $data['utm_medium'] ?? null,
                 'campaign' => $data['utm_campaign'] ?? null,
                 'content' => $data['utm_content'] ?? null,
             ],
+            'high_school' => $data['high_school'] ?? null,
             'user_agent' => $request->userAgent(),
             'ip_address' => $request->ip(),
         ]);
@@ -110,6 +112,26 @@ class AdmissionLeadController extends Controller
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+
+        // [MỚI THÊM] Bắn dữ liệu sang n8n Master Webhook để AI xử lý
+        if (!empty($data['note'])) {
+            try {
+                // Thay thế URL này bằng URL Webhook thực tế của bạn trong n8n (Production/Test)
+                $n8nUrl = env('N8N_MASTER_WEBHOOK_URL', 'http://localhost:5678/webhook/master');
+                Http::post($n8nUrl, [
+                    'event_type' => 'new_lead',
+                    'data' => [
+                        'id' => $leadId,
+                        'name' => $leadData['full_name'],
+                        'email' => $leadData['email'],
+                        'phone' => $leadData['phone'],
+                        'question' => $data['note']
+                    ]
+                ]);
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::error('Loi gui webhook n8n: ' . $e->getMessage());
+            }
+        }
 
         // Tự động tìm câu trả lời RAG ngay nếu thí sinh có câu hỏi ở phần ghi chú
         $ragAnswer = null;
@@ -172,8 +194,8 @@ class AdmissionLeadController extends Controller
             'success' => true,
             'message' => 'Da ghi nhan thong tin. Bo phan tu van se lien he trong thoi gian som nhat.',
             'lead_id' => $leadId,
-            'score' => $scored['score'],
-            'score_grade' => $scored['grade'],
+            'score' => $scored['lead_score'] ?? 0,
+            'score_grade' => strtolower($scored['lead_level'] ?? 'cold'),
         ]);
     }
 

@@ -15,7 +15,7 @@ $(function () {
         setMessage('success', '');
 
         $.ajax({
-            url: '/dang-ky-tu-van',
+            url: '/dang-ky-tu-van-n8n',
             method: 'POST',
             data: form.serialize(),
             headers: { 'X-CSRF-TOKEN': csrf },

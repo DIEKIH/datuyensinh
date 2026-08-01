@@ -181,11 +181,22 @@ Route::prefix('admin')->middleware('admin')->group(function () {
     Route::get('/admission-cms/documents', [AdmissionAdminController::class, 'documents']);
     Route::post('/admission-cms/documents', [AdmissionAdminController::class, 'storeDocument']);
     Route::post('/admission-cms/rag/ask', [AdmissionAdminController::class, 'askRag']);
+    Route::post('/admission-cms/nurture', [AdmissionAdminController::class, 'triggerNurture']);
+
+    // Human-in-the-Loop AI Approvals
+    Route::get('/admission-cms/approvals', [AdmissionAdminController::class, 'listApprovals']);
+    Route::post('/admission-cms/approvals/{id}/action', [AdmissionAdminController::class, 'handleApprovalAction']);
 
     Route::get('/admission-cms/openai/config', [AdmissionAdminController::class, 'getOpenAiConfig']);
     Route::post('/admission-cms/openai/prompt', [AdmissionAdminController::class, 'updateOpenAiPrompt']);
     Route::post('/admission-cms/openai/files', [AdmissionAdminController::class, 'uploadOpenAiFile']);
     Route::delete('/admission-cms/openai/files/{fileId}', [AdmissionAdminController::class, 'deleteOpenAiFile']);
+
+    // Scoring Criteria
+    Route::get('/admission-cms/scoring/criteria', [\App\Http\Controllers\AdmissionScoringController::class, 'getCriteria']);
+    Route::post('/admission-cms/scoring/criteria', [\App\Http\Controllers\AdmissionScoringController::class, 'storeCriterion']);
+    Route::put('/admission-cms/scoring/criteria/{id}', [\App\Http\Controllers\AdmissionScoringController::class, 'updateCriterion']);
+    Route::delete('/admission-cms/scoring/criteria/{id}', [\App\Http\Controllers\AdmissionScoringController::class, 'deleteCriterion']);
 });
 
 
@@ -265,6 +276,9 @@ Route::get('/gioithieu', function () {
 Route::get('/dang-ky-tu-van', [AdmissionLeadController::class, 'create'])
     ->name('admission.leads.create');
 Route::post('/dang-ky-tu-van', [AdmissionLeadController::class, 'store'])
+    ->name('admission.leads.store');
+
+Route::post('/dang-ky-tu-van-n8n', [\App\Http\Controllers\AdmissionN8nLeadController::class, 'store'])
     ->name('admission.leads.store');
 
 // User routes

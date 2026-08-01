@@ -20,6 +20,38 @@ class AdmissionRagService
         $this->assistantId = env('OPENAI_ASSISTANT_ID'); 
     }
 
+    public function extractLeadInfo($text)
+    {
+        if (!$this->apiKey || empty($text)) return [];
+        
+        try {
+            $response = Http::withToken($this->apiKey)
+                ->post("{$this->baseUrl}/chat/completions", [
+                    'model' => 'gpt-4o-mini',
+                    'messages' => [
+                        [
+                            'role' => 'system',
+                            'content' => 'Trích xuất thông tin khách hàng từ tin nhắn sau. Trả về JSON với các key: "phone" (số điện thoại nếu có, null nếu không), "email" (email nếu có, null nếu không), "major" (ngành học khách quan tâm, null nếu không rõ), "intent" (có thể là: "ask_major", "ask_tuition", "register", "other"). Trả về ĐÚNG ĐỊNH DẠNG JSON, không bọc trong markdown.'
+                        ],
+                        [
+                            'role' => 'user',
+                            'content' => $text
+                        ]
+                    ],
+                    'response_format' => ['type' => 'json_object']
+                ]);
+                
+            $content = $response->json('choices.0.message.content');
+            if ($content) {
+                return json_decode($content, true) ?? [];
+            }
+        } catch (\Throwable $e) {
+            Log::error('Extract AI failed: ' . $e->getMessage());
+        }
+        
+        return [];
+    }
+
     public function answer($question, $sessionId = null, $mediaUrl = null)
     {
         if (!$this->apiKey || !$this->assistantId) {
@@ -126,10 +158,13 @@ class AdmissionRagService
 
     private function runAssistant($threadId)
     {
+        $additionalInstruction = "Nếu bạn không tìm thấy thông tin trong tài liệu hoặc người dùng đang cáu gắt, TUYỆT ĐỐI không bịa ra câu trả lời. Hãy trả lời chính xác câu này: 'Câu hỏi này nằm ngoài thông tin hiện có của mình. Bạn vui lòng để lại Tên và Số điện thoại (hoặc Email), các Thầy/Cô ban tư vấn sẽ liên hệ trực tiếp để hỗ trợ bạn ngay nhé!'";
+
         $response = Http::withToken($this->apiKey)
             ->withHeaders(['OpenAI-Beta' => 'assistants=v2'])
             ->post("{$this->baseUrl}/threads/{$threadId}/runs", [
-                'assistant_id' => $this->assistantId
+                'assistant_id' => $this->assistantId,
+                'additional_instructions' => $additionalInstruction
             ]);
             
         return $response->json();

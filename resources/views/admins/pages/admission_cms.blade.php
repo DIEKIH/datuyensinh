@@ -50,14 +50,68 @@
     </div>
 
     <div class="tabs-line">
-        <button class="active" data-tab-target="leadsTab">Leads</button>
-        <button data-tab-target="ragTab">RAG quy che</button>
+        <button class="active" data-tab-target="dashboardTab">Dashboard (Báo Cáo)</button>
+        <button data-tab-target="leadsTab">Leads</button>
+        <button data-tab-target="approvalTab" class="position-relative">
+            Duyệt AI <span class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle"><span class="visually-hidden">New alerts</span></span>
+        </button>
         <button data-tab-target="openaiTab">Quản lý OpenAI</button>
         <button data-tab-target="scoringTab">Tiêu chí Chấm điểm</button>
         <button data-tab-target="n8nTab">n8n logs</button>
     </div>
 
-    <section id="leadsTab" class="tab-panel">
+    <section id="dashboardTab" class="tab-panel">
+        <div class="row g-3 mb-3">
+            <div class="col-lg-7">
+                <div class="panel h-100">
+                    <div class="panel-title">Phễu Chuyển Đổi (Conversion Funnel)</div>
+                    <div style="position: relative; height: 250px; width: 100%;">
+                        <canvas id="funnelChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-5">
+                <div class="panel h-100">
+                    <div class="panel-title">Nguồn Khách (Traffic Sources)</div>
+                    <div style="position: relative; height: 250px; width: 100%;">
+                        <canvas id="sourceChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row g-3">
+            <div class="col-lg-8">
+                <div class="panel">
+                    <div class="panel-title">Tỉ lệ Trợ Lý Ảo Tự Động Xử Lý (Bot Deflection Rate)</div>
+                    <div class="d-flex align-items-center gap-4">
+                        <div style="flex: 0 0 250px; position: relative; height: 150px;">
+                            <canvas id="deflectionChart"></canvas>
+                        </div>
+                        <div style="flex: 1">
+                            <h2 class="text-primary mb-1 fw-bold" style="font-size: 3rem;" id="deflectionRateText">0%</h2>
+                            <p class="text-muted mb-0" style="font-size: 1.1rem;">
+                                Đây là tỉ lệ các câu hỏi được AI tự động giải quyết hoàn toàn mà không cần tư vấn viên can thiệp. 
+                                Một tỉ lệ cao (trên 80%) chứng tỏ hệ thống RAG đang làm việc cực kỳ hiệu quả, giúp tiết kiệm hàng trăm giờ làm việc cho nhân sự!
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="panel h-100 d-flex flex-column justify-content-center text-center">
+                    <div class="panel-title text-start">Email Marketing Tự Động (Nurturing)</div>
+                    <div class="mb-3 text-muted text-start">
+                        Gửi Email nhắc nhở làm hồ sơ cho các Lead tạo cách đây 3 ngày.
+                    </div>
+                    <button id="runNurtureBtn" class="btn btn-success btn-lg mt-auto">
+                        <i class="fas fa-paper-plane me-2"></i> Chạy Chiến Dịch Ngay
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="leadsTab" class="tab-panel hidden">
         <div class="panel">
             <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-3">
                 <div class="panel-title mb-0">Danh sach thi sinh tiem nang</div>
@@ -91,49 +145,19 @@
         </div>
     </section>
 
-    <section id="ragTab" class="tab-panel hidden">
-        <div class="row g-3">
-            <div class="col-lg-5">
-                <div class="panel">
-                    <div class="panel-title">Them quy che / thong tin tuyen sinh</div>
-                    <form id="documentForm" enctype="multipart/form-data">
-                        @csrf
-                        <input type="hidden" name="document_id" id="documentId">
-                        <div class="mb-2"><input name="title" class="form-control form-control-sm" placeholder="Tieu de tai lieu (hoac lay ten file neu trong)"></div>
-                        <div class="mb-2 d-flex gap-2">
-                            <input name="category" class="form-control form-control-sm" value="quy_che" required>
-                            <select name="status" class="form-select form-select-sm">
-                                <option value="active">active</option>
-                                <option value="draft">draft</option>
-                                <option value="archived">archived</option>
-                            </select>
-                        </div>
-                        <div class="mb-2"><input name="source_url" class="form-control form-control-sm" placeholder="URL nguon neu co"></div>
-                        <div class="mb-2"><textarea name="content" class="form-control" rows="6" placeholder="Noi dung quy che..."></textarea></div>
-                        <div class="mb-2">
-                            <label class="form-label small fw-bold text-muted mb-1">Hoac dang nhieu file tai lieu (.txt, .docx, .json, .pdf):</label>
-                            <input type="file" name="doc_files[]" id="docFiles" class="form-control form-control-sm" accept=".txt,.docx,.json,.pdf" multiple>
-                        </div>
-                        <button class="btn btn-primary btn-sm w-100" type="submit"><i class="far fa-save me-1"></i> Luu va tao chunks</button>
-                    </form>
-                </div>
-                <div class="panel">
-                    <div class="panel-title">Thu nghiem tro ly RAG</div>
-                    <textarea id="ragQuestion" class="form-control mb-2" rows="3" placeholder="Nhap cau hoi tuyen sinh..."></textarea>
-                    <button id="askRag" class="btn btn-outline-primary btn-sm mb-2"><i class="fas fa-robot me-1"></i> Hoi thu</button>
-                    <div id="ragAnswer" class="rag-answer"></div>
+
+
+    <section id="approvalTab" class="tab-panel hidden">
+        <div class="panel">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div class="panel-title mb-0">Hàng Chờ Duyệt (Human-in-the-Loop)</div>
+                <div>
+                    <button id="runNurtureCommand" class="btn btn-warning btn-sm me-2"><i class="fas fa-magic"></i> Chạy Kịch Bản Nuôi Dưỡng AI (n8n)</button>
+                    <button id="reloadApprovals" class="btn btn-outline-primary btn-sm"><i class="fas fa-sync-alt"></i> Làm mới</button>
                 </div>
             </div>
-            <div class="col-lg-7">
-                <div class="panel">
-                    <div class="panel-title">Kho tri thuc</div>
-                    <div class="table-responsive">
-                        <table class="table table-bordered table-striped">
-                            <thead><tr><th>Tai lieu</th><th>Loai</th><th>Trang thai</th><th>Chunks</th><th>Cap nhat</th></tr></thead>
-                            <tbody id="documentRows"></tbody>
-                        </table>
-                    </div>
-                </div>
+            <div id="approvalList" class="d-flex flex-column gap-3">
+                <div class="text-center text-muted">Đang tải danh sách chờ duyệt...</div>
             </div>
         </div>
     </section>
@@ -260,5 +284,6 @@
 @endsection
 
 @section('js')
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="{{ asset('js/admins/admission_cms.js') }}"></script>
 @endsection

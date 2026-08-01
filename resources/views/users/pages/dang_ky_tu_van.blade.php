@@ -1,27 +1,295 @@
 @extends('users.layouts.app')
 
-@section('title', 'Dang ky tu van tuyen sinh')
+@section('title', 'Đăng Ký Tư Vấn Tuyển Sinh')
 
 @section('css')
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-    .lead-page { background: #f6f8fb; padding: 42px 0 56px; }
-    .lead-wrap { max-width: 1180px; margin: 0 auto; padding: 0 18px; }
-    .lead-hero { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(360px, .9fr); gap: 24px; align-items: stretch; }
-    .lead-copy, .lead-form-card, .lead-rag-card { background: #fff; border: 1px solid #e3e8f2; border-radius: 8px; box-shadow: 0 2px 10px rgba(15, 23, 42, .05); }
-    .lead-copy { padding: 30px; display: flex; flex-direction: column; justify-content: center; }
-    .lead-kicker { color: #005da0; font-weight: 700; text-transform: uppercase; font-size: 13px; margin-bottom: 10px; }
-    .lead-title { color: #12213d; font-size: 34px; line-height: 1.18; font-weight: 800; margin-bottom: 14px; }
-    .lead-desc { color: #475467; font-size: 16px; line-height: 1.65; margin-bottom: 22px; }
-    .lead-points { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
-    .lead-points li { display: flex; gap: 10px; color: #26364f; }
-    .lead-points i { color: #0d6efd; margin-top: 3px; }
-    .lead-form-card { padding: 24px; }
-    .lead-form-title { font-size: 20px; font-weight: 800; margin-bottom: 14px; color: #12213d; }
-    .lead-source { background: #eef6ff; color: #064f8f; border-radius: 6px; padding: 8px 10px; font-size: 13px; margin-bottom: 14px; }
-    .lead-rag-card { padding: 22px; margin-top: 24px; }
-    .rag-answer-box { white-space: pre-wrap; min-height: 90px; background: #f8fafc; border: 1px solid #e3e8f2; border-radius: 8px; padding: 12px; color: #26364f; }
-    .form-label { font-weight: 600; color: #344054; }
-    @media (max-width: 960px) { .lead-hero { grid-template-columns: 1fr; } .lead-title { font-size: 28px; } }
+    :root {
+        --primary: #2563eb;
+        --primary-hover: #1d4ed8;
+        --secondary: #0ea5e9;
+        --dark: #0f172a;
+        --light: #f8fafc;
+        --gray: #64748b;
+        --border: #e2e8f0;
+        --glass-bg: rgba(255, 255, 255, 0.95);
+    }
+    body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; }
+    
+    .lead-page {
+        position: relative;
+        padding: 80px 0;
+        background: linear-gradient(135deg, #eff6ff 0%, #e0f2fe 100%);
+        min-height: 100vh;
+        overflow: hidden;
+    }
+    
+    /* Decorative Background Elements */
+    .lead-page::before {
+        content: '';
+        position: absolute;
+        top: -100px;
+        right: -100px;
+        width: 400px;
+        height: 400px;
+        background: radial-gradient(circle, rgba(37,99,235,0.15) 0%, rgba(255,255,255,0) 70%);
+        border-radius: 50%;
+        z-index: 0;
+    }
+    
+    .lead-wrap {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 20px;
+        position: relative;
+        z-index: 1;
+    }
+    
+    .lead-hero {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 60px;
+        align-items: center;
+    }
+    
+    /* Left Column - Copy */
+    .lead-copy {
+        animation: fadeUp 0.8s ease-out;
+    }
+    .lead-kicker {
+        display: inline-block;
+        padding: 6px 14px;
+        background: rgba(37, 99, 235, 0.1);
+        color: var(--primary);
+        font-weight: 700;
+        font-size: 14px;
+        border-radius: 20px;
+        margin-bottom: 20px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .lead-title {
+        color: var(--dark);
+        font-size: 42px;
+        line-height: 1.2;
+        font-weight: 800;
+        margin-bottom: 20px;
+        letter-spacing: -1px;
+    }
+    .lead-title span {
+        background: linear-gradient(135deg, var(--primary), var(--secondary));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    .lead-desc {
+        color: var(--gray);
+        font-size: 18px;
+        line-height: 1.7;
+        margin-bottom: 40px;
+    }
+    
+    .lead-points {
+        list-style: none;
+        padding: 0;
+        margin: 0 0 40px 0;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+    .lead-points li {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        color: #334155;
+        font-size: 16px;
+        font-weight: 500;
+        padding: 12px 16px;
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .lead-points li:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 15px -3px rgba(0,0,0,0.08);
+    }
+    .lead-points i {
+        color: #10b981;
+        font-size: 20px;
+    }
+    
+    /* Right Column - Form */
+    .lead-form-card {
+        background: var(--glass-bg);
+        backdrop-filter: blur(16px);
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        border-radius: 24px;
+        padding: 40px;
+        box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.15);
+        animation: fadeUp 0.8s ease-out 0.2s backwards;
+    }
+    
+    .lead-form-title {
+        font-size: 24px;
+        font-weight: 800;
+        color: var(--dark);
+        margin-bottom: 24px;
+        text-align: center;
+    }
+    
+    .lead-source {
+        background: #f1f5f9;
+        color: var(--gray);
+        border-radius: 8px;
+        padding: 10px 14px;
+        font-size: 13px;
+        margin-bottom: 24px;
+        text-align: center;
+        border: 1px dashed var(--border);
+    }
+    
+    /* Form Inputs */
+    .form-group {
+        margin-bottom: 20px;
+        position: relative;
+    }
+    .form-label {
+        font-weight: 600;
+        color: #475569;
+        font-size: 14px;
+        margin-bottom: 8px;
+        display: block;
+    }
+    .form-control {
+        width: 100%;
+        padding: 14px 16px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        font-size: 15px;
+        color: #1e293b;
+        background: #fff;
+        transition: all 0.3s ease;
+    }
+    .form-control:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+        outline: none;
+    }
+    textarea.form-control {
+        resize: vertical;
+        min-height: 100px;
+    }
+    
+    .row-2-cols {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+    }
+    
+    /* Submit Button */
+    .btn-submit {
+        width: 100%;
+        padding: 16px;
+        background: linear-gradient(135deg, var(--primary), var(--secondary));
+        color: #fff;
+        border: none;
+        border-radius: 12px;
+        font-size: 16px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        margin-top: 10px;
+    }
+    .btn-submit:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.4);
+    }
+    .btn-submit:active {
+        transform: translateY(0);
+    }
+    
+    /* RAG Result Box */
+    #leadRagResultBox {
+        margin-top: 24px;
+        padding: 20px;
+        background: linear-gradient(to right, rgba(37,99,235,0.05), rgba(14,165,233,0.05));
+        border-left: 4px solid var(--primary);
+        border-radius: 0 12px 12px 0;
+        display: none;
+        animation: fadeIn 0.4s ease-out;
+    }
+    #leadRagResultContent {
+        color: #334155;
+        font-size: 15px;
+        line-height: 1.6;
+    }
+    
+    /* Animations */
+    @keyframes fadeUp {
+        from { opacity: 0; transform: translateY(30px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    
+    /* Responsive */
+    @media (max-width: 992px) {
+        .lead-hero {
+            grid-template-columns: 1fr;
+            gap: 40px;
+        }
+        .lead-title {
+            font-size: 32px;
+        }
+        .lead-form-card {
+            padding: 30px 20px;
+        }
+    }
+    @media (max-width: 576px) {
+        .row-2-cols {
+            grid-template-columns: 1fr;
+            gap: 0;
+        }
+    }
+    
+    /* RAG Ask Card */
+    .rag-ask-card {
+        margin-top: 60px;
+        background: #fff;
+        border-radius: 24px;
+        padding: 40px;
+        box-shadow: 0 20px 40px -10px rgba(0,0,0,0.08);
+        border: 1px solid var(--border);
+        animation: fadeUp 0.8s ease-out 0.4s backwards;
+    }
+    .rag-ask-grid {
+        display: grid;
+        grid-template-columns: 400px 1fr;
+        gap: 40px;
+    }
+    .rag-answer-box {
+        background: #f8fafc;
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 24px;
+        height: 100%;
+        min-height: 200px;
+        color: #475569;
+        font-size: 15px;
+        line-height: 1.7;
+    }
+    @media (max-width: 992px) {
+        .rag-ask-grid {
+            grid-template-columns: 1fr;
+        }
+    }
 </style>
 @endsection
 
@@ -29,82 +297,100 @@
 <section class="lead-page">
     <div class="lead-wrap">
         <div class="lead-hero">
+            <!-- Left Copy -->
             <div class="lead-copy">
-                <div class="lead-kicker">Tu van tuyen sinh da kenh</div>
-                <h1 class="lead-title">Dang ky tu van va nhan thong tin phu hop voi nganh ban quan tam</h1>
+                <div class="lead-kicker">Tư vấn tuyển sinh thông minh</div>
+                <h1 class="lead-title">Đăng ký tư vấn và <span>định hướng tương lai</span> cùng chuyên gia</h1>
                 <p class="lead-desc">
-                    Thong tin dang ky se duoc dua ve CMS tuyen sinh tap trung, phan loai theo kenh Facebook, Zalo, website va cham diem uu tien de tu van vien lien he nhanh hon.
+                    Để lại thông tin, hệ thống AI của chúng tôi sẽ phân tích và xếp lịch tư vấn với chuyên gia phù hợp nhất, giải đáp mọi thắc mắc về ngành nghề, học phí và lộ trình học tập.
                 </p>
                 <ul class="lead-points">
-                    <li><i class="fas fa-check-circle"></i><span>Tu dong ghi nhan nguon chien dich tu link bai dang.</span></li>
-                    <li><i class="fas fa-check-circle"></i><span>Ho tro tro ly ao RAG tra cuu quy che tuyen sinh rieng.</span></li>
-                    <li><i class="fas fa-check-circle"></i><span>Dong bo du lieu qua n8n den cac kenh thong bao noi bo.</span></li>
+                    <li><i class="fas fa-check-circle"></i><span>Trợ lý ảo AI túc trực 24/7 trả lời tức thì</span></li>
+                    <li><i class="fas fa-check-circle"></i><span>Tự động phân loại ưu tiên dựa trên hồ sơ</span></li>
+                    <li><i class="fas fa-check-circle"></i><span>Bảo mật thông tin thí sinh 100%</span></li>
                 </ul>
             </div>
 
+            <!-- Right Form -->
             <div class="lead-form-card">
-                <div class="lead-form-title">Thong tin can tu van</div>
-                <div class="lead-source">
-                    Nguon: <strong>{{ $utm['source'] ?: 'website' }}</strong>
-                    @if (!empty($utm['campaign']))
-                        · Chien dich: <strong>{{ $utm['campaign'] }}</strong>
-                    @endif
-                </div>
+                <div class="lead-form-title">Điền thông tin đăng ký</div>
+                
                 <form id="publicLeadForm">
                     @csrf
-                    <input type="hidden" name="utm_source" value="{{ $utm['source'] }}">
-                    <input type="hidden" name="utm_medium" value="{{ $utm['medium'] }}">
-                    <input type="hidden" name="utm_campaign" value="{{ $utm['campaign'] }}">
-                    <input type="hidden" name="utm_content" value="{{ $utm['content'] }}">
+                    <input type="hidden" name="utm_source" value="{{ $utm['source'] ?? '' }}">
+                    <input type="hidden" name="utm_medium" value="{{ $utm['medium'] ?? '' }}">
+                    <input type="hidden" name="utm_campaign" value="{{ $utm['campaign'] ?? '' }}">
+                    <input type="hidden" name="utm_content" value="{{ $utm['content'] ?? '' }}">
 
-                    <div class="mb-3">
-                        <label class="form-label">Ho ten</label>
-                        <input class="form-control" name="full_name" required>
+                    <div class="form-group">
+                        <label class="form-label">Họ và tên *</label>
+                        <input class="form-control" name="full_name" placeholder="Ví dụ: Nguyễn Văn A" required>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">So dien thoai</label>
-                        <input class="form-control" name="phone" required>
+                    
+                    <div class="row-2-cols">
+                        <div class="form-group">
+                            <label class="form-label">Số điện thoại *</label>
+                            <input class="form-control" name="phone" placeholder="09xxxxxxx" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Email</label>
+                            <input class="form-control" name="email" type="email" placeholder="email@example.com">
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Email</label>
-                        <input class="form-control" name="email" type="email">
+                    
+                    <div class="form-group">
+                        <label class="form-label">Tên trường THPT</label>
+                        <input class="form-control" name="high_school" placeholder="Ví dụ: THPT Chuyên Lý Tự Trọng">
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Nganh quan tam</label>
-                        <input class="form-control" name="intended_major" value="{{ $major }}">
+
+                    <div class="row-2-cols">
+                        <div class="form-group">
+                            <label class="form-label">Ngành quan tâm</label>
+                            <input class="form-control" name="intended_major" value="{{ $major ?? '' }}" placeholder="VD: Công nghệ thông tin">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Tỉnh / Thành phố</label>
+                            <input class="form-control" name="province" placeholder="VD: Cần Thơ">
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Tinh/thanh</label>
-                        <input class="form-control" name="province">
+
+                    <div class="form-group">
+                        <label class="form-label">Nội dung cần tư vấn</label>
+                        <textarea class="form-control" name="note" placeholder="Bạn muốn hỏi thêm về học phí, ký túc xá hay điểm chuẩn?"></textarea>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Noi dung can tu van</label>
-                        <textarea class="form-control" name="note" rows="3"></textarea>
-                    </div>
-                    <button class="btn btn-primary w-100" type="submit">
-                        <i class="fas fa-paper-plane me-1"></i> Gui dang ky
+
+                    <button class="btn-submit" type="submit">
+                        Gửi thông tin <i class="fas fa-arrow-right"></i>
                     </button>
-                    <div id="leadFormMessage" class="mt-3 small"></div>
-                    <div id="leadRagResultBox" class="mt-3 p-3 bg-light border rounded text-dark" style="display: none; border-left: 4px solid #0d6efd !important;">
-                        <h6 class="fw-bold mb-2 text-primary"><i class="fas fa-robot me-1"></i> Tra loi nhanh tu tro ly ao:</h6>
-                        <div id="leadRagResultContent" style="white-space: pre-wrap; font-size: 14px; line-height: 1.5;"></div>
+                    
+                    <div id="leadFormMessage" class="mt-3 text-center small fw-bold"></div>
+                    
+                    <div id="leadRagResultBox">
+                        <h6 class="fw-bold mb-2 text-primary" style="font-size: 15px;"><i class="fas fa-robot me-1"></i> Trợ lý AI phản hồi:</h6>
+                        <div id="leadRagResultContent"></div>
                     </div>
                 </form>
             </div>
         </div>
 
-        <div class="lead-rag-card">
-            <div class="row g-3 align-items-start">
-                <div class="col-lg-5">
-                    <h2 class="h5 fw-bold mb-2">Hoi nhanh tro ly tuyen sinh</h2>
-                    <p class="text-muted mb-3">Tro ly tra cuu tren kho quy che da nhap trong CMS.</p>
-                    <textarea id="publicRagQuestion" class="form-control mb-2" rows="4" placeholder="VD: Dieu kien xet tuyen hoc ba nhu the nao?"></textarea>
-                    <button id="publicAskRag" class="btn btn-outline-primary btn-sm" type="button">
-                        <i class="fas fa-robot me-1"></i> Hoi tro ly
+        <!-- RAG Ask Section -->
+        <div class="rag-ask-card">
+            <div class="rag-ask-grid">
+                <div>
+                    <h2 class="lead-title" style="font-size: 28px; margin-bottom: 12px;">Hỏi nhanh<br><span>Trợ lý AI</span></h2>
+                    <p class="text-muted mb-4" style="font-size: 15px;">Không tiện để lại thông tin? Hãy hỏi thẳng trợ lý ảo của chúng tôi, AI đã được đào tạo bằng quy chế tuyển sinh mới nhất.</p>
+                    <textarea id="publicRagQuestion" class="form-control mb-3" rows="4" placeholder="VD: Điều kiện xét tuyển học bạ ngành IT là gì?"></textarea>
+                    <button id="publicAskRag" class="btn-submit" type="button" style="padding: 12px;">
+                        <i class="fas fa-sparkles"></i> Tìm câu trả lời
                     </button>
                 </div>
-                <div class="col-lg-7">
-                    <div id="publicRagAnswer" class="rag-answer-box">Nhap cau hoi de tra cuu thong tin tuyen sinh.</div>
+                <div>
+                    <div id="publicRagAnswer" class="rag-answer-box d-flex align-items-center justify-content-center text-muted">
+                        <div class="text-center">
+                            <i class="fas fa-comment-dots fa-3x mb-3 text-light"></i>
+                            <p class="mb-0">Câu trả lời sẽ hiển thị ở đây...</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

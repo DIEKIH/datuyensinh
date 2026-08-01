@@ -21,12 +21,95 @@ $(function () {
         return date.toLocaleString('vi-VN');
     }
 
+    let funnelChart = null;
+    let sourceChart = null;
+    let deflectionChart = null;
+
     function loadStats() {
         $.get('/admin/admission-cms/stats', function (res) {
             if (!res.success) return;
+            
+            // 1. Cập nhật các con số text
             Object.keys(res.data).forEach(function (key) {
-                $('[data-stat="' + key + '"]').text(res.data[key]);
+                if (typeof res.data[key] !== 'object') {
+                    $('[data-stat="' + key + '"]').text(res.data[key]);
+                }
             });
+
+            // 2. Vẽ biểu đồ Phễu (Funnel)
+            const funnel = res.data.funnel || { total: 0, warm: 0, hot: 0 };
+            const ctxFunnel = document.getElementById('funnelChart');
+            if (ctxFunnel) {
+                if (funnelChart) funnelChart.destroy();
+                funnelChart = new Chart(ctxFunnel, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Tổng Khách (Total)', 'Quan tâm (Warm)', 'Chốt (Hot)'],
+                        datasets: [{
+                            label: 'Số lượng Lead',
+                            data: [funnel.total, funnel.warm, funnel.hot],
+                            backgroundColor: ['#e2e8f0', '#fef08a', '#fca5a5'],
+                            borderColor: ['#94a3b8', '#eab308', '#ef4444'],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        indexAxis: 'y', // Biểu đồ ngang cho giống phễu
+                        plugins: { legend: { display: false } }
+                    }
+                });
+            }
+
+            // 3. Vẽ biểu đồ Nguồn
+            const sources = res.data.sources || [];
+            const ctxSource = document.getElementById('sourceChart');
+            if (ctxSource && sources.length > 0) {
+                const labels = sources.map(s => s.channel.toUpperCase());
+                const data = sources.map(s => s.total);
+                if (sourceChart) sourceChart.destroy();
+                sourceChart = new Chart(ctxSource, {
+                    type: 'doughnut',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            data: data,
+                            backgroundColor: ['#3b82f6', '#06b6d4', '#10b981', '#f59e0b', '#8b5cf6'],
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { position: 'bottom' } }
+                    }
+                });
+            }
+
+            // 4. Vẽ biểu đồ Bot Deflection
+            const tickets = res.data.tickets || { total: 0, answered: 0, pending: 0 };
+            const ctxDeflection = document.getElementById('deflectionChart');
+            if (ctxDeflection && tickets.total > 0) {
+                const deflectionRate = Math.round((tickets.answered / tickets.total) * 100);
+                $('#deflectionRateText').text(deflectionRate + '%');
+                
+                if (deflectionChart) deflectionChart.destroy();
+                deflectionChart = new Chart(ctxDeflection, {
+                    type: 'pie',
+                    data: {
+                        labels: ['Bot Tự Xử Lý', 'Chuyển Nhân Viên'],
+                        datasets: [{
+                            data: [tickets.answered, tickets.pending],
+                            backgroundColor: ['#22c55e', '#ef4444'],
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } }
+                    }
+                });
+            }
         });
     }
 
@@ -64,21 +147,7 @@ $(function () {
         return '<option value="' + value + '"' + (value === current ? ' selected' : '') + '>' + value + '</option>';
     }
 
-    function loadDocuments() {
-        $.get('/admin/admission-cms/documents', function (res) {
-            const rows = (res.data || []).map(function (doc) {
-                return '<tr>' +
-                    '<td><strong>' + escapeHtml(doc.title) + '</strong><div class="text-muted small">' + escapeHtml(doc.source_url) + '</div></td>' +
-                    '<td>' + escapeHtml(doc.category) + '</td>' +
-                    '<td>' + escapeHtml(doc.status) + '</td>' +
-                    '<td>' + doc.chunks_count + '</td>' +
-                    '<td>' + formatDate(doc.updated_at) + '</td>' +
-                '</tr>';
-            }).join('');
 
-            $('#documentRows').html(rows || '<tr><td colspan="5" class="text-center text-muted">Chua co tai lieu.</td></tr>');
-        });
-    }
 
     function loadN8nLogs() {
         $.get('/admin/admission-cms/n8n/logs', function (res) {
@@ -96,13 +165,109 @@ $(function () {
         });
     }
 
+    function loadApprovals() {
+        $('#approvalList').html('<div class="text-center"><i class="fas fa-spinner fa-spin"></i> Đang tải...</div>');
+        $.get('/admin/admission-cms/approvals', function(res) {
+            if (!res.success || res.data.length === 0) {
+                $('#approvalList').html('<div class="text-center text-muted py-4">Tất cả đều trống. Không có mục nào chờ duyệt! 🎉</div>');
+                return;
+            }
+            const html = res.data.map(function(item) {
+                return `
+                <div class="card shadow-sm border-0 mb-3" id="approval-card-${item.id}">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between mb-2">
+                            <h5 class="card-title text-primary"><i class="fas fa-user-circle me-1"></i> ${escapeHtml(item.customer_name)}</h5>
+                            <span class="badge bg-secondary">Kênh: ${escapeHtml(item.channel)}</span>
+                        </div>
+                        <p class="mb-1 text-muted"><i class="fas fa-envelope me-1"></i> ${escapeHtml(item.customer_email || 'N/A')} &nbsp; | &nbsp; <i class="fas fa-phone me-1"></i> ${escapeHtml(item.customer_phone || 'N/A')}</p>
+                        <hr>
+                        <div class="mb-3">
+                            <label class="fw-bold text-dark">Câu hỏi của khách hàng:</label>
+                            <div class="p-2 bg-light rounded border">${escapeHtml(item.question)}</div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="fw-bold text-success">Câu trả lời do AI soạn thảo (Draft):</label>
+                            <textarea id="ai-answer-${item.id}" class="form-control" rows="4">${escapeHtml(item.ai_answer)}</textarea>
+                        </div>
+                        <div class="mb-3">
+                            <input type="text" id="ai-feedback-${item.id}" class="form-control" placeholder="Ghi chú yêu cầu AI sửa lại (Nếu sai sót)...">
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-success btn-sm btn-approval-action" data-id="${item.id}" data-action="approve">
+                                <i class="fas fa-check"></i> Chấp nhận & Gửi đi
+                            </button>
+                            <button class="btn btn-warning btn-sm btn-approval-action" data-id="${item.id}" data-action="rewrite">
+                                <i class="fas fa-robot"></i> Bắt AI viết lại
+                            </button>
+                            <button class="btn btn-danger btn-sm btn-approval-action" data-id="${item.id}" data-action="reject">
+                                <i class="fas fa-times"></i> Huỷ bỏ
+                            </button>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+            $('#approvalList').html(html);
+        });
+    }
+
+    $(document).on('click', '.btn-approval-action', function() {
+        const id = $(this).data('id');
+        const action = $(this).data('action');
+        const answer = $('#ai-answer-' + id).val();
+        const feedback = $('#ai-feedback-' + id).val();
+        
+        const btn = $(this);
+        const originalText = btn.html();
+        btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Xử lý...');
+
+        $.post(`/admin/admission-cms/approvals/${id}/action`, {
+            action: action,
+            ai_answer: answer,
+            admin_feedback: feedback
+        }).done(function(res) {
+            toastr.success(res.message);
+            if (action === 'rewrite') {
+                $('#ai-answer-' + id).val(res.new_answer);
+                btn.prop('disabled', false).html(originalText);
+            } else {
+                $('#approval-card-' + id).fadeOut(300, function() { $(this).remove(); });
+            }
+        }).fail(function(xhr) {
+            btn.prop('disabled', false).html(originalText);
+            let msg = 'Lỗi hệ thống!';
+            if (xhr.responseJSON && xhr.responseJSON.message) {
+                msg = xhr.responseJSON.message;
+            }
+            toastr.error(msg);
+        });
+    });
+
+    $('#reloadApprovals').on('click', loadApprovals);
+
+    $('#runNurtureCommand').on('click', function () {
+        const btn = $(this);
+        const originalText = btn.html();
+        btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Đang chạy...');
+        $.post('/admin/admission-cms/nurture')
+            .done(function (res) {
+                alert(res.message || 'Chạy kịch bản nuôi dưỡng thành công!');
+            })
+            .fail(function (err) {
+                alert('Lỗi: ' + (err.responseJSON?.error || 'Không thể chạy Nurture'));
+            })
+            .always(function () {
+                btn.prop('disabled', false).html(originalText);
+            });
+    });
+
     $('[data-tab-target]').on('click', function () {
-        $('[data-tab-target]').removeClass('active');
+        $('.tabs-line button').removeClass('active');
         $(this).addClass('active');
         $('.tab-panel').addClass('hidden');
         $('#' + $(this).data('tab-target')).removeClass('hidden');
 
-        if ($(this).data('tab-target') === 'ragTab') loadDocuments();
+        if ($(this).data('tab-target') === 'approvalTab') loadApprovals();
         if ($(this).data('tab-target') === 'n8nTab') loadN8nLogs();
         if ($(this).data('tab-target') === 'openaiTab') loadOpenAiConfig();
     });
@@ -199,58 +364,12 @@ $(function () {
         });
     });
 
-    $('#documentForm').on('submit', function (event) {
-        event.preventDefault();
-        const formData = new FormData(this);
-        
-        $.ajax({
-            url: '/admin/admission-cms/documents',
-            type: 'POST',
-            data: formData,
-            processData: false,
-            contentType: false,
-            success: function (res) {
-                $('#documentForm')[0].reset();
-                $('#documentForm [name="category"]').val('quy_che');
-                $('#documentForm [name="status"]').val('active');
-                loadStats();
-                loadDocuments();
-                toastr.success(res.message || ('Da luu tai lieu va tao ' + res.chunks + ' chunks.'));
-            },
-            error: function (xhr) {
-                const errMsg = xhr.responseJSON && xhr.responseJSON.errors 
-                    ? Object.values(xhr.responseJSON.errors).flat().join('<br>')
-                    : (xhr.responseJSON && xhr.responseJSON.message || 'Khong the luu tai lieu.');
-                toastr.error(errMsg);
-            }
-        });
-    });
 
-    $('#askRag').on('click', function () {
-        const question = $('#ragQuestion').val();
-        if (!question.trim()) {
-            toastr.warning('Nhap cau hoi truoc.');
-            return;
-        }
-
-        $('#ragAnswer').text('Dang tra cuu...');
-        $.post('/admin/admission-cms/rag/ask', { question: question })
-            .done(function (res) {
-                const data = res.data || {};
-                const sources = (data.sources || []).map(function (source) {
-                    return source.document_title + ' #' + source.chunk_index;
-                }).join(', ');
-                $('#ragAnswer').text((data.answer || '') + (sources ? '\n\nNguon: ' + sources : ''));
-            })
-            .fail(function () {
-                $('#ragAnswer').text('Khong the tra cuu RAG.');
-            });
-    });
 
     // Scoring Criteria Logic
     function loadCriteria() {
         $('#criteriaRows').html('<tr><td colspan="8" class="text-center"><i class="fas fa-spinner fa-spin"></i> Đang tải...</td></tr>');
-        $.get('/api/admission/scoring/criteria', function (res) {
+        $.get('/admin/admission-cms/scoring/criteria', function (res) {
             const rows = res.map(function (c) {
                 const status = c.is_active ? '<span class="badge bg-success">Đang bật</span>' : '<span class="badge bg-secondary">Đã tắt</span>';
                 return `<tr>
@@ -270,6 +389,28 @@ $(function () {
             $('#criteriaRows').html(rows || '<tr><td colspan="8" class="text-center text-muted">Chưa có tiêu chí nào.</td></tr>');
         });
     }
+
+    $('#runNurtureBtn').on('click', function() {
+        const btn = $(this);
+        btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i> Đang chạy...');
+        
+        $.post('/admin/admission-cms/nurture')
+            .done(function(res) {
+                if(res.success) {
+                    toastr.success(res.message);
+                    console.log("Nurture Output:\n" + res.output);
+                    alert("Kết quả chạy chiến dịch:\n\n" + res.output);
+                } else {
+                    toastr.error(res.message);
+                }
+            })
+            .fail(function(xhr) {
+                toastr.error('Lỗi kết nối khi chạy chiến dịch.');
+            })
+            .always(function() {
+                btn.prop('disabled', false).html('<i class="fas fa-paper-plane me-2"></i> Chạy Chiến Dịch Ngay');
+            });
+    });
 
     $('[data-tab-target]').on('click', function () {
         if ($(this).data('tab-target') === 'scoringTab') loadCriteria();
@@ -291,7 +432,7 @@ $(function () {
             is_active: 1
         };
 
-        const url = id ? '/api/admission/scoring/criteria/' + id : '/api/admission/scoring/criteria';
+        const url = id ? '/admin/admission-cms/scoring/criteria/' + id : '/admin/admission-cms/scoring/criteria';
         const method = id ? 'PUT' : 'POST';
 
         $.ajax({
@@ -331,7 +472,7 @@ $(function () {
     $(document).on('click', '.btn-del-crit', function () {
         if (!confirm('Bạn có chắc muốn xóa tiêu chí này?')) return;
         $.ajax({
-            url: '/api/admission/scoring/criteria/' + $(this).data('id'),
+            url: '/admin/admission-cms/scoring/criteria/' + $(this).data('id'),
             type: 'DELETE',
             success: function () {
                 toastr.success('Đã xóa tiêu chí');
