@@ -12,19 +12,27 @@ class AdviseSession extends Model
     public $timestamps = false;
 
     protected $fillable = [
-        'session_key', 'thread_id', 'user_id',
-        'ip_address', 'user_agent', 'started_at',
-        'last_active_at', 'ended_at',
+        'session_key',
+        'thread_id',
+        'user_id',
+        'ip_address',
+        'user_agent',
+        'started_at',
+        'last_active_at',
+        'ended_at',
     ];
 
     protected $casts = [
-        'started_at'    => 'datetime',
-        'last_active_at'=> 'datetime',
-        'ended_at'      => 'datetime',
+        'started_at' => 'datetime',
+        'last_active_at' => 'datetime',
+        'ended_at' => 'datetime',
     ];
 
     public function messages(): HasMany
     {
-        return $this->hasMany(AdviseMessage::class, 'session_id');
+        return $this->hasMany(
+            AdviseMessage::class,
+            'session_id'
+        )->orderBy('id');
     }
 }

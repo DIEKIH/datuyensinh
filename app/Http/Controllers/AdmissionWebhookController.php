@@ -23,15 +23,45 @@ class AdmissionWebhookController extends Controller
     {
         try {
             $data = $request->all();
+            
+            // 0. Log webhook payload
+            DB::table('admission_n8n_logs')->insert([
+                'event_type' => 'webhook_upsert_lead',
+                'workflow' => 'messenger_flow',
+                'status' => 'received',
+                'message' => 'Received webhook from n8n',
+                'payload' => json_encode($data),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
             $channel = $request->input('channel', 'facebook');
             $content = $request->input('question', $request->input('content', ''));
             $mediaUrl = $request->input('media_url');
             $senderId = $request->input('sender_id');
             $isComment = $request->input('is_comment', false);
-            
-            // 1. Find or create lead
-            $lead = DB::table('admission_leads')->where('profile->sender_id', $senderId)->first();
+
+            // 1. Tìm lead qua bảng tài khoản đa kênh (channel + account_id)
             $leadId = null;
+            $lead = null;
+            $account = null;
+
+            if ($senderId) {
+                $account = DB::table('admission_lead_channel_accounts')
+                    ->where('channel', $channel)
+                    ->where('account_id', $senderId)
+                    ->first();
+
+                if ($account) {
+                    $leadId = $account->lead_id;
+                    $lead = DB::table('admission_leads')->where('id', $leadId)->first();
+                } else {
+                    // Fallback cho lead cũ trước khi có bảng account
+                    $lead = DB::table('admission_leads')->where('profile->sender_id', $senderId)->first();
+                    if ($lead) $leadId = $lead->id;
+                }
+            }
+
             if (!$lead && $senderId) {
                 $leadId = DB::table('admission_leads')->insertGetId([
                     'channel' => $channel,
@@ -42,8 +72,21 @@ class AdmissionWebhookController extends Controller
                     'updated_at' => now(),
                 ]);
                 $lead = DB::table('admission_leads')->where('id', $leadId)->first();
-            } elseif ($lead) {
-                $leadId = $lead->id;
+            }
+
+            // Lưu/refresh tài khoản tương tác của kênh này (fb sender_id / zalo uid...)
+            if ($leadId && $senderId && !$account) {
+                DB::table('admission_lead_channel_accounts')->insert([
+                    'lead_id' => $leadId,
+                    'channel' => $channel,
+                    'account_id' => $senderId,
+                    'last_interaction_at' => now(),
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            } elseif ($account) {
+                DB::table('admission_lead_channel_accounts')->where('id', $account->id)
+                    ->update(['last_interaction_at' => now(), 'updated_at' => now()]);
             }
 
             // 2. Insert activity
@@ -133,6 +176,20 @@ class AdmissionWebhookController extends Controller
                     // Gọi RAG bình thường
                     $ragResult = $this->rag->answer($content, $senderId, $mediaUrl);
                     
+                    // SAVE BOT RESPONSE TO ACTIVITIES
+                    if ($leadId && isset($ragResult['answer']) && $ragResult['answer'] !== '') {
+                        DB::table('admission_lead_activities')->insert([
+                            'lead_id' => $leadId,
+                            'channel' => $channel,
+                            'type' => 'chat',
+                            'direction' => 'outbound',
+                            'content' => $ragResult['answer'],
+                            'occurred_at' => now(),
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ]);
+                    }
+                    
                     // CREATE TICKET cho Giao diện Quản trị
                     $answerText = $ragResult['answer'] ?? '';
                     $isFallback = strpos($answerText, 'nằm ngoài thông tin') !== false || strpos($answerText, 'để lại Tên và') !== false;
@@ -215,6 +272,51 @@ class AdmissionWebhookController extends Controller
             'success' => true,
             'message' => 'Da ghi nhan su kien thong bao tu n8n.',
         ]);
+    }
+
+    public function reportToxicComment(Request $request)
+    {
+        try {
+            DB::table('social_toxic_comments')->insert([
+                'platform' => $request->input('platform', 'facebook'),
+                'comment_id' => $request->input('comment_id', ''),
+                'post_id' => $request->input('post_id'),
+                'sender_id' => $request->input('sender_id'),
+                'sender_name' => $request->input('sender_name', 'Unknown User'),
+                'message' => $request->input('message', ''),
+                'sentiment_category' => $request->input('sentiment_category', 'toxic'),
+                'ai_reason' => $request->input('ai_reason', ''),
+                'status' => 'pending',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            return response()->json(['success' => true, 'message' => 'Đã ghi nhận bình luận vi phạm']);
+        } catch (\Throwable $e) {
+            Log::error('[AdmissionWebhookController] reportToxicComment error: ' . $e->getMessage());
+            return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function storeSocialPost(Request $request)
+    {
+        try {
+            DB::table('social_posts')->insert([
+                'title' => $request->input('title', 'Bài viết tự động'),
+                'content' => $request->input('content', ''),
+                'image_url' => $request->input('image_url'),
+                'platforms' => json_encode($request->input('platforms', ['facebook'])),
+                'status' => 'published',
+                'published_at' => now(),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            return response()->json(['success' => true, 'message' => 'Lưu bài viết thành công']);
+        } catch (\Throwable $e) {
+            Log::error('[AdmissionWebhookController] storeSocialPost error: ' . $e->getMessage());
+            return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
+        }
     }
 
     public function callback(Request $request)

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Services\ChatbotAnswerLibraryService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -220,7 +221,7 @@ class AdminController extends Controller
         $path = ltrim($path, '/');
 
         // Chống xóa nhầm file ngoài thư mục cho phép
-        if (str_contains($path, '..')) {
+        if (strpos($path, '..') !== false) {
             return null;
         }
 
@@ -1338,6 +1339,14 @@ class AdminController extends Controller
 
     public function adviseSessions(Request $request)
     {
+        /*
+         * Kho câu hỏi dùng chung route sessions đã tồn tại từ trước.
+         * Cách này vẫn hoạt động ngay cả khi máy chủ còn route cache cũ.
+         */
+        if ((int) $request->input('answer_library', 0) === 1) {
+            return $this->adviseAnswerLibrary($request);
+        }
+
         $query = DB::table('chatbot_sessions as s')
             ->select(
                 's.id',
@@ -1348,30 +1357,115 @@ class AdminController extends Controller
                 's.started_at',
                 's.last_active_at',
                 's.ended_at',
-                DB::raw('NULL as user_name'), // 👈 không còn users
-                DB::raw('(SELECT COUNT(*) FROM chatbot_messages m WHERE m.session_id = s.id) as message_count'),
-                DB::raw('(SELECT COUNT(*) FROM chatbot_messages m WHERE m.session_id = s.id AND m.role = "user") as user_message_count'),
-                DB::raw('(SELECT COUNT(*) FROM chatbot_messages m WHERE m.session_id = s.id AND m.role = "assistant") as bot_message_count')
+                DB::raw('NULL as user_name'),
+                DB::raw(
+                    '(SELECT COUNT(*) '
+                    . 'FROM chatbot_messages m '
+                    . 'WHERE m.session_id = s.id) as message_count'
+                ),
+                DB::raw(
+                    '(SELECT COUNT(*) '
+                    . 'FROM chatbot_messages m '
+                    . 'WHERE m.session_id = s.id '
+                    . 'AND m.role = "user") as user_message_count'
+                ),
+                DB::raw(
+                    '(SELECT COUNT(*) '
+                    . 'FROM chatbot_messages m '
+                    . 'WHERE m.session_id = s.id '
+                    . 'AND m.role = "assistant") as bot_message_count'
+                ),
+                DB::raw(
+                    '(SELECT LEFT(m.content, 240) '
+                    . 'FROM chatbot_messages m '
+                    . 'WHERE m.session_id = s.id '
+                    . 'ORDER BY m.sent_at DESC, m.id DESC '
+                    . 'LIMIT 1) as last_message'
+                ),
+                DB::raw(
+                    '(SELECT m.role '
+                    . 'FROM chatbot_messages m '
+                    . 'WHERE m.session_id = s.id '
+                    . 'ORDER BY m.sent_at DESC, m.id DESC '
+                    . 'LIMIT 1) as last_message_role'
+                ),
+                DB::raw(
+                    '(SELECT m.sent_at '
+                    . 'FROM chatbot_messages m '
+                    . 'WHERE m.session_id = s.id '
+                    . 'ORDER BY m.sent_at DESC, m.id DESC '
+                    . 'LIMIT 1) as last_message_at'
+                ),
+                DB::raw(
+                    '(SELECT COUNT(*) '
+                    . 'FROM chatbot_tickets t '
+                    . 'WHERE t.session_id = s.id) as ticket_count'
+                ),
+                DB::raw(
+                    '(SELECT COUNT(*) '
+                    . 'FROM chatbot_tickets t '
+                    . 'WHERE t.session_id = s.id '
+                    . 'AND t.status = "pending") as pending_ticket_count'
+                )
             )
-            ->orderBy('s.last_active_at', 'desc');
+            ->orderBy('s.last_active_at', 'desc')
+            ->orderBy('s.id', 'desc');
 
         if ($request->filled('date_from')) {
-            $query->whereDate('s.started_at', '>=', $request->date_from);
+            $query->whereDate(
+                's.started_at',
+                '>=',
+                $request->date_from
+            );
         }
 
         if ($request->filled('date_to')) {
-            $query->whereDate('s.started_at', '<=', $request->date_to);
+            $query->whereDate(
+                's.started_at',
+                '<=',
+                $request->date_to
+            );
         }
 
         if ($request->filled('ip')) {
-            $query->where('s.ip_address', 'like', '%' . $request->ip . '%');
+            $query->where(
+                's.ip_address',
+                'like',
+                '%' . $request->ip . '%'
+            );
         }
 
-        return response()->json(['data' => $query->get()]);
+        $perPage = (int) $request->input('per_page', 8);
+        $perPage = max(5, min($perPage, 20));
+
+        $sessions = $query->paginate($perPage);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'data' => collect($sessions->items())->values(),
+                'current_page' => $sessions->currentPage(),
+                'last_page' => $sessions->lastPage(),
+                'per_page' => $sessions->perPage(),
+                'total' => $sessions->total(),
+            ],
+        ]);
     }
 
     public function adviseSessionDetail($id)
     {
+        /*
+         * Dùng route /admin/advise/sessions/{id} hiện có để xem
+         * chi tiết một bản ghi trong kho câu hỏi.
+         */
+        $idText = (string) $id;
+
+        if (strpos($idText, 'library-') === 0) {
+            $libraryId = (int) substr($idText, strlen('library-'));
+
+            return $this->adviseAnswerLibraryShow($libraryId);
+        }
+
         $session = DB::table('chatbot_sessions')
             ->where('id', $id)
             ->first();
@@ -1379,18 +1473,77 @@ class AdminController extends Controller
         if (!$session) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Không tìm thấy session'
+                'message' => 'Không tìm thấy phiên chat.',
             ], 404);
         }
 
-        // 👇 thêm user_name giả để không vỡ frontend
         $session->user_name = null;
-
-        $messages = DB::table('chatbot_messages')
+        $session->message_count = DB::table('chatbot_messages')
             ->where('session_id', $id)
-            ->orderBy('sent_at', 'asc')
-            ->orderBy('id', 'asc')
+            ->count();
+        $session->user_message_count = DB::table('chatbot_messages')
+            ->where('session_id', $id)
+            ->where('role', 'user')
+            ->count();
+        $session->bot_message_count = DB::table('chatbot_messages')
+            ->where('session_id', $id)
+            ->where('role', 'assistant')
+            ->count();
+        $session->ticket_count = DB::table('chatbot_tickets')
+            ->where('session_id', $id)
+            ->count();
+        $session->pending_ticket_count = DB::table('chatbot_tickets')
+            ->where('session_id', $id)
+            ->where('status', 'pending')
+            ->count();
+
+        $messages = DB::table('chatbot_messages as m')
+            ->leftJoin(
+                'chatbot_messages as parent_user',
+                'parent_user.id',
+                '=',
+                'm.reply_to_id'
+            )
+            ->leftJoin(
+                'chatbot_answer_library as al',
+                function ($join) {
+                    $join->on('al.source_id', '=', 'm.id')
+                        ->where('al.source_type', '=', 'ai')
+                        ->where('al.is_approved', '=', 1)
+                        ->where('al.is_active', '=', 1);
+                }
+            )
+            ->where('m.session_id', $id)
+            ->select(
+                'm.*',
+                'parent_user.content as reply_question',
+                'al.id as answer_library_id',
+                'al.use_count as answer_use_count'
+            )
+            ->orderBy('m.sent_at', 'asc')
+            ->orderBy('m.id', 'asc')
             ->get();
+
+        $answerLibraryService = app(
+            ChatbotAnswerLibraryService::class
+        );
+
+        $messages = $messages->map(function ($message) use (
+            $answerLibraryService
+        ) {
+            $message->can_answer_library =
+                $message->role === 'assistant' ? 1 : 0;
+
+            $message->answer_library_review =
+                $message->role === 'assistant'
+                    ? $answerLibraryService->reviewForLibrary(
+                        $message->reply_question,
+                        $message->content
+                    )
+                    : null;
+
+            return $message;
+        })->values();
 
         return response()->json([
             'status'   => 'success',
@@ -1401,49 +1554,155 @@ class AdminController extends Controller
 
     public function adviseDestroySession($id)
     {
+        $idText = (string) $id;
+
+        if (strpos($idText, 'library-') === 0) {
+            $libraryId = (int) substr($idText, strlen('library-'));
+
+            return $this->adviseAnswerLibraryDestroy($libraryId);
+        }
+
         try {
             DB::beginTransaction();
-            DB::table('chatbot_messages')->where('session_id', $id)->delete();
-            $deleted = DB::table('chatbot_sessions')->where('id', $id)->delete();
+
+            DB::table('chatbot_answer_library')
+                ->where('session_id', $id)
+                ->where('is_approved', 0)
+                ->delete();
+
+            DB::table('chatbot_answer_library')
+                ->where('session_id', $id)
+                ->where('is_approved', 1)
+                ->update([
+                    'session_id' => null,
+                    'user_message_id' => null,
+                    'assistant_message_id' => null,
+                    'updated_at' => now(),
+                ]);
+
+            DB::table('chatbot_messages')
+                ->where('session_id', $id)
+                ->delete();
+
+            $deleted = DB::table('chatbot_sessions')
+                ->where('id', $id)
+                ->delete();
 
             if ($deleted) {
                 DB::commit();
-                return response()->json(['success' => true, 'message' => 'Xóa session thành công!']);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Xóa session thành công!',
+                ]);
             }
 
             DB::rollBack();
-            return response()->json(['success' => false, 'message' => 'Không tìm thấy session.']);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Không tìm thấy session.',
+            ]);
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['success' => false, 'message' => 'Lỗi: ' . $e->getMessage()], 500);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi: ' . $e->getMessage(),
+            ], 500);
         }
     }
 
     public function adviseDestroyMessage($id)
     {
         try {
-            $deleted = DB::table('chatbot_messages')->where('id', $id)->delete();
+            DB::beginTransaction();
+
+            $library = DB::table('chatbot_answer_library')
+                ->where('source_type', 'ai')
+                ->where('source_id', $id)
+                ->first();
+
+            if ($library) {
+                if ((int) $library->is_approved === 1) {
+                    DB::table('chatbot_answer_library')
+                        ->where('id', $library->id)
+                        ->update([
+                            'session_id' => null,
+                            'user_message_id' => null,
+                            'assistant_message_id' => null,
+                            'updated_at' => now(),
+                        ]);
+                } else {
+                    DB::table('chatbot_answer_library')
+                        ->where('id', $library->id)
+                        ->delete();
+                }
+            }
+
+            DB::table('chatbot_answer_library')
+                ->where('user_message_id', $id)
+                ->update([
+                    'user_message_id' => null,
+                    'updated_at' => now(),
+                ]);
+
+            $deleted = DB::table('chatbot_messages')
+                ->where('id', $id)
+                ->delete();
+
+            DB::commit();
 
             return $deleted
-                ? response()->json(['success' => true,  'message' => 'Xóa tin nhắn thành công!'])
-                : response()->json(['success' => false, 'message' => 'Không tìm thấy tin nhắn.']);
+                ? response()->json([
+                    'success' => true,
+                    'message' => 'Xóa tin nhắn thành công!',
+                ])
+                : response()->json([
+                    'success' => false,
+                    'message' => 'Không tìm thấy tin nhắn.',
+                ]);
         } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => 'Lỗi: ' . $e->getMessage()], 500);
+            DB::rollBack();
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi: ' . $e->getMessage(),
+            ], 500);
         }
     }
 
     public function adviseStats()
     {
         return response()->json([
-            'total_sessions'  => DB::table('chatbot_sessions')->count(),
-            'total_messages'  => DB::table('chatbot_messages')->count(),
-            'user_messages'   => DB::table('chatbot_messages')->where('role', 'user')->count(),
-            'bot_messages'    => DB::table('chatbot_messages')->where('role', 'assistant')->count(),
-            'voice_messages'  => DB::table('chatbot_messages')->where('input_type', 'voice')->count(),
+            'total_sessions' => DB::table('chatbot_sessions')->count(),
+            'total_messages' => DB::table('chatbot_messages')->count(),
+            'user_messages' => DB::table('chatbot_messages')
+                ->where('role', 'user')
+                ->count(),
+            'bot_messages' => DB::table('chatbot_messages')
+                ->where('role', 'assistant')
+                ->count(),
+            'voice_messages' => DB::table('chatbot_messages')
+                ->where('input_type', 'voice')
+                ->count(),
 
-            'pending_tickets' => DB::table('chatbot_tickets')->where('status', 'pending')->count(),
-            'answered_tickets' => DB::table('chatbot_tickets')->where('status', 'answered')->count(),
-            'closed_tickets'  => DB::table('chatbot_tickets')->where('status', 'closed')->count(),
+            'pending_tickets' => DB::table('chatbot_tickets')
+                ->where('status', 'pending')
+                ->count(),
+            'answered_tickets' => DB::table('chatbot_tickets')
+                ->where('status', 'answered')
+                ->count(),
+            'closed_tickets' => DB::table('chatbot_tickets')
+                ->where('status', 'closed')
+                ->count(),
+
+            'approved_answers' => DB::table(
+                'chatbot_answer_library'
+            )
+                ->where('is_approved', 1)
+                ->where('is_active', 1)
+                ->count(),
         ]);
     }
 
@@ -1452,6 +1711,15 @@ class AdminController extends Controller
         $query = DB::table('chatbot_tickets as t')
             ->leftJoin('nguoidung as nd', 'nd.id', '=', 't.answered_by')
             ->leftJoin('chatbot_sessions as s', 's.id', '=', 't.session_id')
+            ->leftJoin(
+                'chatbot_answer_library as al',
+                function ($join) {
+                    $join->on('al.source_id', '=', 't.id')
+                        ->where('al.source_type', '=', 'staff')
+                        ->where('al.is_approved', '=', 1)
+                        ->where('al.is_active', '=', 1);
+                }
+            )
             ->select(
                 't.id',
                 't.session_id',
@@ -1468,15 +1736,32 @@ class AdminController extends Controller
                 't.updated_at',
                 'nd.ten_nguoi_dung as admin_name',
                 's.session_key',
-                's.ip_address'
+                's.ip_address',
+                'al.id as answer_library_id',
+                'al.is_approved as answer_is_approved',
+                'al.is_active as answer_is_active',
+                'al.use_count as answer_use_count'
             );
 
-        if ($request->filled('status')) {
-            $query->where('t.status', $request->status);
+        /*
+         * Lọc đúng trạng thái ticket.
+         *
+         * Trước đây tham số status từ giao diện bị bỏ qua, nên request
+         * status=pending vẫn trả về toàn bộ ticket. JavaScript lấy tổng
+         * số đó làm số ticket chờ và hiển thị cảnh báo sai.
+         */
+        $status = trim((string) $request->input('status', ''));
+
+        if (in_array(
+            $status,
+            ['pending', 'answered', 'closed'],
+            true
+        )) {
+            $query->where('t.status', $status);
         }
 
         if ($request->filled('keyword')) {
-            $keyword = $request->keyword;
+            $keyword = trim((string) $request->keyword);
 
             $query->where(function ($q) use ($keyword) {
                 $q->where('t.ticket_code', 'like', '%' . $keyword . '%')
@@ -1486,10 +1771,13 @@ class AdminController extends Controller
             });
         }
 
+        $perPage = (int) $request->input('per_page', 8);
+        $perPage = max(5, min($perPage, 20));
+
         $tickets = $query
             ->orderByRaw("FIELD(t.status, 'pending', 'answered', 'closed')")
             ->orderByDesc('t.created_at')
-            ->paginate(10);
+            ->paginate($perPage);
 
         $items = collect($tickets->items())->map(function ($item) {
             $item->created_at_text = $item->created_at
@@ -1524,14 +1812,41 @@ class AdminController extends Controller
         $ticket = DB::table('chatbot_tickets as t')
             ->leftJoin('nguoidung as nd', 'nd.id', '=', 't.answered_by')
             ->leftJoin('chatbot_sessions as s', 's.id', '=', 't.session_id')
+            ->leftJoin(
+                'chatbot_answer_library as al',
+                function ($join) {
+                    $join->on('al.source_id', '=', 't.id')
+                        ->where('al.source_type', '=', 'staff')
+                        ->where('al.is_approved', '=', 1)
+                        ->where('al.is_active', '=', 1);
+                }
+            )
             ->select(
-                't.*',
+                't.id',
+                't.session_id',
+                't.user_message_id',
+                't.bot_message_id',
+                't.thread_id',
+                't.ticket_code',
+                't.question',
+                't.bot_note',
+                't.status',
+                't.staff_answer',
+                't.answered_by',
+                't.answered_at',
+                't.delivered_at',
+                't.created_at',
+                't.updated_at',
                 'nd.ten_nguoi_dung as admin_name',
                 's.session_key',
                 's.ip_address',
                 's.user_agent',
                 's.started_at',
-                's.last_active_at'
+                's.last_active_at',
+                'al.id as answer_library_id',
+                'al.is_approved as answer_is_approved',
+                'al.is_active as answer_is_active',
+                'al.use_count as answer_use_count'
             )
             ->where('t.id', $id)
             ->first();
@@ -1563,9 +1878,130 @@ class AdminController extends Controller
 
     public function adviseTicketAnswer(Request $request, $id)
     {
+        /*
+         * Tái sử dụng route trả lời ticket đã có để cập nhật kho.
+         * Không phụ thuộc route answer-library mới.
+         */
+        $idText = (string) $id;
+
+        if (strpos($idText, 'message-') === 0) {
+            $messageId = (int) substr(
+                $idText,
+                strlen('message-')
+            );
+
+            $request->validate([
+                'approved' => 'required|integer|in:0,1',
+            ]);
+
+            $adminId = $this->currentAdminId();
+
+            if (!$adminId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Không xác định được admin đang đăng nhập.',
+                ], 403);
+            }
+
+            $message = DB::table('chatbot_messages as assistant_message')
+                ->join(
+                    'chatbot_messages as user_message',
+                    'user_message.id',
+                    '=',
+                    'assistant_message.reply_to_id'
+                )
+                ->where('assistant_message.id', $messageId)
+                ->where('assistant_message.role', 'assistant')
+                ->where('user_message.role', 'user')
+                ->select(
+                    'assistant_message.id',
+                    'assistant_message.session_id',
+                    'assistant_message.content as answer',
+                    'user_message.id as user_message_id',
+                    'user_message.content as question'
+                )
+                ->first();
+
+            if (!$message) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Không tìm thấy cặp hỏi đáp AI.',
+                ], 404);
+            }
+
+            try {
+                $service = app(
+                    ChatbotAnswerLibraryService::class
+                );
+
+                if ((int) $request->approved === 1) {
+                    $result = $service->storeAiAnswer(
+                        $message->session_id,
+                        $message->user_message_id,
+                        $message->id,
+                        $message->question,
+                        $message->answer,
+                        $adminId
+                    );
+
+                    $review = isset($result['review'])
+                        ? $result['review']
+                        : null;
+
+                    $messageText = $review
+                        && $review['reuse_ready']
+                            ? 'Đã lưu vào kho và sẵn sàng tái sử dụng.'
+                            : 'Đã lưu vào kho. Câu này chỉ chưa được dùng tự động nếu là nội dung rác hoặc không đúng chủ đề.';
+                } else {
+                    $result = $service->removeAiAnswer(
+                        $message->id
+                    );
+
+                    $messageText = 'Đã xóa câu trả lời khỏi kho.';
+                }
+
+                return response()->json([
+                    'success' => true,
+                    'message' => $messageText,
+                    'data' => $result,
+                ]);
+            } catch (\InvalidArgumentException $e) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $e->getMessage(),
+                ], 422);
+            }
+        }
+
+        if (strpos($idText, 'library-') === 0) {
+            $libraryId = (int) substr($idText, strlen('library-'));
+            $action = trim((string) $request->input(
+                'library_action'
+            ));
+
+            if ($action === 'approval') {
+                return $this->adviseAnswerLibraryApproval(
+                    $request,
+                    $libraryId
+                );
+            }
+
+            if ($action === 'update') {
+                return $this->adviseAnswerLibraryUpdate(
+                    $request,
+                    $libraryId
+                );
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Thao tác kho câu hỏi không hợp lệ.',
+            ], 422);
+        }
+
         $request->validate([
             'staff_answer' => 'required|string|max:10000',
-            'is_public'    => 'nullable|integer|in:0,1',
+            'use_as_sample' => 'nullable|integer|in:0,1',
         ], [
             'staff_answer.required' => 'Vui lòng nhập nội dung trả lời.',
         ]);
@@ -1579,7 +2015,9 @@ class AdminController extends Controller
             ], 403);
         }
 
-        $ticket = DB::table('chatbot_tickets')->where('id', $id)->first();
+        $ticket = DB::table('chatbot_tickets')
+            ->where('id', $id)
+            ->first();
 
         if (!$ticket) {
             return response()->json([
@@ -1588,80 +2026,54 @@ class AdminController extends Controller
             ], 404);
         }
 
-        $isPublic = (int) $request->input('is_public', 0);
+        $answer = trim((string) $request->staff_answer);
+        $useAsSample = (int) $request->input('use_as_sample', 0);
 
         DB::table('chatbot_tickets')
             ->where('id', $id)
             ->update([
                 'status'       => 'answered',
-                'staff_answer' => $request->staff_answer,
-                'is_public'    => $isPublic,
+                'staff_answer' => $answer,
                 'answered_by'  => $adminId,
                 'answered_at'  => now(),
                 'delivered_at' => null,
                 'updated_at'   => now(),
             ]);
 
-        // ==========================================
-        // AI TỰ HỌC: Lưu câu trả lời của staff vào tài liệu RAG (nếu là Công khai)
-        // ==========================================
-        try {
-            $existingDoc = DB::table('admission_rag_documents')
-                ->where('source_url', url('/admin/advise/tickets/' . $id))
-                ->first();
+        $libraryResult = app(
+            ChatbotAnswerLibraryService::class
+        )->storeStaffAnswer(
+            $ticket->id,
+            $ticket->session_id,
+            $ticket->user_message_id,
+            $ticket->question,
+            $answer,
+            $useAsSample === 1,
+            $adminId
+        );
 
-            if ($isPublic === 1) {
-                $ragService = app(\App\Services\AdmissionRagService::class);
-                
-                // Xây dựng nội dung Q&A
-                $docTitle = "FAQ - Ticket " . $ticket->ticket_code;
-                $docContent = "Câu hỏi tuyển sinh: " . $ticket->question . "\nTrả lời từ Ban tuyển sinh: " . $request->staff_answer;
+        $message = 'Đã trả lời yêu cầu tư vấn. '
+            . 'Nếu người hỏi còn mở khung chat, phản hồi sẽ tự hiển thị.';
 
-                if ($existingDoc) {
-                    DB::table('admission_rag_documents')
-                        ->where('id', $existingDoc->id)
-                        ->update([
-                            'title' => $docTitle,
-                            'content' => $docContent,
-                            'updated_at' => now(),
-                        ]);
-                    $docId = $existingDoc->id;
-                } else {
-                    $docId = DB::table('admission_rag_documents')->insertGetId([
-                        'title' => $docTitle,
-                        'category' => 'faq',
-                        'status' => 'active',
-                        'source_url' => url('/admin/advise/tickets/' . $id),
-                        'content' => $docContent,
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ]);
-                }
-
-                // Phân chunk tài liệu để RAG có thể tìm thấy
-                $ragService->rebuildChunks($docId, $docContent);
-                Log::info('[AI Self-Learning] Ticket answered and synced to RAG. DocID: ' . $docId);
-            } else {
-                // Nếu là Riêng tư, xóa tài liệu khỏi RAG (nếu trước đó đã từng được đồng bộ)
-                if ($existingDoc) {
-                    DB::table('admission_rag_documents')->where('id', $existingDoc->id)->delete();
-                    Log::info('[AI Self-Learning] Ticket updated to Private. Removed from RAG. DocID: ' . $existingDoc->id);
-                }
-            }
-        } catch (\Throwable $e) {
-            Log::error('[AI Self-Learning] Failed to sync ticket answer to RAG: ' . $e->getMessage());
+        if ($libraryResult['approval_blocked']) {
+            $message .= ' Câu hỏi có dấu hiệu chứa dữ liệu cá nhân nên '
+                . 'không được đưa vào kho câu trả lời mẫu.';
+        } elseif ($libraryResult['is_in_library']) {
+            $message .= ' Câu trả lời đã được thêm vào kho.';
         }
-
 
         return response()->json([
             'success' => true,
-            'message' => 'Đã trả lời yêu cầu tư vấn. Nếu người hỏi còn mở khung chat, phản hồi sẽ tự hiển thị.',
+            'message' => $message,
+            'answer_library' => $libraryResult,
         ]);
     }
 
     public function adviseTicketClose($id)
     {
-        $ticket = DB::table('chatbot_tickets')->where('id', $id)->first();
+        $ticket = DB::table('chatbot_tickets')
+            ->where('id', $id)
+            ->first();
 
         if (!$ticket) {
             return response()->json([
@@ -1683,14 +2095,289 @@ class AdminController extends Controller
         ]);
     }
 
+    public function adviseAnswerLibrary(Request $request)
+    {
+        $query = DB::table('chatbot_answer_library as al')
+            ->leftJoin(
+                'nguoidung as approved_user',
+                'approved_user.id',
+                '=',
+                'al.approved_by'
+            )
+            ->leftJoin(
+                'chatbot_tickets as t',
+                't.id',
+                '=',
+                'al.ticket_id'
+            )
+            ->leftJoin(
+                'chatbot_sessions as s',
+                's.id',
+                '=',
+                'al.session_id'
+            )
+            ->select(
+                'al.id',
+                'al.source_type',
+                'al.source_id',
+                'al.session_id',
+                'al.user_message_id',
+                'al.assistant_message_id',
+                'al.ticket_id',
+                'al.question',
+                'al.answer',
+                'al.is_approved',
+                'al.is_active',
+                'al.approved_by',
+                'al.approved_at',
+                'al.use_count',
+                'al.last_used_at',
+                'al.created_at',
+                'al.updated_at',
+                'approved_user.ten_nguoi_dung as approved_by_name',
+                't.ticket_code',
+                's.ip_address'
+            )
+            ->where('al.is_approved', 1)
+            ->where('al.is_active', 1);
+
+        if ($request->filled('source_type')) {
+            $query->where('al.source_type', $request->source_type);
+        }
+
+        if ($request->filled('keyword')) {
+            $keyword = trim((string) $request->keyword);
+
+            $query->where(function ($q) use ($keyword) {
+                $q->where('al.question', 'like', '%' . $keyword . '%')
+                    ->orWhere('al.answer', 'like', '%' . $keyword . '%')
+                    ->orWhere('t.ticket_code', 'like', '%' . $keyword . '%');
+            });
+        }
+
+        $perPage = (int) $request->input('per_page', 8);
+        $perPage = max(5, min($perPage, 20));
+
+        $records = $query
+            ->orderByDesc('al.updated_at')
+            ->orderByDesc('al.id')
+            ->paginate($perPage);
+
+        $items = collect($records->items())->map(function ($item) {
+            $item->source_label = $item->source_type === 'staff'
+                ? 'Nhân viên'
+                : 'AI';
+
+            $item->created_at_text = $item->created_at
+                ? date('d/m/Y H:i', strtotime($item->created_at))
+                : '';
+
+            $item->updated_at_text = $item->updated_at
+                ? date('d/m/Y H:i', strtotime($item->updated_at))
+                : '';
+
+            $item->approved_at_text = $item->approved_at
+                ? date('d/m/Y H:i', strtotime($item->approved_at))
+                : '';
+
+            $item->last_used_at_text = $item->last_used_at
+                ? date('d/m/Y H:i', strtotime($item->last_used_at))
+                : '';
+
+            return $item;
+        })->values();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'data' => $items,
+                'current_page' => $records->currentPage(),
+                'last_page' => $records->lastPage(),
+                'per_page' => $records->perPage(),
+                'total' => $records->total(),
+            ],
+        ]);
+    }
+
+    public function adviseAnswerLibraryShow($id)
+    {
+        $record = DB::table('chatbot_answer_library as al')
+            ->leftJoin(
+                'nguoidung as approved_user',
+                'approved_user.id',
+                '=',
+                'al.approved_by'
+            )
+            ->leftJoin(
+                'chatbot_tickets as t',
+                't.id',
+                '=',
+                'al.ticket_id'
+            )
+            ->leftJoin(
+                'chatbot_sessions as s',
+                's.id',
+                '=',
+                'al.session_id'
+            )
+            ->select(
+                'al.*',
+                'approved_user.ten_nguoi_dung as approved_by_name',
+                't.ticket_code',
+                's.ip_address'
+            )
+            ->where('al.id', $id)
+            ->where('al.is_approved', 1)
+            ->where('al.is_active', 1)
+            ->first();
+
+        if (!$record) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Không tìm thấy câu trả lời trong kho.',
+            ], 404);
+        }
+
+        $record->source_label = $record->source_type === 'staff'
+            ? 'Nhân viên'
+            : 'AI';
+
+        $record->created_at_text = $record->created_at
+            ? date('d/m/Y H:i', strtotime($record->created_at))
+            : '';
+
+        $record->updated_at_text = $record->updated_at
+            ? date('d/m/Y H:i', strtotime($record->updated_at))
+            : '';
+
+        $record->approved_at_text = $record->approved_at
+            ? date('d/m/Y H:i', strtotime($record->approved_at))
+            : '';
+
+        $record->last_used_at_text = $record->last_used_at
+            ? date('d/m/Y H:i', strtotime($record->last_used_at))
+            : '';
+
+        $record->library_review = app(
+            ChatbotAnswerLibraryService::class
+        )->reviewForLibrary(
+            $record->question,
+            $record->answer
+        );
+
+        return response()->json([
+            'success' => true,
+            'data' => $record,
+        ]);
+    }
+
+    public function adviseAnswerLibraryUpdate(Request $request, $id)
+    {
+        $request->validate([
+            'question' => 'required|string|max:12000',
+            'answer' => 'required|string|max:30000',
+        ]);
+
+        $adminId = $this->currentAdminId();
+
+        if (!$adminId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Không xác định được admin đang đăng nhập.',
+            ], 403);
+        }
+
+        try {
+            $result = app(
+                ChatbotAnswerLibraryService::class
+            )->updateEntry(
+                $id,
+                $request->question,
+                $request->answer,
+                $adminId
+            );
+
+            $review = isset($result['review'])
+                ? $result['review']
+                : null;
+
+            return response()->json([
+                'success' => true,
+                'message' => $review && $review['reuse_ready']
+                    ? 'Đã lưu thay đổi và sẵn sàng tái sử dụng.'
+                    : 'Đã lưu thay đổi. Hệ thống chỉ tạm không dùng tự động nếu nội dung không đúng chủ đề hoặc là dữ liệu rác.',
+                'data' => $result,
+            ]);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
+        }
+    }
+
+    public function adviseAnswerLibraryApproval(Request $request, $id)
+    {
+        $request->validate([
+            'approved' => 'required|integer|in:0,1',
+        ]);
+
+        $adminId = $this->currentAdminId();
+
+        if (!$adminId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Không xác định được admin đang đăng nhập.',
+            ], 403);
+        }
+
+        try {
+            $result = app(
+                ChatbotAnswerLibraryService::class
+            )->setApproval(
+                $id,
+                (int) $request->approved === 1,
+                $adminId
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => $result['is_in_library']
+                    ? 'Đã thêm câu trả lời vào kho.'
+                    : 'Đã xóa câu trả lời khỏi kho.',
+                'data' => $result,
+            ]);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
+        }
+    }
+
+    public function adviseAnswerLibraryDestroy($id)
+    {
+        $deleted = DB::table('chatbot_answer_library')
+            ->where('id', $id)
+            ->delete();
+
+        return $deleted
+            ? response()->json([
+                'success' => true,
+                'message' => 'Đã xóa câu trả lời khỏi kho.',
+            ])
+            : response()->json([
+                'success' => false,
+                'message' => 'Không tìm thấy câu trả lời trong kho.',
+            ], 404);
+    }
+
     private function currentAdminId()
     {
-        // Nếu hệ thống có dùng Auth Laravel
         if (auth()->check()) {
             return auth()->id();
         }
 
-        // Nếu lúc đăng nhập bạn có lưu session id admin
         $sessionIdKeys = [
             'nguoidung_id',
             'id_nguoidung',
@@ -1709,7 +2396,6 @@ class AdminController extends Controller
             }
         }
 
-        // Nếu lúc đăng nhập chỉ lưu email admin
         $sessionEmailKeys = [
             'email',
             'admin_email',
@@ -1732,7 +2418,6 @@ class AdminController extends Controller
             }
         }
 
-        // Nếu session lưu nguyên mảng/object admin
         $sessionUserKeys = [
             'admin',
             'nguoidung',
@@ -1752,7 +2437,6 @@ class AdminController extends Controller
             }
         }
 
-        // Tạm thời dùng cho hệ thống hiện tại nếu chỉ có 1 admin
         return DB::table('nguoidung')
             ->where('role', 'admin')
             ->orderBy('id')
@@ -1763,16 +2447,39 @@ class AdminController extends Controller
     {
         try {
             DB::beginTransaction();
+
+            DB::table('chatbot_answer_library')
+                ->where('is_approved', 0)
+                ->delete();
+
+            DB::table('chatbot_answer_library')
+                ->where('is_approved', 1)
+                ->update([
+                    'session_id' => null,
+                    'user_message_id' => null,
+                    'assistant_message_id' => null,
+                    'updated_at' => now(),
+                ]);
+
             DB::table('chatbot_messages')->delete();
             DB::table('chatbot_sessions')->delete();
+
             DB::commit();
-            return response()->json(['success' => true, 'message' => 'Đã xóa tất cả dữ liệu advise!']);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Đã xóa dữ liệu hội thoại; '
+                    . 'các câu mẫu đã duyệt vẫn được giữ lại.',
+            ]);
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['success' => false, 'message' => 'Lỗi: ' . $e->getMessage()], 500);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi: ' . $e->getMessage(),
+            ], 500);
         }
     }
-
 
 
     public function dashboardStats()

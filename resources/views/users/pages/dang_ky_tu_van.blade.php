@@ -338,21 +338,35 @@
                         </div>
                     </div>
                     
-                    <div class="form-group">
-                        <label class="form-label">Tên trường THPT</label>
-                        <input class="form-control" name="high_school" placeholder="Ví dụ: THPT Chuyên Lý Tự Trọng">
-                    </div>
+
 
                     <div class="row-2-cols">
+                        <div class="form-group">
+                            <label class="form-label">Tỉnh / Thành phố</label>
+                            <select class="form-control" name="province" id="selectProvince">
+                                <option value="">-- Chọn Tỉnh/Thành --</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Quận / Huyện</label>
+                            <select class="form-control" name="district" id="selectDistrict" disabled>
+                                <option value="">-- Chọn Quận/Huyện --</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="row-2-cols">
+                        <div class="form-group">
+                            <label class="form-label">Trường THPT</label>
+                            <input class="form-control" name="high_school" id="inputSchool" placeholder="Nhập tên Trường THPT">
+                        </div>
                         <div class="form-group">
                             <label class="form-label">Ngành quan tâm</label>
                             <input class="form-control" name="intended_major" value="{{ $major ?? '' }}" placeholder="VD: Công nghệ thông tin">
                         </div>
-                        <div class="form-group">
-                            <label class="form-label">Tỉnh / Thành phố</label>
-                            <input class="form-control" name="province" placeholder="VD: Cần Thơ">
-                        </div>
                     </div>
+
+                    <div id="dynamicFieldsContainer" class="row-2-cols"></div>
 
                     <div class="form-group">
                         <label class="form-label">Nội dung cần tư vấn</label>

@@ -113,14 +113,22 @@ $(function () {
         });
     }
 
-    function loadLeads() {
+    function loadLeads(page = 1) {
         const params = {
             keyword: $('#leadKeyword').val(),
             score_grade: $('#leadGrade').val(),
+            page: page
         };
 
         $.get('/admin/admission-cms/leads', params, function (res) {
-            const rows = (res.data && res.data.data ? res.data.data : []).map(function (lead) {
+            const dataArr = res.data ? (Array.isArray(res.data) ? res.data : res.data.data) : res;
+            if (!dataArr || !dataArr.length) {
+                $('#leadRows').html('<tr><td colspan="7" class="text-center text-muted">Chua co lead.</td></tr>');
+                $('#leadsPagination').html('');
+                return;
+            }
+
+            const rows = dataArr.map(function (lead) {
                 const grade = lead.score_grade || 'cold';
                 return '<tr>' +
                     '<td><strong>' + escapeHtml(lead.full_name || 'Chua co ten') + '</strong><div class="text-muted small">#' + lead.id + '</div></td>' +
@@ -139,7 +147,40 @@ $(function () {
                 '</tr>';
             }).join('');
 
-            $('#leadRows').html(rows || '<tr><td colspan="7" class="text-center text-muted">Chua co lead.</td></tr>');
+            $('#leadRows').html(rows);
+            
+            // Render Pagination if available
+            if (res.last_page) {
+                renderPagination(res, $('#leadsPagination'), loadLeads);
+            }
+        });
+    }
+
+    function renderPagination(res, container, loadFunc) {
+        if (!res.last_page || res.last_page <= 1) {
+            container.html('');
+            return;
+        }
+        let html = '<ul class="pagination pagination-sm justify-content-end mt-2 mb-0">';
+        if (res.current_page > 1) {
+            html += `<li class="page-item"><a class="page-link" href="#" data-page="${res.current_page - 1}">Trước</a></li>`;
+        }
+        for(let i=1; i<=res.last_page; i++) {
+            if (i == 1 || i == res.last_page || (i >= res.current_page - 2 && i <= res.current_page + 2)) {
+                const active = i === res.current_page ? 'active' : '';
+                html += `<li class="page-item ${active}"><a class="page-link" href="#" data-page="${i}">${i}</a></li>`;
+            } else if (i === res.current_page - 3 || i === res.current_page + 3) {
+                html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+            }
+        }
+        if (res.current_page < res.last_page) {
+            html += `<li class="page-item"><a class="page-link" href="#" data-page="${res.current_page + 1}">Sau</a></li>`;
+        }
+        html += '</ul>';
+        container.html(html);
+        container.find('a.page-link').on('click', function(e) {
+            e.preventDefault();
+            loadFunc($(this).data('page'));
         });
     }
 
@@ -164,27 +205,28 @@ $(function () {
             $('#n8nRows').html(rows || '<tr><td colspan="5" class="text-center text-muted">Chua co log.</td></tr>');
         });
     }
-
-    function loadApprovals() {
+    function loadApprovals(page = 1) {
         $('#approvalList').html('<div class="text-center"><i class="fas fa-spinner fa-spin"></i> Đang tải...</div>');
-        $.get('/admin/admission-cms/approvals', function(res) {
-            if (!res.success || res.data.length === 0) {
+        $.get('/admin/admission-cms/approvals?page=' + page, function(res) {
+            const dataArr = res.data ? (Array.isArray(res.data) ? res.data : res.data.data) : res;
+            if (!dataArr || dataArr.length === 0) {
                 $('#approvalList').html('<div class="text-center text-muted py-4">Tất cả đều trống. Không có mục nào chờ duyệt! 🎉</div>');
+                $('#approvalsPagination').html('');
                 return;
             }
-            const html = res.data.map(function(item) {
+            const html = dataArr.map(function(item) {
                 return `
                 <div class="card shadow-sm border-0 mb-3" id="approval-card-${item.id}">
                     <div class="card-body">
                         <div class="d-flex justify-content-between mb-2">
-                            <h5 class="card-title text-primary"><i class="fas fa-user-circle me-1"></i> ${escapeHtml(item.customer_name)}</h5>
+                            <h5 class="card-title text-primary"><i class="fas fa-user-circle me-1"></i> ${escapeHtml(item.customer_name || item.full_name)}</h5>
                             <span class="badge bg-secondary">Kênh: ${escapeHtml(item.channel)}</span>
                         </div>
-                        <p class="mb-1 text-muted"><i class="fas fa-envelope me-1"></i> ${escapeHtml(item.customer_email || 'N/A')} &nbsp; | &nbsp; <i class="fas fa-phone me-1"></i> ${escapeHtml(item.customer_phone || 'N/A')}</p>
+                        <p class="mb-1 text-muted"><i class="fas fa-envelope me-1"></i> ${escapeHtml(item.customer_email || item.email || 'N/A')} &nbsp; | &nbsp; <i class="fas fa-phone me-1"></i> ${escapeHtml(item.customer_phone || item.phone || 'N/A')}</p>
                         <hr>
                         <div class="mb-3">
                             <label class="fw-bold text-dark">Câu hỏi của khách hàng:</label>
-                            <div class="p-2 bg-light rounded border">${escapeHtml(item.question)}</div>
+                            <div class="p-2 bg-light rounded border">${escapeHtml(item.question || item.note)}</div>
                         </div>
                         <div class="mb-3">
                             <label class="fw-bold text-success">Câu trả lời do AI soạn thảo (Draft):</label>
@@ -208,6 +250,10 @@ $(function () {
                 </div>`;
             }).join('');
             $('#approvalList').html(html);
+            
+            if (res.last_page) {
+                renderPagination(res, $('#approvalsPagination'), loadApprovals);
+            }
         });
     }
 
@@ -368,25 +414,46 @@ $(function () {
 
     // Scoring Criteria Logic
     function loadCriteria() {
-        $('#criteriaRows').html('<tr><td colspan="8" class="text-center"><i class="fas fa-spinner fa-spin"></i> Đang tải...</td></tr>');
+        $('#criteriaRows').html('<tr><td colspan="9" class="text-center"><i class="fas fa-spinner fa-spin"></i> Đang tải...</td></tr>');
         $.get('/admin/admission-cms/scoring/criteria', function (res) {
-            const rows = res.map(function (c) {
-                const status = c.is_active ? '<span class="badge bg-success">Đang bật</span>' : '<span class="badge bg-secondary">Đã tắt</span>';
-                return `<tr>
-                    <td><strong>${escapeHtml(c.criterion_code)}</strong></td>
-                    <td>${escapeHtml(c.criterion_name)}</td>
-                    <td><code>${escapeHtml(c.data_field)}</code></td>
-                    <td><strong>${escapeHtml(c.operator)}</strong></td>
-                    <td>${escapeHtml(c.comparison_value || '')}</td>
-                    <td><span class="text-success fw-bold">+${c.score}</span></td>
-                    <td>${status}</td>
-                    <td>
-                        <button class="btn btn-sm btn-outline-info btn-edit-crit" data-crit='${JSON.stringify(c)}'><i class="fas fa-edit"></i></button>
-                        <button class="btn btn-sm btn-outline-danger btn-del-crit" data-id="${c.id}"><i class="fas fa-trash"></i></button>
-                    </td>
-                </tr>`;
-            }).join('');
-            $('#criteriaRows').html(rows || '<tr><td colspan="8" class="text-center text-muted">Chưa có tiêu chí nào.</td></tr>');
+            if (!res || res.length === 0) {
+                $('#criteriaRows').html('<tr><td colspan="9" class="text-center text-muted">Chưa có tiêu chí nào.</td></tr>');
+                return;
+            }
+
+            // Group by category
+            const grouped = {};
+            res.forEach(c => {
+                const cat = c.category || 'Chưa phân loại';
+                if (!grouped[cat]) grouped[cat] = [];
+                grouped[cat].push(c);
+            });
+
+            let rows = '';
+            for (const [cat, items] of Object.entries(grouped)) {
+                rows += `<tr><td colspan="9" class="bg-light fw-bold text-uppercase text-primary"><i class="fas fa-folder-open me-2"></i>${escapeHtml(cat)}</td></tr>`;
+                
+                rows += items.map(function (c) {
+                    const status = c.is_active ? '<span class="badge bg-success">Đang bật</span>' : '<span class="badge bg-secondary">Đã tắt</span>';
+                    const publicBadge = c.show_on_public_form ? '<br><span class="badge bg-info mt-1">Form Public</span>' : '';
+                    return `<tr>
+                        <td><strong>${escapeHtml(c.criterion_code)}</strong></td>
+                        <td>${escapeHtml(c.criterion_name)}</td>
+                        <td><code>${escapeHtml(c.data_field)}</code></td>
+                        <td><span class="badge bg-secondary">${escapeHtml(c.input_type || 'text')}</span>${publicBadge}</td>
+                        <td><strong>${escapeHtml(c.operator)}</strong></td>
+                        <td>${escapeHtml(c.comparison_value || '')}</td>
+                        <td><span class="text-success fw-bold">+${c.score}</span></td>
+                        <td>${status}</td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-info btn-edit-crit" data-crit='${JSON.stringify(c).replace(/'/g, "&#39;")}'><i class="fas fa-edit"></i></button>
+                            <button class="btn btn-sm btn-outline-danger btn-del-crit" data-id="${c.id}"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>`;
+                }).join('');
+            }
+            
+            $('#criteriaRows').html(rows);
         });
     }
 
@@ -418,13 +485,35 @@ $(function () {
 
     $('#reloadCriteria').on('click', loadCriteria);
 
+    $('#crit_input_type').on('change', function() {
+        if ($(this).val() === 'select' || $(this).val() === 'checkbox') {
+            $('#crit_options_wrap').slideDown();
+        } else {
+            $('#crit_options_wrap').slideUp();
+        }
+    });
+
     $('#criterionForm').on('submit', function (e) {
         e.preventDefault();
         const id = $('#crit_id').val();
+        
+        let options = null;
+        if (['select', 'checkbox'].includes($('#crit_input_type').val()) && $('#crit_options').val().trim()) {
+            const raw = $('#crit_options').val().trim();
+            options = raw.split(',').map(s => s.trim()).filter(s => s).map(s => {
+                return { label: s, value: s };
+            });
+        }
+
         const data = {
             criterion_code: $('#crit_code').val(),
             criterion_name: $('#crit_name').val(),
+            category: $('#crit_category').val(),
             data_field: $('#crit_field').val(),
+            input_type: $('#crit_input_type').val() || 'text',
+            options: options,
+            show_on_public_form: $('#crit_show_public').is(':checked') ? 1 : 0,
+            is_required: $('#crit_is_required').is(':checked') ? 1 : 0,
             operator: $('#crit_op').val(),
             comparison_value: $('#crit_val').val(),
             score: $('#crit_score').val(),
@@ -441,11 +530,16 @@ $(function () {
                 toastr.success('Đã lưu tiêu chí thành công');
                 $('#criterionForm')[0].reset();
                 $('#crit_id').val('');
-                $('#crit_cancel').addClass('hidden');
+                $('#criterionModal').modal('hide');
                 loadCriteria();
             },
             error: function (xhr) {
-                toastr.error('Lỗi khi lưu tiêu chí. Mã tiêu chí có thể đã trùng.');
+                if (xhr.responseJSON && xhr.responseJSON.errors) {
+                    const errs = Object.values(xhr.responseJSON.errors).map(e => e.join('\n')).join('\n');
+                    toastr.error('Lỗi:\n' + errs);
+                } else {
+                    toastr.error('Lỗi khi lưu tiêu chí. ' + (xhr.responseJSON?.message || ''));
+                }
             }
         });
     });
@@ -455,18 +549,34 @@ $(function () {
         $('#crit_id').val(c.id);
         $('#crit_code').val(c.criterion_code);
         $('#crit_name').val(c.criterion_name);
+        $('#crit_category').val(c.category || '');
         $('#crit_field').val(c.data_field);
+        
+        $('#crit_input_type').val(c.input_type || 'text').trigger('change');
+        if (c.options && Array.isArray(c.options)) {
+            const raw = c.options.map(opt => opt.label).join(', ');
+            $('#crit_options').val(raw);
+        } else {
+            $('#crit_options').val('');
+        }
+        $('#crit_show_public').prop('checked', c.show_on_public_form);
+        $('#crit_is_required').prop('checked', c.is_required);
+
         $('#crit_op').val(c.operator);
         $('#crit_val').val(c.comparison_value);
         $('#crit_score').val(c.score);
         $('#crit_priority').val(c.priority);
-        $('#crit_cancel').removeClass('hidden');
+        
+        $('#critModalTitle').text('Sửa Tiêu chí Chấm điểm');
+        const modal = new bootstrap.Modal(document.getElementById('criterionModal'));
+        modal.show();
     });
 
-    $('#crit_cancel').on('click', function () {
+    $('#btnAddNewCrit').on('click', function () {
         $('#criterionForm')[0].reset();
+        $('#crit_input_type').trigger('change');
         $('#crit_id').val('');
-        $(this).addClass('hidden');
+        $('#critModalTitle').text('Thêm Tiêu chí Chấm điểm');
     });
 
     $(document).on('click', '.btn-del-crit', function () {
@@ -479,6 +589,120 @@ $(function () {
                 loadCriteria();
             }
         });
+    });
+
+    // --- Toxic Comments ---
+    window.loadToxicComments = function(status = 'all', page = 1) {
+        $.get('/admin/admission-cms/toxic-comments', { status: status, page: page }, function (res) {
+            if (!res.success) return;
+            const data = res.data.data;
+            let html = '';
+            if (data.length === 0) {
+                html = '<tr><td colspan="6" class="text-center">Không có bình luận nào.</td></tr>';
+            } else {
+                data.forEach(c => {
+                    const statusBadge = c.status === 'pending' ? '<span class="badge bg-danger">Chờ xử lý</span>' 
+                                      : (c.status === 'ignored' ? '<span class="badge bg-secondary">Bỏ qua</span>' 
+                                      : (c.status === 'deleted' ? '<span class="badge bg-dark">Đã xóa</span>' 
+                                      : '<span class="badge bg-black">Đã block</span>'));
+                    
+                    html += `<tr>
+                        <td><span class="badge bg-primary">${escapeHtml(c.platform)}</span><br><small class="text-muted">ID: ${escapeHtml(c.comment_id)}</small></td>
+                        <td><strong>${escapeHtml(c.sender_name)}</strong><br><small class="text-muted">ID: ${escapeHtml(c.sender_id)}</small></td>
+                        <td><div class="rag-answer">${escapeHtml(c.message)}</div></td>
+                        <td>
+                            <span class="badge bg-warning text-dark mb-1">${escapeHtml(c.sentiment_category)}</span><br>
+                            <small>${escapeHtml(c.ai_reason)}</small><br>
+                            ${statusBadge}
+                        </td>
+                        <td>${formatDate(c.created_at)}</td>
+                        <td>
+                            ${c.status === 'pending' ? `
+                                <button class="btn btn-sm btn-outline-secondary mb-1 w-100" onclick="handleToxicAction(${c.id}, 'ignore')">Bỏ qua</button>
+                                <button class="btn btn-sm btn-danger mb-1 w-100" onclick="handleToxicAction(${c.id}, 'delete')">Xóa Comment</button>
+                                <button class="btn btn-sm btn-dark w-100" onclick="handleToxicAction(${c.id}, 'block')">Block User</button>
+                            ` : '-'}
+                        </td>
+                    </tr>`;
+                });
+            }
+            $('#toxicCommentsBody').html(html);
+
+            let pgHtml = '';
+            if (res.data.last_page > 1) {
+                for (let i = 1; i <= res.data.last_page; i++) {
+                    pgHtml += `<button class="btn btn-sm ${i === res.data.current_page ? 'btn-primary' : 'btn-outline-primary'} ms-1" onclick="loadToxicComments('${status}', ${i})">${i}</button>`;
+                }
+            }
+            $('#toxicPagination').html(pgHtml);
+        });
+    };
+
+    window.handleToxicAction = function(id, action) {
+        if (!confirm('Bạn có chắc muốn thực hiện hành động: ' + action + '?')) return;
+        $.ajax({
+            url: `/admin/admission-cms/toxic-comments/${id}/action`,
+            type: 'POST',
+            data: { action: action },
+            success: function (res) {
+                if (res.success) {
+                    toastr.success(res.message);
+                    loadToxicComments('pending');
+                } else {
+                    toastr.error(res.message);
+                }
+            },
+            error: function () { toastr.error('Lỗi kết nối server.'); }
+        });
+    };
+
+    // --- Social Posts ---
+    window.loadSocialPosts = function(page = 1) {
+        $.get('/admin/admission-cms/social-posts', { page: page }, function (res) {
+            if (!res.success) return;
+            const data = res.data.data;
+            let html = '';
+            if (data.length === 0) {
+                html = '<tr><td colspan="4" class="text-center">Chưa có bài viết nào được đăng.</td></tr>';
+            } else {
+                data.forEach(p => {
+                    let platformsHtml = '';
+                    try {
+                        const platforms = JSON.parse(p.platforms || '[]');
+                        platforms.forEach(plat => {
+                            platformsHtml += `<span class="badge bg-info me-1">${escapeHtml(plat)}</span>`;
+                        });
+                    } catch(e) {}
+                    
+                    const imgHtml = p.image_url ? `<img src="${escapeHtml(p.image_url)}" style="max-width:100px; max-height:100px; border-radius:4px;">` : '-';
+
+                    html += `<tr>
+                        <td>${platformsHtml}</td>
+                        <td>
+                            <strong>${escapeHtml(p.title)}</strong><br>
+                            <div class="rag-answer mt-2" style="font-size: 13px;">${escapeHtml(p.content)}</div>
+                        </td>
+                        <td>${imgHtml}</td>
+                        <td>${formatDate(p.published_at)}</td>
+                    </tr>`;
+                });
+            }
+            $('#socialPostsBody').html(html);
+
+            let pgHtml = '';
+            if (res.data.last_page > 1) {
+                for (let i = 1; i <= res.data.last_page; i++) {
+                    pgHtml += `<button class="btn btn-sm ${i === res.data.current_page ? 'btn-primary' : 'btn-outline-primary'} ms-1" onclick="loadSocialPosts(${i})">${i}</button>`;
+                }
+            }
+            $('#socialPostsPagination').html(pgHtml);
+        });
+    };
+
+    $('[data-tab-target]').on('click', function () {
+        if ($(this).data('tab-target') === 'scoringTab') loadCriteria();
+        if ($(this).data('tab-target') === 'toxicTab') loadToxicComments('pending');
+        if ($(this).data('tab-target') === 'socialPostTab') loadSocialPosts();
     });
 
     loadStats();

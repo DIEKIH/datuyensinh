@@ -6,6 +6,7 @@ use App\Services\AdmissionLeadScoringService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Http;
 
 class AdmissionLeadController extends Controller
 {
@@ -75,10 +76,23 @@ class AdmissionLeadController extends Controller
             'last_interaction_at' => now(),
         ];
 
+        $customInput = $request->input('custom', []);
+        $mergedCustom = $this->scoring->extractAndMergeCustomFields($customInput);
+
+        $oldProfileArr = [];
+        if ($lead && !empty($lead->profile)) {
+            $oldProfileArr = json_decode($lead->profile, true) ?: [];
+            if (isset($oldProfileArr['custom']) && is_array($oldProfileArr['custom'])) {
+                $mergedCustom = array_merge($oldProfileArr['custom'], $mergedCustom);
+            }
+        }
+        $leadData['custom'] = $mergedCustom;
+
         $scored = $this->scoring->score($leadData, [['type' => 'form_submit']]);
         $leadData['score'] = $scored['lead_score'] ?? 0;
         $leadData['score_grade'] = strtolower($scored['lead_level'] ?? 'cold');
-        $leadData['profile'] = json_encode([
+        $leadData['profile'] = json_encode(array_merge($oldProfileArr, [
+            'custom' => $mergedCustom,
             'score_reasons' => $scored['matched_criteria'] ?? [],
             'utm' => [
                 'source' => $data['utm_source'] ?? null,
@@ -89,16 +103,25 @@ class AdmissionLeadController extends Controller
             'high_school' => $data['high_school'] ?? null,
             'user_agent' => $request->userAgent(),
             'ip_address' => $request->ip(),
-        ]);
+        ]));
         $leadData['updated_at'] = now();
 
+        $dbData = $leadData;
+        unset($dbData['custom']);
+
         if ($lead) {
-            DB::table('admission_leads')->where('id', $lead->id)->update($leadData);
+            DB::table('admission_leads')->where('id', $lead->id)->update($dbData);
             $leadId = $lead->id;
         } else {
-            $leadData['created_at'] = now();
-            $leadId = DB::table('admission_leads')->insertGetId($leadData);
+            $dbData['created_at'] = now();
+            $leadId = DB::table('admission_leads')->insertGetId($dbData);
         }
+
+        // Lưu tài khoản tương tác kênh Form/Website (dùng SĐT làm account_id)
+        DB::table('admission_lead_channel_accounts')->updateOrInsert(
+            ['channel' => $channel, 'account_id' => $data['phone']],
+            ['lead_id' => $leadId, 'last_interaction_at' => now(), 'updated_at' => now(), 'created_at' => now()]
+        );
 
         DB::table('admission_lead_activities')->insert([
             'lead_id' => $leadId,

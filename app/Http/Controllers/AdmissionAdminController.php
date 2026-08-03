@@ -114,6 +114,61 @@ class AdmissionAdminController extends Controller
         return response()->json(['success' => false, 'message' => 'Hành động không hợp lệ.']);
     }
 
+    public function listToxicComments(Request $request)
+    {
+        $query = DB::table('social_toxic_comments')->orderBy('created_at', 'desc');
+
+        if ($request->has('status') && $request->input('status') !== 'all') {
+            $query->where('status', $request->input('status'));
+        }
+
+        $comments = $query->paginate(20);
+
+        return response()->json([
+            'success' => true,
+            'data' => $comments
+        ]);
+    }
+
+    public function handleToxicCommentAction(Request $request, $id)
+    {
+        $comment = DB::table('social_toxic_comments')->where('id', $id)->first();
+        if (!$comment) {
+            return response()->json(['success' => false, 'message' => 'Không tìm thấy comment.']);
+        }
+
+        $action = $request->input('action'); // 'ignore', 'delete', 'block'
+        
+        if ($action === 'ignore') {
+            DB::table('social_toxic_comments')->where('id', $id)->update(['status' => 'ignored']);
+            return response()->json(['success' => true, 'message' => 'Đã bỏ qua cảnh báo này.']);
+        } elseif ($action === 'delete') {
+            // Thực tế sẽ gọi Facebook Graph API để xóa comment
+            // Http::delete("https://graph.facebook.com/v18.0/{$comment->comment_id}?access_token=...");
+            
+            DB::table('social_toxic_comments')->where('id', $id)->update(['status' => 'deleted']);
+            return response()->json(['success' => true, 'message' => 'Đã ra lệnh xóa comment trên hệ thống (Giả lập).']);
+        } elseif ($action === 'block') {
+            // Thực tế sẽ gọi API ban user
+            DB::table('social_toxic_comments')->where('id', $id)->update(['status' => 'blocked']);
+            return response()->json(['success' => true, 'message' => 'Đã block người dùng này (Giả lập).']);
+        }
+
+        return response()->json(['success' => false, 'message' => 'Hành động không hợp lệ.']);
+    }
+
+    public function listSocialPosts(Request $request)
+    {
+        $posts = DB::table('social_posts')
+            ->orderBy('published_at', 'desc')
+            ->paginate(15);
+
+        return response()->json([
+            'success' => true,
+            'data' => $posts
+        ]);
+    }
+
     public function stats()
     {
         $totalLeads = DB::table('admission_leads')->count();
@@ -510,91 +565,196 @@ class AdmissionAdminController extends Controller
     public function getOpenAiConfig()
     {
         $apiKey = config('services.openai.key');
-        $assistantId = env('OPENAI_ASSISTANT_ID');
-        if (!$apiKey || !$assistantId) {
-            return response()->json(['success' => false, 'message' => 'Chua cau hinh OpenAI']);
+        $vectorStoreId = config(
+            'services.openai.vector_store_id'
+        );
+        $instructionsFile = config(
+            'services.openai.instructions_file'
+        );
+
+        if (!$apiKey || !$vectorStoreId || !$instructionsFile) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Chưa cấu hình đầy đủ OpenAI.',
+            ], 500);
         }
 
-        $asstRes = \Illuminate\Support\Facades\Http::withToken($apiKey)
-            ->withHeaders(['OpenAI-Beta' => 'assistants=v2'])
-            ->get("https://api.openai.com/v1/assistants/{$assistantId}");
-            
-        $assistant = $asstRes->json();
-        $instructions = $assistant['instructions'] ?? '';
-        $vsId = $assistant['tool_resources']['file_search']['vector_store_ids'][0] ?? null;
+        $instructions = is_file($instructionsFile)
+            ? (string) file_get_contents($instructionsFile)
+            : '';
 
-        $files = [];
-        if ($vsId) {
-            $vsFilesRes = \Illuminate\Support\Facades\Http::withToken($apiKey)
-                ->withHeaders(['OpenAI-Beta' => 'assistants=v2'])
-                ->get("https://api.openai.com/v1/vector_stores/{$vsId}/files");
-            
-            $vsFiles = $vsFilesRes->json('data') ?? [];
-            
-            $allFilesRes = \Illuminate\Support\Facades\Http::withToken($apiKey)->get("https://api.openai.com/v1/files");
-            $allFiles = collect($allFilesRes->json('data') ?? [])->keyBy('id');
+        $vectorFilesResponse =
+            \Illuminate\Support\Facades\Http::withToken($apiKey)
+            ->acceptJson()
+            ->get(
+                'https://api.openai.com/v1/vector_stores/'
+                . $vectorStoreId
+                . '/files',
+                ['limit' => 100]
+            );
 
-            foreach ($vsFiles as $vf) {
-                $fileInfo = $allFiles->get($vf['id']);
-                $files[] = [
-                    'id' => $vf['id'],
-                    'filename' => $fileInfo ? $fileInfo['filename'] : 'Unknown',
-                    'bytes' => $fileInfo ? round($fileInfo['bytes'] / 1024, 2) . ' KB' : '0 KB',
-                    'created_at' => $fileInfo ? date('Y-m-d H:i:s', $fileInfo['created_at']) : '',
-                ];
-            }
+        if (!$vectorFilesResponse->successful()) {
+            return response()->json([
+                'success' => false,
+                'message' =>
+                    'Không thể lấy danh sách tài liệu OpenAI.',
+            ], 502);
         }
+
+        $allFilesResponse =
+            \Illuminate\Support\Facades\Http::withToken($apiKey)
+            ->acceptJson()
+            ->get(
+                'https://api.openai.com/v1/files',
+                ['limit' => 10000]
+            );
+
+        if (!$allFilesResponse->successful()) {
+            return response()->json([
+                'success' => false,
+                'message' =>
+                    'Không thể lấy thông tin tài liệu OpenAI.',
+            ], 502);
+        }
+
+        $allFiles = collect(
+            $allFilesResponse->json('data') ?: []
+        )->keyBy('id');
+
+        $files = collect(
+            $vectorFilesResponse->json('data') ?: []
+        )->map(function ($vectorFile) use ($allFiles) {
+            $fileId = isset($vectorFile['file_id'])
+                ? $vectorFile['file_id']
+                : $vectorFile['id'];
+
+            $fileInfo = $allFiles->get($fileId);
+
+            return [
+                'id' => $fileId,
+                'filename' => $fileInfo
+                    ? $fileInfo['filename']
+                    : 'Unknown',
+                'bytes' => $fileInfo
+                    ? round(
+                        $fileInfo['bytes'] / 1024,
+                        2
+                    ) . ' KB'
+                    : '0 KB',
+                'created_at' => $fileInfo
+                    ? date(
+                        'Y-m-d H:i:s',
+                        $fileInfo['created_at']
+                    )
+                    : '',
+            ];
+        })->values();
 
         return response()->json([
             'success' => true,
             'data' => [
                 'instructions' => $instructions,
-                'files' => $files
-            ]
+                'files' => $files,
+            ],
         ]);
     }
 
     public function updateOpenAiPrompt(Request $request)
     {
-        $apiKey = config('services.openai.key');
-        $assistantId = env('OPENAI_ASSISTANT_ID');
-        
-        \Illuminate\Support\Facades\Http::withToken($apiKey)
-            ->withHeaders(['OpenAI-Beta' => 'assistants=v2'])
-            ->post("https://api.openai.com/v1/assistants/{$assistantId}", [
-                'instructions' => $request->instructions
-            ]);
-            
-        return response()->json(['success' => true]);
+        $data = $request->validate([
+            'instructions' => 'required|string',
+        ]);
+
+        $instructionsFile = config(
+            'services.openai.instructions_file'
+        );
+
+        if (!$instructionsFile) {
+            return response()->json([
+                'success' => false,
+                'message' =>
+                    'Chưa cấu hình file prompt OpenAI.',
+            ], 500);
+        }
+
+        $directory = dirname($instructionsFile);
+
+        if (!is_dir($directory)) {
+            mkdir($directory, 0775, true);
+        }
+
+        $written = file_put_contents(
+            $instructionsFile,
+            $data['instructions'],
+            LOCK_EX
+        );
+
+        return response()->json([
+            'success' => $written !== false,
+        ], $written !== false ? 200 : 500);
     }
 
     public function deleteOpenAiFile($fileId)
     {
         $apiKey = config('services.openai.key');
-        \Illuminate\Support\Facades\Http::withToken($apiKey)->delete("https://api.openai.com/v1/files/{$fileId}");
-        DB::table('admission_rag_documents')->where('source_url', $fileId)->delete();
-        return response()->json(['success' => true]);
+
+        $response =
+            \Illuminate\Support\Facades\Http::withToken($apiKey)
+            ->acceptJson()
+            ->delete(
+                'https://api.openai.com/v1/files/'
+                . $fileId
+            );
+
+        if (!$response->successful()) {
+            return response()->json([
+                'success' => false,
+                'message' =>
+                    'Không thể xóa tài liệu trên OpenAI.',
+            ], 502);
+        }
+
+        DB::table('admission_rag_documents')
+            ->where('source_url', $fileId)
+            ->delete();
+
+        return response()->json([
+            'success' => true,
+        ]);
     }
 
     public function uploadOpenAiFile(Request $request)
     {
-        $request->validate(['file' => 'required|file|max:20480']);
+        $request->validate([
+            'file' => 'required|file|max:20480',
+        ]);
+
         $file = $request->file('file');
-        
-        $rag = new \App\Services\AdmissionRagService();
-        $fileId = $rag->uploadFileToOpenAIVectorStore($file->getRealPath(), $file->getClientOriginalName());
-        
-        if ($fileId) {
-            DB::table('admission_rag_documents')->insert([
-                'title' => $file->getClientOriginalName(),
-                'category' => 'openai_direct',
-                'status' => 'active',
-                'source_url' => $fileId,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-            return response()->json(['success' => true]);
+
+        $fileId = $this->rag->uploadFileToOpenAIVectorStore(
+            $file->getRealPath(),
+            $file->getClientOriginalName()
+        );
+
+        if (!$fileId) {
+            return response()->json([
+                'success' => false,
+                'message' =>
+                    'Không thể tải tài liệu lên OpenAI.',
+            ], 500);
         }
-        return response()->json(['success' => false], 500);
+
+        DB::table('admission_rag_documents')->insert([
+            'title' => $file->getClientOriginalName(),
+            'category' => 'openai_direct',
+            'status' => 'active',
+            'source_url' => $fileId,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return response()->json([
+            'success' => true,
+        ]);
     }
 }

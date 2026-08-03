@@ -54,47 +54,106 @@ class AdmissionRagService
 
     public function answer($question, $sessionId = null, $mediaUrl = null)
     {
-        if (!$this->apiKey || !$this->assistantId) {
+        if (!$this->apiKey) {
             return [
-                'answer' => 'Hệ thống chưa được cấu hình OpenAI Assistant (Thiếu API Key hoặc Assistant ID).',
+                'answer' => 'Hệ thống chưa được cấu hình API Key.',
                 'sources' => [],
                 'generated' => false,
             ];
         }
 
-        // 1. Kiểm tra Cache / Bảng câu hỏi cũ
-        $similarAnswer = $this->findSimilarStaffAnswer($question);
+        // 1. Kiểm tra Answer Library (như Web Chat)
+        $answerLibrary = app(\App\Services\ChatbotAnswerLibraryService::class);
+        $exactLibraryAnswer = $answerLibrary->findExactApprovedAnswer($question);
         
-        // Nếu tìm thấy câu hỏi cũ (khớp cao), trả về thẳng luôn để tốn 0 token!
-        if ($similarAnswer && $similarAnswer['score'] > 5.0) {
-            return [
-                'answer' => $similarAnswer['answer'],
-                'sources' => ['Câu trả lời chuẩn từ Tư vấn viên'],
-                'generated' => false,
-            ];
+        if ($exactLibraryAnswer) {
+            $exactAnswer = trim(strip_tags($exactLibraryAnswer['answer']));
+            if ($exactAnswer !== '' && $answerLibrary->isAnswerSafeForDelivery($exactAnswer)) {
+                $answerLibrary->markUsed($exactLibraryAnswer['library_id']);
+                return [
+                    'answer' => $exactAnswer,
+                    'sources' => ['Câu trả lời chuẩn từ Thư viện'],
+                    'generated' => false,
+                ];
+            }
+        }
+
+        $similarAnswer = null;
+        try {
+            $similarAnswer = $answerLibrary->findApprovedAnswer($question);
+        } catch (\Throwable $e) {}
+
+        if ($similarAnswer) {
+            $answer = trim(strip_tags($similarAnswer['answer']));
+            if ($answer !== '' && $answerLibrary->isAnswerSafeForDelivery($answer)) {
+                $answerLibrary->markUsed($similarAnswer['library_id']);
+                return [
+                    'answer' => $answer,
+                    'sources' => ['Câu trả lời tham khảo từ Thư viện'],
+                    'generated' => false,
+                ];
+            }
         }
 
         // Chuẩn bị tin nhắn gửi cho Assistant
         $messageContent = "Câu hỏi của thí sinh: " . $question;
 
-        // Nếu có câu cũ nhưng độ khớp chưa đủ an toàn tuyệt đối, bơm vào làm ngữ cảnh tham khảo
-        if ($similarAnswer) {
-            $messageContent .= "\n\n[GHI CHÚ HỆ THỐNG]: Trước đây nhân viên nhà trường đã trả lời một câu hỏi tương tự như sau:\n" 
-                             . strip_tags($similarAnswer['answer']) 
-                             . "\n(Hãy tham khảo thông tin này để trả lời thí sinh, nhưng hãy diễn đạt lại bằng văn phong tự nhiên của bạn).";
+        // 2. Gọi Responses API (có hỗ trợ vector_store_ids cho RAG)
+        $model = config('services.openai.model') ?: 'gpt-4o-mini';
+        $vectorStoreId = config('services.openai.vector_store_id');
+        $instructions = '';
+        if (file_exists(storage_path('app/openai/advise_instructions.txt'))) {
+            $instructions = trim(file_get_contents(storage_path('app/openai/advise_instructions.txt')));
+        }
+        if (!$instructions) {
+            $instructions = "Bạn là tư vấn viên tuyển sinh của trường Đại học. Hãy trả lời ngắn gọn, thân thiện.";
         }
 
-        // 2. Lấy hoặc tạo Thread ID (Để AI có trí nhớ liên tục)
-        $threadId = $this->getOrCreateThread($sessionId);
+        $payload = [
+            'model' => $model,
+            'instructions' => $instructions,
+            'input' => [
+                [
+                    'role' => 'user',
+                    'content' => $messageContent
+                ]
+            ],
+            'stream' => false
+        ];
 
-        // 3. Đẩy tin nhắn vào Thread (có hỗ trợ Vision AI nếu có mediaUrl)
-        $this->addMessageToThread($threadId, $messageContent, $mediaUrl);
+        // Nếu có Vector Store ID, thêm công cụ file_search
+        if ($vectorStoreId) {
+            $payload['tools'] = [[
+                'type' => 'file_search',
+                'vector_store_ids' => [$vectorStoreId],
+            ]];
+        }
 
-        // 4. Kích hoạt Assistant xử lý (Run)
-        $run = $this->runAssistant($threadId);
+        try {
+            $response = Http::withToken($this->apiKey)
+                ->post("{$this->baseUrl}/responses", $payload);
 
-        // 5. Polling đợi Assistant xử lý xong và lấy câu trả lời
-        $answerContent = $this->pollForCompletion($threadId, $run['id']);
+            if ($response->successful()) {
+                $outputs = $response->json('output') ?? [];
+                $answerContent = null;
+                foreach ($outputs as $out) {
+                    if (isset($out['type']) && $out['type'] === 'message') {
+                        $answerContent = $out['content'][0]['text'] ?? null;
+                        break;
+                    }
+                }
+                
+                if (!$answerContent) {
+                    $answerContent = "Xin lỗi, không có phản hồi hợp lệ từ AI.";
+                }
+            } else {
+                $answerContent = "Xin lỗi, hệ thống AI đang bảo trì. Vui lòng thử lại sau. (" . $response->status() . ")";
+                Log::error('OpenAI Responses Error: ' . $response->body());
+            }
+        } catch (\Throwable $e) {
+            $answerContent = "Xin lỗi, không thể kết nối đến hệ thống AI.";
+            Log::error('OpenAI Responses Exception: ' . $e->getMessage());
+        }
 
         return [
             'answer' => $answerContent,

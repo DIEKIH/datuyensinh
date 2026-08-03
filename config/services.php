@@ -36,9 +36,20 @@ return [
     ],
 
     'openai' => [
-        'key'             => env('OPENAI_API_KEY'),
-        'assistant_id' => env('OPENAI_ASSISTANT_ID'),
-        'model'           => env('OPENAI_MODEL', 'gpt-4o-mini'),
+        'key' => env('OPENAI_API_KEY'),
+        'model' => env('OPENAI_MODEL'),
+        'vector_store_id' => env('OPENAI_VECTOR_STORE_ID'),
+        'max_num_results' => (int) env(
+            'OPENAI_FILE_SEARCH_MAX_RESULTS',
+            5
+        ),
+        'instructions_file' => storage_path(
+            'app/openai/advise_instructions.txt'
+        ),
+        'instructions_addendum_file' => env(
+            'OPENAI_ADVISE_ADDENDUM_FILE',
+            storage_path('app/openai/advise_instructions_addendum.txt')
+        ),
     ],
 
 

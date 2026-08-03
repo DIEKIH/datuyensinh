@@ -577,6 +577,9 @@
 
 <script>
     window.ADVISE_CONFIG = {
+        conversationUrl: @json(url('/advise/conversation')),
+        messageUrl: @json(url('/advise/message')),
+        streamUrl: @json(route('advise.stream')),
         resetUrl: @json(route('advise.reset')),
         saveUrl: @json(route('advise.save')),
         savePairUrl: @json(route('advise.savePair')),
@@ -586,4 +589,5 @@
     };
 </script>
 
-<script src="{{ asset('js/advise-widget.js') }}"></script>
+<script src="{{ asset('js/advise-widget.js') }}?v={{ time() }}"></script>
+

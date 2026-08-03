@@ -16,7 +16,6 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\PostController;
 use App\Http\Controllers\LoginController;
 use App\Http\Controllers\AdviseController;
-use App\Http\Controllers\AdviseTicketController;
 use App\Http\Controllers\AdmissionAdminController;
 use App\Http\Controllers\AdmissionLeadController;
 use App\Http\Controllers\FacebookAuthController;
@@ -187,6 +186,13 @@ Route::prefix('admin')->middleware('admin')->group(function () {
     Route::get('/admission-cms/approvals', [AdmissionAdminController::class, 'listApprovals']);
     Route::post('/admission-cms/approvals/{id}/action', [AdmissionAdminController::class, 'handleApprovalAction']);
 
+    // Toxic Comments
+    Route::get('/admission-cms/toxic-comments', [AdmissionAdminController::class, 'listToxicComments']);
+    Route::post('/admission-cms/toxic-comments/{id}/action', [AdmissionAdminController::class, 'handleToxicCommentAction']);
+
+    // Social Posts
+    Route::get('/admission-cms/social-posts', [AdmissionAdminController::class, 'listSocialPosts']);
+
     Route::get('/admission-cms/openai/config', [AdmissionAdminController::class, 'getOpenAiConfig']);
     Route::post('/admission-cms/openai/prompt', [AdmissionAdminController::class, 'updateOpenAiPrompt']);
     Route::post('/admission-cms/openai/files', [AdmissionAdminController::class, 'uploadOpenAiFile']);
@@ -245,24 +251,51 @@ Route::post('/admin/suggest', [AdminController::class, 'suggest'])->name('admin.
 // Route::post('/tuyen-sinh/chat/transcribe', [AdviseController::class, 'transcribe'])->name('advise.transcribe'); // MỚI — Whisper STT
 
 
-// Advise
-Route::post('/tuyen-sinh/chat',         [AdviseController::class, 'chat'])->name('advise.chat');
-Route::post('/tuyen-sinh/chat/reset',   [AdviseController::class, 'resetThread'])->name('advise.reset');
-Route::get('/tuyen-sinh/advise',       [AdviseController::class, 'index'])->name('advise.index');
-Route::post('/tuyen-sinh/chat/stream', [AdviseController::class, 'stream'])
-     ->name('advise.stream');
-Route::post('/advise/thread',  [AdviseController::class, 'createThread']);
-Route::post('/advise/message', [AdviseController::class, 'addMessage']);
-Route::post('/tuyen-sinh/chat/save',       [AdviseController::class, 'saveMessage'])->name('advise.save');       // MỚI — lưu DB qua queue
-Route::post('/tuyen-sinh/chat/transcribe', [AdviseController::class, 'transcribe'])->name('advise.transcribe'); // MỚI — Whisper STT
-Route::post('/advise/save-pair', [AdviseController::class, 'savePair'])
-    ->name('advise.savePair');
+// Advise - OpenAI Responses API
+Route::get(
+    '/tuyen-sinh/advise',
+    [AdviseController::class, 'index']
+)->name('advise.index');
 
-Route::get('/advise/tickets/check', [AdviseTicketController::class, 'check'])
-    ->name('advise.tickets.check');
+Route::post(
+    '/advise/conversation',
+    [AdviseController::class, 'createConversation']
+)->name('advise.conversation');
 
-Route::get('/advise/tickets/lookup', [AdviseTicketController::class, 'lookup'])
-    ->name('advise.tickets.lookup');
+Route::post(
+    '/advise/message',
+    [AdviseController::class, 'addMessage']
+)->name('advise.message');
+
+Route::post(
+    '/tuyen-sinh/chat/stream',
+    [AdviseController::class, 'stream']
+)->name('advise.stream');
+
+Route::post(
+    '/tuyen-sinh/chat/reset',
+    [AdviseController::class, 'resetConversation']
+)->name('advise.reset');
+
+Route::post(
+    '/tuyen-sinh/chat/save',
+    [AdviseController::class, 'saveMessage']
+)->name('advise.save');
+
+Route::post(
+    '/advise/save-pair',
+    [AdviseController::class, 'savePair']
+)->name('advise.savePair');
+
+Route::get(
+    '/advise/tickets/check',
+    [AdviseController::class, 'checkTicketAnswer']
+)->name('advise.tickets.check');
+
+Route::get(
+    '/advise/tickets/lookup',
+    [AdviseController::class, 'lookupTicket']
+)->name('advise.tickets.lookup');
 
 Route::get('/visitor/stats', [Trangchu::class, 'visitorStats']);
 
@@ -308,4 +341,3 @@ Route::get('/facebook/deletion-status/{id}', function($id) {
 Route::get('/{slug}', [MenuController::class, 'show'])
     ->where('slug', '.*')  // chấp nhận nhiều đoạn có dấu gạch chéo
     ->name('page.show');
-

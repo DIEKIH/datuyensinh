@@ -57,6 +57,8 @@
         </button>
         <button data-tab-target="openaiTab">Quản lý OpenAI</button>
         <button data-tab-target="scoringTab">Tiêu chí Chấm điểm</button>
+        <button data-tab-target="toxicTab" class="text-danger fw-bold"><i class="fas fa-exclamation-triangle"></i> Cảnh báo MXH</button>
+        <button data-tab-target="socialPostTab" class="text-primary fw-bold"><i class="fas fa-share-square"></i> Bài đã đăng</button>
         <button data-tab-target="n8nTab">n8n logs</button>
     </div>
 
@@ -127,25 +129,26 @@
                 </div>
             </div>
             <div class="table-responsive">
-                <table class="table table-bordered table-striped">
+                <table class="table table-bordered table-hover">
                     <thead>
                         <tr>
-                            <th>Thi sinh</th>
-                            <th>Lien he</th>
-                            <th>Kenh</th>
-                            <th>Nganh quan tam</th>
-                            <th>Diem</th>
-                            <th>Trang thai</th>
-                            <th>Tuong tac cuoi</th>
+                            <th>Khách hàng</th>
+                            <th>Liên hệ</th>
+                            <th>Nguồn</th>
+                            <th>Ngành / Tỉnh</th>
+                            <th>Điểm</th>
+                            <th>Trạng thái Sale</th>
+                            <th>Tương tác cuối</th>
                         </tr>
                     </thead>
-                    <tbody id="leadRows"></tbody>
+                    <tbody id="leadRows">
+                        <tr><td colspan="7" class="text-center text-muted">Đang tải...</td></tr>
+                    </tbody>
                 </table>
             </div>
+            <div id="leadsPagination"></div>
         </div>
     </section>
-
-
 
     <section id="approvalTab" class="tab-panel hidden">
         <div class="panel">
@@ -156,9 +159,10 @@
                     <button id="reloadApprovals" class="btn btn-outline-primary btn-sm"><i class="fas fa-sync-alt"></i> Làm mới</button>
                 </div>
             </div>
-            <div id="approvalList" class="d-flex flex-column gap-3">
-                <div class="text-center text-muted">Đang tải danh sách chờ duyệt...</div>
+            <div id="approvalList" style="max-height: 600px; overflow-y: auto; padding-right: 10px;">
+                <div class="text-center"><i class="fas fa-spinner fa-spin"></i> Đang tải...</div>
             </div>
+            <div id="approvalsPagination"></div>
         </div>
     </section>
 
@@ -191,6 +195,56 @@
         </div>
     </section>
 
+    <section id="toxicTab" class="tab-panel hidden">
+        <div class="panel">
+            <div class="panel-title text-danger"><i class="fas fa-exclamation-triangle"></i> Cảnh báo Comment Tiêu cực/Tục tĩu từ AI</div>
+            <div class="d-flex mb-3 gap-2">
+                <button class="btn btn-sm btn-outline-secondary" onclick="loadToxicComments('all')">Tất cả</button>
+                <button class="btn btn-sm btn-outline-danger" onclick="loadToxicComments('pending')">Chờ xử lý</button>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-bordered">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Nguồn</th>
+                            <th>Người đăng</th>
+                            <th>Nội dung vi phạm</th>
+                            <th>Nhận định của AI</th>
+                            <th>Thời gian</th>
+                            <th>Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="toxicCommentsBody">
+                        <tr><td colspan="6" class="text-center">Đang tải dữ liệu...</td></tr>
+                    </tbody>
+                </table>
+                <div id="toxicPagination" class="d-flex justify-content-end mt-3"></div>
+            </div>
+        </div>
+    </section>
+
+    <section id="socialPostTab" class="tab-panel hidden">
+        <div class="panel">
+            <div class="panel-title text-primary"><i class="fas fa-share-square"></i> Lịch sử Đăng bài Tự động</div>
+            <div class="table-responsive">
+                <table class="table table-bordered">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Nền tảng</th>
+                            <th>Tiêu đề / Nội dung</th>
+                            <th>Hình ảnh</th>
+                            <th>Thời gian đăng</th>
+                        </tr>
+                    </thead>
+                    <tbody id="socialPostsBody">
+                        <tr><td colspan="4" class="text-center">Đang tải dữ liệu...</td></tr>
+                    </tbody>
+                </table>
+                <div id="socialPostsPagination" class="d-flex justify-content-end mt-3"></div>
+            </div>
+        </div>
+    </section>
+
     <section id="n8nTab" class="tab-panel hidden">
         <div class="panel">
             <div class="panel-title">Su kien n8n gan nhat</div>
@@ -207,51 +261,23 @@
     </section>
 
     <section id="scoringTab" class="tab-panel hidden">
-        <div class="row g-3">
-            <div class="col-lg-4">
-                <div class="panel">
-                    <div class="panel-title">Thêm / Sửa Tiêu chí</div>
-                    <form id="criterionForm">
-                        <input type="hidden" id="crit_id">
-                        <div class="mb-2"><input id="crit_code" class="form-control form-control-sm" placeholder="Mã tiêu chí (VD: SCORE_MATH)" required></div>
-                        <div class="mb-2"><input id="crit_name" class="form-control form-control-sm" placeholder="Tên tiêu chí" required></div>
-                        <div class="mb-2"><input id="crit_field" class="form-control form-control-sm" placeholder="Trường dữ liệu (VD: scores)" required></div>
-                        <div class="mb-2">
-                            <select id="crit_op" class="form-select form-select-sm">
-                                <option value="=">Bằng (=)</option>
-                                <option value=">">Lớn hơn (>)</option>
-                                <option value=">=">Lớn hơn hoặc bằng (>=)</option>
-                                <option value="<">Nhỏ hơn (<)</option>
-                                <option value="<=">Nhỏ hơn hoặc bằng (<=)</option>
-                                <option value="contains">Chứa chuỗi</option>
-                                <option value="has_value">Có dữ liệu</option>
-                            </select>
-                        </div>
-                        <div class="mb-2"><input id="crit_val" class="form-control form-control-sm" placeholder="Giá trị so sánh (VD: 20)"></div>
-                        <div class="mb-2 d-flex gap-2">
-                            <input id="crit_score" type="number" class="form-control form-control-sm" placeholder="Điểm cộng (VD: 10)" required>
-                            <input id="crit_priority" type="number" class="form-control form-control-sm" placeholder="Ưu tiên (VD: 1)">
-                        </div>
-                        <button class="btn btn-primary btn-sm w-100" type="submit"><i class="fas fa-save me-1"></i> Lưu Tiêu chí</button>
-                        <button class="btn btn-outline-secondary btn-sm w-100 mt-2 hidden" type="button" id="crit_cancel">Hủy sửa</button>
-                    </form>
+        <div class="panel">
+            <div class="panel-title d-flex justify-content-between align-items-center">
+                <span>Danh sách Tiêu chí Chấm điểm</span>
+                <div>
+                    <button class="btn btn-primary btn-sm me-2" data-bs-toggle="modal" data-bs-target="#criterionModal" id="btnAddNewCrit">
+                        <i class="fas fa-plus me-1"></i> Thêm Tiêu chí
+                    </button>
+                    <button id="reloadCriteria" class="btn btn-sm btn-outline-primary"><i class="fas fa-sync-alt"></i></button>
                 </div>
             </div>
-            <div class="col-lg-8">
-                <div class="panel">
-                    <div class="panel-title d-flex justify-content-between align-items-center">
-                        <span>Danh sách Tiêu chí Chấm điểm</span>
-                        <button id="reloadCriteria" class="btn btn-sm btn-outline-primary"><i class="fas fa-sync-alt"></i></button>
-                    </div>
-                    <div class="table-responsive mt-3">
-                        <table class="table table-bordered table-striped">
-                            <thead><tr><th>Mã</th><th>Tên</th><th>Trường so sánh</th><th>Toán tử</th><th>Giá trị</th><th>Điểm</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>
-                            <tbody id="criteriaRows">
-                                <tr><td colspan="8" class="text-center text-muted">Đang tải...</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+            <div class="table-responsive mt-3">
+                <table class="table table-bordered table-striped">
+                    <thead><tr><th>Mã</th><th>Tên</th><th>Trường so sánh</th><th>Type & Form</th><th>Toán tử</th><th>Giá trị</th><th>Điểm</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>
+                    <tbody id="criteriaRows">
+                        <tr><td colspan="9" class="text-center text-muted">Đang tải...</td></tr>
+                    </tbody>
+                </table>
             </div>
         </div>
     </section>
@@ -263,19 +289,77 @@
             <form id="leadForm">
                 @csrf
                 <div class="modal-header">
-                    <h5 class="modal-title">Them lead thu cong</h5>
+                    <h5 class="modal-title">Thêm lead thủ công</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="mb-2"><input name="full_name" class="form-control form-control-sm" placeholder="Ho ten"></div>
-                    <div class="mb-2 d-flex gap-2"><input name="phone" class="form-control form-control-sm" placeholder="So dien thoai"><input name="email" class="form-control form-control-sm" placeholder="Email"></div>
+                    <div class="mb-2"><input name="full_name" class="form-control form-control-sm" placeholder="Họ tên"></div>
+                    <div class="mb-2 d-flex gap-2"><input name="phone" class="form-control form-control-sm" placeholder="Số điện thoại"><input name="email" class="form-control form-control-sm" placeholder="Email"></div>
                     <div class="mb-2 d-flex gap-2"><input name="channel" class="form-control form-control-sm" value="manual" required><input name="source_campaign" class="form-control form-control-sm" placeholder="Campaign"></div>
-                    <div class="mb-2 d-flex gap-2"><input name="intended_major" class="form-control form-control-sm" placeholder="Nganh quan tam"><input name="province" class="form-control form-control-sm" placeholder="Tinh/thanh"></div>
-                    <div class="mb-2"><textarea name="note" class="form-control form-control-sm" rows="3" placeholder="Ghi chu"></textarea></div>
+                    <div class="mb-2 d-flex gap-2"><input name="intended_major" class="form-control form-control-sm" placeholder="Ngành quan tâm"><input name="province" class="form-control form-control-sm" placeholder="Tỉnh/Thành"></div>
+                    <div class="mb-2"><textarea name="note" class="form-control form-control-sm" rows="3" placeholder="Ghi chú"></textarea></div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Dong</button>
-                    <button type="submit" class="btn btn-primary btn-sm">Luu lead</button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Đóng</button>
+                    <button type="submit" class="btn btn-primary btn-sm">Lưu lead</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="criterionModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="criterionForm">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="critModalTitle">Thêm Tiêu chí Chấm điểm</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="crit_id">
+                    <div class="mb-2"><input id="crit_code" class="form-control form-control-sm" placeholder="Mã tiêu chí (VD: SCORE_MATH)" required></div>
+                    <div class="mb-2"><input id="crit_name" class="form-control form-control-sm" placeholder="Tên tiêu chí" required></div>
+                    <div class="mb-2"><input id="crit_category" class="form-control form-control-sm" placeholder="Nhóm tiêu chí (Tùy chọn, VD: Tương tác, Học lực)"></div>
+                    <div class="mb-2">
+                        <input id="crit_field" class="form-control form-control-sm" placeholder='Trường dữ liệu (Bắt đầu bằng "custom." nếu hiện trên form public)' required>
+                    </div>
+                    <div class="mb-2">
+                        <select id="crit_input_type" class="form-select form-select-sm">
+                            <option value="text">Văn bản (Text)</option>
+                            <option value="number">Số (Number)</option>
+                            <option value="select">Danh sách (Select)</option>
+                            <option value="checkbox">Hộp chọn (Checkbox)</option>
+                            <option value="date">Ngày tháng (Date)</option>
+                        </select>
+                    </div>
+                    <div class="mb-2" id="crit_options_wrap" style="display: none;">
+                        <textarea id="crit_options" class="form-control form-control-sm" rows="3" placeholder='Nhập các lựa chọn cách nhau bằng dấu phẩy. VD: Nam, Nữ, Khác'></textarea>
+                    </div>
+                    <div class="mb-2 d-flex gap-3 align-items-center">
+                        <label class="form-check-label d-flex align-items-center gap-1"><input type="checkbox" id="crit_show_public" class="form-check-input m-0"> Hiện Form Public</label>
+                        <label class="form-check-label d-flex align-items-center gap-1"><input type="checkbox" id="crit_is_required" class="form-check-input m-0"> Bắt buộc nhập</label>
+                    </div>
+                    <div class="mb-2">
+                        <select id="crit_op" class="form-select form-select-sm">
+                            <option value="=">Bằng (=)</option>
+                            <option value=">">Lớn hơn (>)</option>
+                            <option value=">=">Lớn hơn hoặc bằng (>=)</option>
+                            <option value="<">Nhỏ hơn (<)</option>
+                            <option value="<=">Nhỏ hơn hoặc bằng (<=)</option>
+                            <option value="contains">Chứa chuỗi</option>
+                            <option value="has_value">Có dữ liệu</option>
+                        </select>
+                    </div>
+                    <div class="mb-2"><input id="crit_val" class="form-control form-control-sm" placeholder="Giá trị so sánh (VD: 20)"></div>
+                    <div class="mb-2 d-flex gap-2">
+                        <input id="crit_score" type="number" class="form-control form-control-sm" placeholder="Điểm cộng (VD: 10)" required>
+                        <input id="crit_priority" type="number" class="form-control form-control-sm" placeholder="Ưu tiên (VD: 1)">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Đóng</button>
+                    <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-save me-1"></i> Lưu Tiêu chí</button>
                 </div>
             </form>
         </div>

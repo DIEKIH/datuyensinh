@@ -23,20 +23,32 @@ class AdmissionN8nLeadController extends Controller
 
     public function store(Request $request)
     {
-        $validator = Validator::make($request->all(), [
+        $rules = [
             'full_name' => 'required|string|max:255',
             'phone' => 'required|string|max:20',
             'email' => 'nullable|email|max:255',
-        ], [
-            'full_name.required' => 'Vui long nhap ho ten.',
-            'phone.required' => 'Vui long nhap so dien thoai.',
-            'email.email' => 'Email khong hop le.',
-        ]);
+            'high_school' => 'nullable|string|max:255',
+        ];
+        
+        // Validation động cho custom fields
+        $criteria = \App\Models\AdmissionScoringCriterion::where('is_active', true)
+            ->where('show_on_public_form', true)
+            ->get();
+            
+        foreach ($criteria as $criterion) {
+            if ($criterion->is_required) {
+                $customKey = str_replace('custom.', '', $criterion->data_field);
+                $rules["custom.{$customKey}"] = 'required';
+            }
+        }
+
+        $validator = Validator::make($request->all(), $rules);
 
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'errors' => $validator->errors(),
+                'message' => 'Vui lòng điền đầy đủ các thông tin bắt buộc.',
+                'errors' => $validator->errors()
             ], 422);
         }
 
@@ -57,10 +69,23 @@ class AdmissionN8nLeadController extends Controller
             'last_interaction_at' => now(),
         ];
 
+        $customInput = $request->input('custom', []);
+        $mergedCustom = $this->scoring->extractAndMergeCustomFields($customInput);
+
+        $oldProfileArr = [];
+        if ($lead && !empty($lead->profile)) {
+            $oldProfileArr = json_decode($lead->profile, true) ?: [];
+            if (isset($oldProfileArr['custom']) && is_array($oldProfileArr['custom'])) {
+                $mergedCustom = array_merge($oldProfileArr['custom'], $mergedCustom);
+            }
+        }
+        $leadData['custom'] = $mergedCustom;
+
         $scored = $this->scoring->score($leadData, [['type' => 'form_submit']]);
         $leadData['score'] = $scored['lead_score'] ?? 0;
         $leadData['score_grade'] = strtolower($scored['lead_level'] ?? 'cold');
-        $leadData['profile'] = json_encode([
+        $leadData['profile'] = json_encode(array_merge($oldProfileArr, [
+            'custom' => $mergedCustom,
             'score_reasons' => $scored['matched_criteria'] ?? [],
             'utm' => [
                 'source' => $request->input('utm_source'),
@@ -71,15 +96,18 @@ class AdmissionN8nLeadController extends Controller
             'high_school' => $request->input('high_school'),
             'user_agent' => $request->userAgent(),
             'ip_address' => $request->ip(),
-        ]);
+        ]));
         $leadData['updated_at'] = now();
 
+        $dbData = $leadData;
+        unset($dbData['custom']);
+
         if ($lead) {
-            DB::table('admission_leads')->where('id', $lead->id)->update($leadData);
+            DB::table('admission_leads')->where('id', $lead->id)->update($dbData);
             $leadId = $lead->id;
         } else {
-            $leadData['created_at'] = now();
-            $leadId = DB::table('admission_leads')->insertGetId($leadData);
+            $dbData['created_at'] = now();
+            $leadId = DB::table('admission_leads')->insertGetId($dbData);
         }
 
         DB::table('admission_lead_activities')->insert([
@@ -95,10 +123,9 @@ class AdmissionN8nLeadController extends Controller
             'updated_at' => now(),
         ]);
 
-        // Bắn dữ liệu sang n8n Master Webhook để n8n điều phối toàn bộ (Sử dụng AI Assistant)
+        // Bắn dữ liệu sang n8n Master Webhook thông qua Hàng đợi (Queue)
         try {
-            $n8nUrl = env('N8N_MASTER_WEBHOOK_URL', 'http://localhost:5678/webhook/master-receiver');
-            \Illuminate\Support\Facades\Http::withoutVerifying()->post($n8nUrl, [
+            $payload = [
                 'event_type' => 'new_lead',
                 'data' => [
                     'id' => $leadId,
@@ -106,10 +133,18 @@ class AdmissionN8nLeadController extends Controller
                     'email' => $leadData['email'] ?? '',
                     'phone' => $leadData['phone'] ?? '',
                     'question' => $request->input('note', ''),
+                    'province' => $request->input('province', ''),
+                    'intended_major' => $request->input('intended_major', ''),
+                    'high_school' => $request->input('high_school', ''),
+                    'score' => $scored['lead_score'] ?? 0,
+                    'score_grade' => strtolower($scored['lead_level'] ?? 'cold'),
+                    'custom_fields' => $mergedCustom
                 ]
-            ])->throw();
+            ];
+            
+            \App\Jobs\SendLeadToN8n::dispatch($payload);
         } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::error('Loi gui webhook n8n: ' . $e->getMessage());
+            \Illuminate\Support\Facades\Log::error('Loi dispatch job n8n: ' . $e->getMessage());
         }
 
         return response()->json([
