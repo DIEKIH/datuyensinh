@@ -120,39 +120,187 @@ $(function () {
             page: page
         };
 
-        $.get('/admin/admission-cms/leads', params, function (res) {
-            const dataArr = res.data ? (Array.isArray(res.data) ? res.data : res.data.data) : res;
-            if (!dataArr || !dataArr.length) {
-                $('#leadRows').html('<tr><td colspan="7" class="text-center text-muted">Chua co lead.</td></tr>');
+        $.ajax({
+            url: '/admin/admission-cms/leads',
+            method: 'GET',
+            data: params
+        })
+        .done(function (res) {
+            const paginator = res.data || {};
+            const dataArr = Array.isArray(paginator)
+                ? paginator
+                : (paginator.data || []);
+
+            if (!dataArr.length) {
+                $('#leadRows').html(
+                    '<tr>' +
+                        '<td colspan="7" class="text-center text-muted">' +
+                            'Chưa có lead.' +
+                        '</td>' +
+                    '</tr>'
+                );
+
                 $('#leadsPagination').html('');
                 return;
             }
 
             const rows = dataArr.map(function (lead) {
-                const grade = lead.score_grade || 'cold';
+                const grade = String(
+                    lead.score_grade || 'cold'
+                ).toLowerCase();
+
+                const contactParts = [];
+
+                if (lead.phone) {
+                    contactParts.push(
+                        '<div>' +
+                            escapeHtml(lead.phone) +
+                        '</div>'
+                    );
+                }
+
+                if (lead.email) {
+                    contactParts.push(
+                        '<div class="text-muted small">' +
+                            escapeHtml(lead.email) +
+                        '</div>'
+                    );
+                }
+
+                if (lead.facebook_account_id) {
+                    contactParts.push(
+                        '<div class="text-muted small">' +
+                            'Facebook ID: ' +
+                            escapeHtml(lead.facebook_account_id) +
+                        '</div>'
+                    );
+                }
+
+                const contactHtml = contactParts.length
+                    ? contactParts.join('')
+                    : '<span class="text-muted">Chưa có thông tin</span>';
+
                 return '<tr>' +
-                    '<td><strong>' + escapeHtml(lead.full_name || 'Chua co ten') + '</strong><div class="text-muted small">#' + lead.id + '</div></td>' +
-                    '<td>' + escapeHtml(lead.phone) + '<div class="text-muted small">' + escapeHtml(lead.email) + '</div></td>' +
-                    '<td>' + escapeHtml(lead.channel) + '<div class="text-muted small">' + escapeHtml(lead.source_campaign) + '</div></td>' +
-                    '<td>' + escapeHtml(lead.intended_major) + '<div class="text-muted small">' + escapeHtml(lead.province) + '</div></td>' +
-                    '<td><span class="lead-score ' + grade + '">' + lead.score + ' ' + grade + '</span></td>' +
-                    '<td><select class="form-select form-select-sm lead-status" data-id="' + lead.id + '" data-note="' + escapeHtml(lead.note) + '">' +
-                        statusOption('new', lead.status) +
-                        statusOption('contacted', lead.status) +
-                        statusOption('qualified', lead.status) +
-                        statusOption('enrolled', lead.status) +
-                        statusOption('lost', lead.status) +
-                    '</select></td>' +
-                    '<td>' + formatDate(lead.last_interaction_at || lead.updated_at) + '</td>' +
+                    '<td><strong>' +
+                        escapeHtml(
+                            lead.full_name || 'Chưa có tên'
+                        ) +
+                        '</strong>' +
+                        '<div class="text-muted small">#' +
+                            lead.id +
+                        '</div>' +
+                    '</td>' +
+
+                    '<td>' +
+                        contactHtml +
+                    '</td>' +
+
+                    '<td>' +
+                        escapeHtml(lead.channel) +
+                        '<div class="text-muted small">' +
+                            escapeHtml(lead.source_campaign) +
+                        '</div>' +
+                    '</td>' +
+
+                    '<td>' +
+                        escapeHtml(lead.intended_major) +
+                        '<div class="text-muted small">' +
+                            escapeHtml(lead.province) +
+                        '</div>' +
+                    '</td>' +
+
+                    '<td>' +
+                        '<span class="lead-score ' +
+                            grade +
+                        '">' +
+                            escapeHtml(lead.score) +
+                            ' ' +
+                            grade +
+                        '</span>' +
+                    '</td>' +
+
+                    '<td>' +
+                        '<select ' +
+                            'class="form-select form-select-sm lead-status" ' +
+                            'data-id="' + lead.id + '" ' +
+                            'data-note="' +
+                                escapeHtml(lead.note) +
+                            '">' +
+
+                            statusOption(
+                                'new',
+                                lead.status
+                            ) +
+
+                            statusOption(
+                                'contacted',
+                                lead.status
+                            ) +
+
+                            statusOption(
+                                'qualified',
+                                lead.status
+                            ) +
+
+                            statusOption(
+                                'enrolled',
+                                lead.status
+                            ) +
+
+                            statusOption(
+                                'lost',
+                                lead.status
+                            ) +
+
+                        '</select>' +
+                    '</td>' +
+
+                    '<td>' +
+                        formatDate(
+                            lead.last_interaction_at ||
+                            lead.updated_at
+                        ) +
+                    '</td>' +
                 '</tr>';
             }).join('');
 
             $('#leadRows').html(rows);
-            
-            // Render Pagination if available
-            if (res.last_page) {
-                renderPagination(res, $('#leadsPagination'), loadLeads);
+
+            if (paginator.last_page) {
+                renderPagination(
+                    paginator,
+                    $('#leadsPagination'),
+                    loadLeads
+                );
             }
+        })
+        .fail(function (xhr) {
+            let message = 'Không tải được danh sách lead.';
+
+            if (
+                xhr.responseJSON &&
+                xhr.responseJSON.message
+            ) {
+                message += '<br>' +
+                    escapeHtml(xhr.responseJSON.message);
+            } else if (xhr.responseText) {
+                message += '<br>Mã lỗi HTTP: ' +
+                    xhr.status;
+            }
+
+            $('#leadRows').html(
+                '<tr>' +
+                    '<td colspan="7" class="text-center text-danger">' +
+                        message +
+                    '</td>' +
+                '</tr>'
+            );
+
+            console.error(
+                'Lỗi load leads:',
+                xhr.status,
+                xhr.responseText
+            );
         });
     }
 

@@ -23,8 +23,7 @@ class AdmissionWebhookController extends Controller
     {
         try {
             $data = $request->all();
-            
-            // 0. Log webhook payload
+
             DB::table('admission_n8n_logs')->insert([
                 'event_type' => 'webhook_upsert_lead',
                 'workflow' => 'messenger_flow',
@@ -35,18 +34,27 @@ class AdmissionWebhookController extends Controller
                 'updated_at' => now(),
             ]);
 
-            $channel = $request->input('channel', 'facebook');
-            $content = $request->input('question', $request->input('content', ''));
+            $channel = strtolower(trim((string) $request->input('channel', 'facebook')));
+            $content = trim((string) $request->input(
+                'question',
+                $request->input('content', '')
+            ));
             $mediaUrl = $request->input('media_url');
-            $senderId = $request->input('sender_id');
-            $isComment = $request->input('is_comment', false);
+            $senderId = trim((string) $request->input('sender_id', ''));
+            $senderName = trim((string) $request->input('sender_name', ''));
+            $isComment = (bool) $request->input('is_comment', false);
+            $interactionType = strtolower(trim((string) $request->input(
+                'interaction_type',
+                $isComment ? 'comment' : 'chat'
+            )));
 
-            // 1. Tìm lead qua bảng tài khoản đa kênh (channel + account_id)
             $leadId = null;
             $lead = null;
             $account = null;
+            $scoreData = null;
+            $messengerPsid = null;
 
-            if ($senderId) {
+            if ($senderId !== '') {
                 $account = DB::table('admission_lead_channel_accounts')
                     ->where('channel', $channel)
                     ->where('account_id', $senderId)
@@ -54,130 +62,289 @@ class AdmissionWebhookController extends Controller
 
                 if ($account) {
                     $leadId = $account->lead_id;
-                    $lead = DB::table('admission_leads')->where('id', $leadId)->first();
+                    $lead = DB::table('admission_leads')
+                        ->where('id', $leadId)
+                        ->first();
                 } else {
-                    // Fallback cho lead cũ trước khi có bảng account
-                    $lead = DB::table('admission_leads')->where('profile->sender_id', $senderId)->first();
-                    if ($lead) $leadId = $lead->id;
+                    $lead = DB::table('admission_leads')
+                        ->where('profile->sender_id', $senderId)
+                        ->first();
+
+                    if ($lead) {
+                        $leadId = $lead->id;
+                    }
                 }
             }
 
-            if (!$lead && $senderId) {
+            if (!$lead && $senderId !== '') {
+                $profile = [
+                    'sender_id' => $senderId,
+                ];
+
+                if ($senderName !== '') {
+                    $profile['full_name'] = $senderName;
+                }
+
+                // Chỉ sender_id nhận từ sự kiện chat Messenger mới được xem là PSID.
+                if ($channel === 'facebook' && $interactionType === 'chat') {
+                    $profile['messenger_psid'] = $senderId;
+                }
+
                 $leadId = DB::table('admission_leads')->insertGetId([
+                    'full_name' => $senderName !== '' ? $senderName : null,
                     'channel' => $channel,
-                    'profile' => json_encode(['sender_id' => $senderId]),
+                    'profile' => json_encode($profile),
+                    'score' => 0,
+                    'score_grade' => 'cold',
                     'status' => 'new',
                     'last_interaction_at' => now(),
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);
-                $lead = DB::table('admission_leads')->where('id', $leadId)->first();
+
+                $lead = DB::table('admission_leads')
+                    ->where('id', $leadId)
+                    ->first();
             }
 
-            // Lưu/refresh tài khoản tương tác của kênh này (fb sender_id / zalo uid...)
-            if ($leadId && $senderId && !$account) {
-                DB::table('admission_lead_channel_accounts')->insert([
-                    'lead_id' => $leadId,
+            if (!$leadId) {
+                return response()->json([
+                    'success' => true,
+                    'skipped' => true,
+                    'message' => 'Không có sender_id nên không thể nhận diện lead.',
+                    'data' => null,
+                ]);
+            }
+
+            $profile = json_decode($lead->profile ?? '{}', true);
+            if (!is_array($profile)) {
+                $profile = [];
+            }
+
+            $leadUpdates = [];
+            $profileChanged = false;
+
+            if ($senderId !== '' && empty($profile['sender_id'])) {
+                $profile['sender_id'] = $senderId;
+                $profileChanged = true;
+            }
+
+            if ($senderName !== '') {
+                $profile['full_name'] = $senderName;
+                $profileChanged = true;
+
+                // Không ghi đè tên do thí sinh tự khai trên form.
+                if (empty($lead->full_name)) {
+                    $leadUpdates['full_name'] = $senderName;
+                }
+            }
+
+            if (
+                $channel === 'facebook'
+                && $interactionType === 'chat'
+                && $senderId !== ''
+            ) {
+                $profile['messenger_psid'] = $senderId;
+                $profileChanged = true;
+            }
+
+            if ($profileChanged) {
+                $leadUpdates['profile'] = json_encode($profile);
+            }
+
+            if (!empty($leadUpdates)) {
+                $leadUpdates['updated_at'] = now();
+                DB::table('admission_leads')
+                    ->where('id', $leadId)
+                    ->update($leadUpdates);
+            }
+
+            $accountData = [
+                'lead_id' => $leadId,
+                'last_interaction_at' => now(),
+                'updated_at' => now(),
+            ];
+
+            if (!$account) {
+                $accountData['created_at'] = now();
+            }
+
+            DB::table('admission_lead_channel_accounts')->updateOrInsert(
+                [
                     'channel' => $channel,
                     'account_id' => $senderId,
-                    'last_interaction_at' => now(),
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
-            } elseif ($account) {
-                DB::table('admission_lead_channel_accounts')->where('id', $account->id)
-                    ->update(['last_interaction_at' => now(), 'updated_at' => now()]);
-            }
+                ],
+                $accountData
+            );
 
-            // 2. Insert activity
-            if ($leadId && $content) {
-                $type = $isComment ? 'comment' : 'chat';
+            if (
+                $content !== ''
+                || in_array($interactionType, ['like', 'share'], true)
+            ) {
                 DB::table('admission_lead_activities')->insert([
                     'lead_id' => $leadId,
                     'channel' => $channel,
-                    'type' => $type,
-                    'external_id' => $request->input('comment_id'), // if it's a comment
+                    'type' => $interactionType,
+                    'external_id' => $request->input('comment_id'),
                     'direction' => 'inbound',
                     'content' => $content,
+                    'payload' => json_encode($data),
                     'occurred_at' => now(),
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);
-                
-                // 2.5 AI Extract Profile
-                $extracted = $this->rag->extractLeadInfo($content);
-                if (!empty($extracted)) {
-                    $profile = json_decode($lead->profile ?? '{}', true) ?? [];
-                    $updated = false;
-                    foreach (['phone', 'email', 'major', 'intent'] as $key) {
-                        if (!empty($extracted[$key])) {
-                            $profile[$key] = $extracted[$key];
-                            $updated = true;
+
+                if (
+                    $content !== ''
+                    && !in_array($interactionType, ['like', 'share'], true)
+                ) {
+                    $extracted = $this->rag->extractLeadInfo($content);
+
+                    if (!empty($extracted)) {
+                        $lead = DB::table('admission_leads')
+                            ->where('id', $leadId)
+                            ->first();
+
+                        $profile = json_decode($lead->profile ?? '{}', true);
+                        if (!is_array($profile)) {
+                            $profile = [];
                         }
-                    }
-                    if ($updated) {
-                        $encodedProfile = json_encode($profile);
-                        DB::table('admission_leads')->where('id', $leadId)->update(['profile' => $encodedProfile]);
-                        $lead->profile = $encodedProfile;
-                    }
-                }
-                
-                // 3. Rescore lead
-                $activities = DB::table('admission_lead_activities')
-                    ->where('lead_id', $leadId)
-                    ->get()
-                    ->map(function($a) { return (array)$a; })
-                    ->toArray();
-                    
-                $scoreData = $this->scoring->score((array)$lead, $activities);
-                
-                DB::table('admission_leads')->where('id', $leadId)->update([
-                    'score' => $scoreData['lead_score'] ?? 0,
-                    'score_grade' => $scoreData['lead_level'] ?? 'Cold',
-                    'last_interaction_at' => now(),
-                    'updated_at' => now(),
-                ]);
-            }
-            
-            // 4. Call RAG or Human Handoff
-            $ragResult = null;
-            if (!empty($content) || !empty($mediaUrl)) {
-                
-                // KIỂM TRA: Có đang đợi Nhân viên thật trả lời không? (Livechat Handoff)
-                $sessionId = DB::table('chatbot_sessions')->where('session_key', $senderId)->value('id');
-                $isPending = false;
-                if ($sessionId) {
-                    $hasPendingTicket = DB::table('chatbot_tickets')
-                        ->where('session_id', $sessionId)
-                        ->where('status', 'pending')
-                        ->exists();
-                    if ($hasPendingTicket) {
-                        $isPending = true;
+
+                        $extractedUpdates = [];
+
+                        if (!empty($extracted['phone'])) {
+                            $profile['phone'] = $extracted['phone'];
+                            $extractedUpdates['phone'] = $extracted['phone'];
+                        }
+
+                        if (!empty($extracted['email'])) {
+                            $profile['email'] = $extracted['email'];
+                            $extractedUpdates['email'] = $extracted['email'];
+                        }
+
+                        if (!empty($extracted['major'])) {
+                            $profile['major'] = $extracted['major'];
+                            $extractedUpdates['intended_major'] = $extracted['major'];
+                        }
+
+                        if (!empty($extracted['intent'])) {
+                            $profile['intent'] = $extracted['intent'];
+                        }
+
+                        if (!empty($extractedUpdates) || !empty($extracted['intent'])) {
+                            $extractedUpdates['profile'] = json_encode($profile);
+                            $extractedUpdates['updated_at'] = now();
+
+                            DB::table('admission_leads')
+                                ->where('id', $leadId)
+                                ->update($extractedUpdates);
+                        }
                     }
                 }
 
+                // Nạp lại lead sau khi đã cập nhật tên/profile để chấm điểm đúng dữ liệu mới.
+                $lead = DB::table('admission_leads')
+                    ->where('id', $leadId)
+                    ->first();
+
+                $activities = DB::table('admission_lead_activities')
+                    ->where('lead_id', $leadId)
+                    ->get()
+                    ->map(function ($activity) {
+                        return (array) $activity;
+                    })
+                    ->toArray();
+
+                $scoreData = $this->scoring->score((array) $lead, $activities);
+
+                $oldGrade = strtolower((string) ($lead->score_grade ?? 'cold'));
+                $newGrade = strtolower((string) ($scoreData['lead_level'] ?? 'cold'));
+
+                DB::table('admission_leads')
+                    ->where('id', $leadId)
+                    ->update([
+                        'score' => $scoreData['lead_score'] ?? 0,
+                        'score_grade' => $newGrade,
+                        'last_interaction_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+
+                $latestLead = DB::table('admission_leads')
+                    ->where('id', $leadId)
+                    ->first();
+                $latestProfile = json_decode($latestLead->profile ?? '{}', true);
+                if (!is_array($latestProfile)) {
+                    $latestProfile = [];
+                }
+
+                $messengerPsid = $latestProfile['messenger_psid'] ?? null;
+
+                if (
+                    $oldGrade !== 'hot'
+                    && $newGrade === 'hot'
+                    && $channel === 'facebook'
+                    && !empty($messengerPsid)
+                ) {
+                    \App\Jobs\SendLeadToN8n::dispatch([
+                        'event_type' => 'lead_became_hot',
+                        'data' => [
+                            'channel' => $channel,
+                            'sender_id' => $messengerPsid,
+                            'lead_id' => $leadId,
+                            'score' => $scoreData['lead_score'] ?? 0,
+                            'message' => 'Chúc mừng bạn! Bạn đã tương tác rất tích cực và trở thành Ứng viên tiềm năng. Chúng tôi tặng bạn 1 Voucher miễn phí xét tuyển trị giá 500k!',
+                        ],
+                    ]);
+                }
+            }
+
+            $ragResult = null;
+
+            if (
+                !in_array($interactionType, ['like', 'share'], true)
+                && ($content !== '' || !empty($mediaUrl))
+            ) {
+                $sessionId = DB::table('chatbot_sessions')
+                    ->where('session_key', $senderId)
+                    ->value('id');
+                $isPending = false;
+
+                if ($sessionId) {
+                    $isPending = DB::table('chatbot_tickets')
+                        ->where('session_id', $sessionId)
+                        ->where('status', 'pending')
+                        ->exists();
+                }
+
                 if ($isPending) {
-                    // Cướp quyền Bot: Không gọi RAG nữa, trả về tin nhắn giữ chân khách
                     $ragResult = [
                         'answer' => 'Tin nhắn của bạn đã được chuyển đến Thầy/Cô tư vấn viên. Thầy/Cô sẽ phản hồi bạn ngay, bạn đợi một chút nhé!',
                         'sources' => [],
                         'generated' => false,
                     ];
-                    
-                    // Cập nhật câu hỏi mới vào ticket đang pending
+
                     DB::table('chatbot_tickets')
                         ->where('session_id', $sessionId)
                         ->where('status', 'pending')
                         ->update([
-                            'question' => DB::raw("CONCAT(question, '\n\n[Tin nhắn mới]: ', " . DB::getPdo()->quote($content) . ")"),
-                            'updated_at' => now()
+                            'question' => DB::raw(
+                                "CONCAT(question, '\n\n[Tin nhắn mới]: ', "
+                                . DB::getPdo()->quote($content)
+                                . ')'
+                            ),
+                            'updated_at' => now(),
                         ]);
                 } else {
-                    // Gọi RAG bình thường
-                    $ragResult = $this->rag->answer($content, $senderId, $mediaUrl);
-                    
-                    // SAVE BOT RESPONSE TO ACTIVITIES
-                    if ($leadId && isset($ragResult['answer']) && $ragResult['answer'] !== '') {
+                    $ragResult = $this->rag->answer(
+                        $content,
+                        $senderId,
+                        $mediaUrl
+                    );
+
+                    if (
+                        isset($ragResult['answer'])
+                        && $ragResult['answer'] !== ''
+                    ) {
                         DB::table('admission_lead_activities')->insert([
                             'lead_id' => $leadId,
                             'channel' => $channel,
@@ -189,24 +356,34 @@ class AdmissionWebhookController extends Controller
                             'updated_at' => now(),
                         ]);
                     }
-                    
-                    // CREATE TICKET cho Giao diện Quản trị
+
                     $answerText = $ragResult['answer'] ?? '';
-                    $isFallback = strpos($answerText, 'nằm ngoài thông tin') !== false || strpos($answerText, 'để lại Tên và') !== false;
-                    
+                    $isFallback =
+                        strpos($answerText, 'nằm ngoài thông tin') !== false
+                        || strpos($answerText, 'để lại Tên và') !== false;
+
                     if (!$sessionId) {
-                        $sessionId = DB::table('chatbot_sessions')->insertGetId([
-                            'session_key' => $senderId,
-                            'ip_address' => 'webhook',
-                            'user_agent' => $channel,
-                            'started_at' => now(),
-                            'last_active_at' => now(),
-                        ]);
+                        $sessionId = DB::table('chatbot_sessions')
+                            ->insertGetId([
+                                'session_key' => $senderId,
+                                'ip_address' => 'webhook',
+                                'user_agent' => $channel,
+                                'started_at' => now(),
+                                'last_active_at' => now(),
+                            ]);
                     } else {
-                        DB::table('chatbot_sessions')->where('id', $sessionId)->update(['last_active_at' => now()]);
+                        DB::table('chatbot_sessions')
+                            ->where('id', $sessionId)
+                            ->update([
+                                'last_active_at' => now(),
+                            ]);
                     }
-                    
-                    $ticketCode = strtoupper(substr($channel, 0, 2)) . now()->format('Ymd') . '-' . strtoupper(\Illuminate\Support\Str::random(4));
+
+                    $ticketCode = strtoupper(substr($channel, 0, 2))
+                        . now()->format('Ymd')
+                        . '-'
+                        . strtoupper(\Illuminate\Support\Str::random(4));
+
                     DB::table('chatbot_tickets')->insert([
                         'session_id' => $sessionId,
                         'ticket_code' => $ticketCode,
@@ -221,11 +398,24 @@ class AdmissionWebhookController extends Controller
 
             return response()->json([
                 'success' => true,
+                'lead_id' => $leadId,
+                'score' => $scoreData['lead_score'] ?? null,
+                'score_grade' => isset($scoreData['lead_level'])
+                    ? strtolower((string) $scoreData['lead_level'])
+                    : null,
+                'messenger_ready' => !empty($messengerPsid),
                 'data' => $ragResult,
             ]);
         } catch (\Throwable $e) {
-            Log::error('[AdmissionWebhookController] upsertLead error: ' . $e->getMessage());
-            return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
+            Log::error(
+                '[AdmissionWebhookController] upsertLead error: '
+                . $e->getMessage()
+            );
+
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage(),
+            ], 500);
         }
     }
 

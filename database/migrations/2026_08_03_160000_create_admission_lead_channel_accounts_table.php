@@ -1,5 +1,4 @@
 <?php
-// database/migrations/2026_08_03_160000_create_admission_lead_channel_accounts_table.php
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -9,21 +8,48 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('admission_lead_channel_accounts', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('lead_id')->constrained('admission_leads')->cascadeOnDelete();
-            $table->string('channel', 40); // facebook, zalo, website, tiktok...
-            $table->string('account_id'); // fb sender_id / zalo uid / sđt (form)
-            $table->timestamp('last_interaction_at')->nullable();
-            $table->timestamps();
+        Schema::create(
+            'admission_lead_channel_accounts',
+            function (Blueprint $table) {
+                $table->id();
 
-            $table->unique(['channel', 'account_id']);
-            $table->index('lead_id');
-        });
+                $table->unsignedBigInteger('lead_id');
+
+                $table->string('channel', 50);
+
+                $table->string('account_id', 191);
+
+                $table->dateTime(
+                    'last_interaction_at'
+                )->nullable();
+
+                $table->timestamps();
+
+                $table->unique(
+                    [
+                        'channel',
+                        'account_id',
+                    ],
+                    'lead_channel_account_unique'
+                );
+
+                $table->index(
+                    'lead_id',
+                    'lead_channel_account_lead_id_index'
+                );
+
+                $table->index(
+                    'channel',
+                    'lead_channel_account_channel_index'
+                );
+            }
+        );
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('admission_lead_channel_accounts');
+        Schema::dropIfExists(
+            'admission_lead_channel_accounts'
+        );
     }
 };

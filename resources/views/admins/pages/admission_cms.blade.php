@@ -320,7 +320,15 @@
                     <input type="hidden" id="crit_id">
                     <div class="mb-2"><input id="crit_code" class="form-control form-control-sm" placeholder="Mã tiêu chí (VD: SCORE_MATH)" required></div>
                     <div class="mb-2"><input id="crit_name" class="form-control form-control-sm" placeholder="Tên tiêu chí" required></div>
-                    <div class="mb-2"><input id="crit_category" class="form-control form-control-sm" placeholder="Nhóm tiêu chí (Tùy chọn, VD: Tương tác, Học lực)"></div>
+                    <div class="mb-2">
+                        <input id="crit_category" class="form-control form-control-sm" placeholder="Nhóm tiêu chí (Tùy chọn, VD: Tương tác, Học lực)" list="categoryList">
+                        <datalist id="categoryList">
+                            <option value="Chung">
+                            <option value="Thông tin cá nhân">
+                            <option value="Nhu cầu học tập">
+                            <option value="Tương tác mạng xã hội">
+                        </datalist>
+                    </div>
                     <div class="mb-2">
                         <input id="crit_field" class="form-control form-control-sm" placeholder='Trường dữ liệu (Bắt đầu bằng "custom." nếu hiện trên form public)' required>
                     </div>

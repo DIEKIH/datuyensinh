@@ -99,7 +99,7 @@ class AdmissionScoringController extends Controller
     }
 
     public function scoreLead(Request $request) {
-        $result = $this->scoringService->scoreLead($request->all());
+        $result = $this->scoringService->score($request->all());
         return response()->json($result);
     }
 

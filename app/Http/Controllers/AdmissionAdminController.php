@@ -213,30 +213,87 @@ class AdmissionAdminController extends Controller
 
     public function leads(Request $request)
     {
-        $query = DB::table('admission_leads');
+        $channelAccounts = DB::table('admission_lead_channel_accounts')
+            ->select('lead_id')
+            ->selectRaw(
+                "MAX(CASE WHEN channel IN ('facebook', 'messenger') "
+                . "THEN account_id END) AS facebook_account_id"
+            )
+            ->selectRaw(
+                "MAX(CASE WHEN channel = 'zalo' "
+                . "THEN account_id END) AS zalo_account_id"
+            )
+            ->groupBy('lead_id');
+
+        $query = DB::table('admission_leads as leads')
+            ->leftJoinSub(
+                $channelAccounts,
+                'channel_accounts',
+                function ($join) {
+                    $join->on(
+                        'channel_accounts.lead_id',
+                        '=',
+                        'leads.id'
+                    );
+                }
+            )
+            ->select([
+                'leads.*',
+                'channel_accounts.facebook_account_id',
+                'channel_accounts.zalo_account_id',
+            ]);
 
         if ($request->filled('keyword')) {
             $keyword = $request->keyword;
-            $query->where(function ($q) use ($keyword) {
-                $q->where('full_name', 'like', '%' . $keyword . '%')
-                    ->orWhere('phone', 'like', '%' . $keyword . '%')
-                    ->orWhere('email', 'like', '%' . $keyword . '%')
-                    ->orWhere('intended_major', 'like', '%' . $keyword . '%');
+
+            $query->where(function ($subQuery) use ($keyword) {
+                $subQuery->where(
+                    'leads.full_name',
+                    'like',
+                    '%' . $keyword . '%'
+                )
+                    ->orWhere(
+                        'leads.phone',
+                        'like',
+                        '%' . $keyword . '%'
+                    )
+                    ->orWhere(
+                        'leads.email',
+                        'like',
+                        '%' . $keyword . '%'
+                    )
+                    ->orWhere(
+                        'leads.intended_major',
+                        'like',
+                        '%' . $keyword . '%'
+                    )
+                    ->orWhere(
+                        'channel_accounts.facebook_account_id',
+                        'like',
+                        '%' . $keyword . '%'
+                    );
             });
         }
 
         foreach (['channel', 'status', 'score_grade'] as $filter) {
             if ($request->filled($filter)) {
-                $query->where($filter, $request->input($filter));
+                $query->where(
+                    'leads.' . $filter,
+                    $request->input($filter)
+                );
             }
         }
 
-        $leads = $query->orderByDesc('score')
-            ->orderByDesc('last_interaction_at')
-            ->orderByDesc('created_at')
+        $leads = $query
+            ->orderByDesc('leads.score')
+            ->orderByDesc('leads.last_interaction_at')
+            ->orderByDesc('leads.created_at')
             ->paginate(15);
 
-        return response()->json(['success' => true, 'data' => $leads]);
+        return response()->json([
+            'success' => true,
+            'data' => $leads,
+        ]);
     }
 
     public function storeLead(Request $request)
@@ -261,9 +318,13 @@ class AdmissionAdminController extends Controller
         $data['status'] = $data['status'] ?? 'new';
         $data['last_interaction_at'] = now();
         $scored = $this->scoring->score($data);
-        $data['score'] = $scored['score'];
-        $data['score_grade'] = $scored['grade'];
-        $data['profile'] = json_encode(['score_reasons' => $scored['reasons']]);
+        $data['score'] = $scored['lead_score'] ?? 0;
+        $data['score_grade'] = strtolower(
+            (string) ($scored['lead_level'] ?? 'cold')
+        );
+        $data['profile'] = json_encode([
+            'score_reasons' => $scored['matched_criteria'] ?? [],
+        ]);
         $data['created_at'] = now();
         $data['updated_at'] = now();
 
