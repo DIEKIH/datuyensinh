@@ -42,184 +42,6 @@
     },
     {
       "parameters": {
-        "fromEmail": "huynhdangkhoa3344@gmail.com",
-        "toEmail": "huynhdangkhoa3344@gmail.com",
-        "subject": "Trường gửi bạn thông tin học phí",
-        "options": {}
-      },
-      "id": "8f62f5bd-a6ff-44a2-b233-5de337261840",
-      "name": "Gửi Nurture Email",
-      "type": "n8n-nodes-base.emailSend",
-      "typeVersion": 2,
-      "position": [
-        1408,
-        2096
-      ],
-      "webhookId": "b28229e9-111e-4a39-9d9b-e69a9faa9b25",
-      "credentials": {
-        "smtp": {
-          "id": "8De94I3Ck8tAc0IN",
-          "name": "SMTP account"
-        }
-      },
-      "disabled": true
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "boolean": [
-            {
-              "value1": "=={{ $json.status_response.data.is_contacted }}"
-            }
-          ]
-        }
-      },
-      "id": "afe8c017-2cd0-4809-bcb6-811427253949",
-      "name": "Chưa ai gọi?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 1,
-      "position": [
-        1216,
-        2096
-      ]
-    },
-    {
-      "parameters": {
-        "jsCode": "const items = $input.all();\nconst token = 'your_secret_token_here';\n\nfor (const item of items) {\n  const id = item.json.body?.data?.id || '';\n\n  try {\n    const response = await this.helpers.httpRequest({\n      method: 'GET',\n      url: `http://tuyensinhtest.test/api/n8n/leads/${id}/status`,\n      headers: {\n        'X-N8N-Token': token\n      },\n      json: true\n    });\n    item.json.status_response = response;\n  } catch (err) {\n    item.json.status_error = err.message;\n  }\n}\n\nreturn items;"
-      },
-      "id": "414defb6-b9be-4a83-8bd9-ccd477b22f63",
-      "name": "Check Trạng Thái",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 1,
-      "position": [
-        1008,
-        2096
-      ]
-    },
-    {
-      "parameters": {
-        "unit": "minutes"
-      },
-      "id": "e0dc0c2b-a3a9-4f99-9f3d-09478b521233",
-      "name": "Đợi 24 giờ",
-      "type": "n8n-nodes-base.wait",
-      "typeVersion": 1,
-      "position": [
-        688,
-        1984
-      ],
-      "webhookId": "aa1c8d61-7fde-4d33-bd44-6a1e925e0fdd"
-    },
-    {
-      "parameters": {
-        "authentication": "oAuth2",
-        "sheetId": "1J68idNrZXG-8yAiIoA_T7JXoCLSAzf2DtzLITkCXHBI/edit?gid=0#gid=0",
-        "options": {}
-      },
-      "id": "fce1c6ed-2ffc-4d8b-a2b6-3c56674278c7",
-      "name": "Lưu Google Sheets",
-      "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 1,
-      "position": [
-        592,
-        1808
-      ],
-      "credentials": {
-        "googleSheetsOAuth2Api": {
-          "id": "684pxYWV2VKzeOku",
-          "name": "Google Sheets account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "text": "HOT LEAD!!! Gọi ngay!!!",
-        "additionalFields": {}
-      },
-      "id": "68872d56-6e2e-4fa0-8e87-02260ba900e6",
-      "name": "Báo động Sales",
-      "type": "n8n-nodes-base.telegram",
-      "typeVersion": 1,
-      "position": [
-        368,
-        1680
-      ],
-      "webhookId": "0649a53c-cdbd-4bc1-8a4e-fc53ab28bd3d",
-      "disabled": true
-    },
-    {
-      "parameters": {
-        "value1": {},
-        "rules": {
-          "rules": [
-            {
-              "operation": "largerEqual",
-              "value2": 80
-            },
-            {
-              "value2": 80,
-              "output": 1
-            }
-          ]
-        }
-      },
-      "id": "a2debed0-6e28-4b6b-8e06-1a8e8057c073",
-      "name": "Check Lead Score",
-      "type": "n8n-nodes-base.switch",
-      "typeVersion": 1,
-      "position": [
-        48,
-        1744
-      ]
-    },
-    {
-      "parameters": {
-        "values": {
-          "number": [
-            {
-              "name": "score",
-              "value": "={{ $json.body.data.score }}"
-            },
-            {
-              "name": "score_grade",
-              "value": "={{ $json.body.data.score_grade }}"
-            }
-          ],
-          "string": [
-            {
-              "name": "channel",
-              "value": "={{ $json.body.data.channel }}"
-            }
-          ]
-        },
-        "options": {
-          "dotNotation": true
-        }
-      },
-      "id": "ac1617ad-6c43-4c5c-8a84-83e5f8655f10",
-      "name": "Format Lead Data",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 2,
-      "position": [
-        -224,
-        1744
-      ]
-    },
-    {
-      "parameters": {
-        "operation": "removeDuplicates"
-      },
-      "id": "ef1b3af2-1c39-4498-a8c6-5f7f55e6ae1e",
-      "name": "Lọc Trùng Lead",
-      "type": "n8n-nodes-base.itemLists",
-      "typeVersion": 1,
-      "position": [
-        -464,
-        1664
-      ]
-    },
-    {
-      "parameters": {
         "url": "https://openapi.zalo.me/v2.0/oa/message",
         "options": {}
       },
@@ -714,6 +536,10 @@
             {
               "value2": "lead_became_hot",
               "output": 3
+            },
+            {
+              "value2": "run_lead_campaign",
+              "output": 4
             }
           ]
         }
@@ -743,7 +569,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const inputItems = $input.all();\n\nfunction decodeHtmlEntities(value) {\n  return String(value || '')\n    .replace(/&nbsp;/gi, ' ')\n    .replace(/&amp;/gi, '&')\n    .replace(/&quot;/gi, '\"')\n    .replace(/&#39;|&apos;/gi, \"'\")\n    .replace(/&lt;/gi, '<')\n    .replace(/&gt;/gi, '>');\n}\n\nfunction htmlToPlainText(value) {\n  return decodeHtmlEntities(value)\n    .replace(/<(br|\\/p|\\/div|\\/li|\\/h[1-6])\\b[^>]*>/gi, '\\n')\n    .replace(/<[^>]+>/g, ' ')\n    .replace(/[ \\t]+/g, ' ')\n    .replace(/\\n[ \\t]+/g, '\\n')\n    .replace(/\\n{3,}/g, '\\n\\n')\n    .trim();\n}\n\nfunction normalizeImageUrl(rawUrl, baseUrl) {\n  let url = String(rawUrl || '').trim();\n  if (!url || url.startsWith('data:')) return '';\n\n  if (url.includes(',')) url = url.split(',')[0].trim();\n  url = url.split(/\\s+/)[0];\n\n  try {\n    let parsedUrl = new URL(url, baseUrl || undefined);\n    \n    if (['tuyensinhtest.test', 'localhost', '127.0.0.1'].includes(parsedUrl.hostname)) {\n        if (baseUrl) {\n            let baseParsed = new URL(baseUrl);\n            parsedUrl.protocol = baseParsed.protocol;\n            parsedUrl.hostname = baseParsed.hostname;\n            parsedUrl.port = baseParsed.port;\n        }\n    }\n    return parsedUrl.href;\n  } catch (error) {\n    return url;\n  }\n}\n\nfor (const item of inputItems) {\n  const body = item.json.body;\n  if (!body || typeof body !== 'object') {\n    throw new Error('Webhook thiếu body JSON.');\n  }\n\n  if (!body.event_type) {\n    throw new Error('Webhook thiếu body.event_type.');\n  }\n\n  // Sự kiện lead_became_hot chỉ cần sender_id + message, không cần xử lý HTML/ảnh như bài viết\n  // → bỏ qua toàn bộ phần validate/xử lý nội dung bên dưới, giữ nguyên item để đi tiếp\n  if (body.event_type === 'lead_became_hot') {\n    continue;\n  }\n\n  if (!body.data || typeof body.data !== 'object') {\n    throw new Error('Webhook thiếu body.data.');\n  }\n\n  const d = body.data;\n  const htmlContent = d.content || d.noidung || '';\n  const fallbackPlainContent = htmlToPlainText(htmlContent);\n  d.title = String(d.title || '').trim();\n  d.plain_content = String(d.plain_content || fallbackPlainContent)\n    .replace(/\\r\\n/g, '\\n')\n    .replace(/[ \\t]+/g, ' ')\n    .replace(/\\n[ \\t]+/g, '\\n')\n    .replace(/\\n{3,}/g, '\\n\\n')\n    .trim();\n\n  if (body.event_type === 'new_article') {\n    if (!d.title) throw new Error('Bài viết thiếu body.data.title.');\n    if (!d.plain_content) {\n      throw new Error('Bài viết thiếu body.data.plain_content và không thể tạo lại từ content.');\n    }\n  }\n\n  d.auto_publish = [1, true, '1', 'true'].includes(d.auto_publish) ? 1 : 0;\n\n  const baseUrl = d.url || d.thumbnail || '';\n  const images = [];\n  const imageRegex = /<(?:img|source)\\b[^>]*\\b(?:src|data-src|data-original|srcset)=[\"']([^\"']+)[\"']/gi;\n  let match;\n\n  while ((match = imageRegex.exec(String(htmlContent))) !== null) {\n    const normalized = normalizeImageUrl(match[1], baseUrl);\n    if (normalized && !images.includes(normalized)) images.push(normalized);\n  }\n\n  if (images.length === 0 && d.thumbnail) {\n    const thumbnail = normalizeImageUrl(d.thumbnail, baseUrl);\n    if (thumbnail) images.push(thumbnail);\n  }\n\n  d.content_images = images;\n  d.has_images = images.length > 0;\n  d.validation = {\n    plain_content_length: d.plain_content.length,\n    image_count: images.length,\n  };\n}\n\nreturn inputItems;"
+        "jsCode": "const inputItems = $input.all();\n\nfunction decodeHtmlEntities(value) {\n  return String(value || '')\n    .replace(/&nbsp;/gi, ' ')\n    .replace(/&amp;/gi, '&')\n    .replace(/&quot;/gi, '\"')\n    .replace(/&#39;|&apos;/gi, \"'\")\n    .replace(/&lt;/gi, '<')\n    .replace(/&gt;/gi, '>');\n}\n\nfunction htmlToPlainText(value) {\n  return decodeHtmlEntities(value)\n    .replace(/<(br|\\/p|\\/div|\\/li|\\/h[1-6])\\b[^>]*>/gi, '\\n')\n    .replace(/<[^>]+>/g, ' ')\n    .replace(/[ \\t]+/g, ' ')\n    .replace(/\\n[ \\t]+/g, '\\n')\n    .replace(/\\n{3,}/g, '\\n\\n')\n    .trim();\n}\n\nfunction normalizeImageUrl(rawUrl, baseUrl) {\n  let url = String(rawUrl || '').trim();\n  if (!url || url.startsWith('data:')) return '';\n\n  if (url.includes(',')) url = url.split(',')[0].trim();\n  url = url.split(/\\s+/)[0];\n\n  try {\n    let parsedUrl = new URL(url, baseUrl || undefined);\n    \n    if (['tuyensinhtest.test', 'localhost', '127.0.0.1'].includes(parsedUrl.hostname)) {\n        if (baseUrl) {\n            let baseParsed = new URL(baseUrl);\n            parsedUrl.protocol = baseParsed.protocol;\n            parsedUrl.hostname = baseParsed.hostname;\n            parsedUrl.port = baseParsed.port;\n        }\n    }\n    return parsedUrl.href;\n  } catch (error) {\n    return url;\n  }\n}\n\nfor (const item of inputItems) {\n  const body = item.json.body;\n  if (!body || typeof body !== 'object') {\n    throw new Error('Webhook thiếu body JSON.');\n  }\n\n  if (!body.event_type) {\n    throw new Error('Webhook thiếu body.event_type.');\n  }\n\n  // Hai sự kiện chiến dịch không xử lý HTML/ảnh như bài viết.\n  if (body.event_type === 'lead_became_hot') {\n    if (!body.data || typeof body.data !== 'object') {\n      throw new Error('lead_became_hot thiếu body.data.');\n    }\n    if (!String(body.data.sender_id || '').trim()) {\n      throw new Error('lead_became_hot thiếu body.data.sender_id.');\n    }\n    if (!String(body.data.message || '').trim()) {\n      throw new Error('lead_became_hot thiếu body.data.message.');\n    }\n    continue;\n  }\n\n  if (body.event_type === 'run_lead_campaign') {\n    if (!body.data || typeof body.data !== 'object') {\n      throw new Error('run_lead_campaign thiếu body.data.');\n    }\n    if (!Array.isArray(body.data.recipients) || body.data.recipients.length === 0) {\n      throw new Error('run_lead_campaign không có danh sách recipients.');\n    }\n    if (!String(body.data.message || '').trim()) {\n      throw new Error('run_lead_campaign thiếu body.data.message.');\n    }\n    continue;\n  }\n\n  if (!body.data || typeof body.data !== 'object') {\n    throw new Error('Webhook thiếu body.data.');\n  }\n\n  const d = body.data;\n  const htmlContent = d.content || d.noidung || '';\n  const fallbackPlainContent = htmlToPlainText(htmlContent);\n  d.title = String(d.title || '').trim();\n  d.plain_content = String(d.plain_content || fallbackPlainContent)\n    .replace(/\\r\\n/g, '\\n')\n    .replace(/[ \\t]+/g, ' ')\n    .replace(/\\n[ \\t]+/g, '\\n')\n    .replace(/\\n{3,}/g, '\\n\\n')\n    .trim();\n\n  if (body.event_type === 'new_article') {\n    if (!d.title) throw new Error('Bài viết thiếu body.data.title.');\n    if (!d.plain_content) {\n      throw new Error('Bài viết thiếu body.data.plain_content và không thể tạo lại từ content.');\n    }\n  }\n\n  d.auto_publish = [1, true, '1', 'true'].includes(d.auto_publish) ? 1 : 0;\n\n  const baseUrl = d.url || d.thumbnail || '';\n  const images = [];\n  const imageRegex = /<(?:img|source)\\b[^>]*\\b(?:src|data-src|data-original|srcset)=[\"']([^\"']+)[\"']/gi;\n  let match;\n\n  while ((match = imageRegex.exec(String(htmlContent))) !== null) {\n    const normalized = normalizeImageUrl(match[1], baseUrl);\n    if (normalized && !images.includes(normalized)) images.push(normalized);\n  }\n\n  if (images.length === 0 && d.thumbnail) {\n    const thumbnail = normalizeImageUrl(d.thumbnail, baseUrl);\n    if (thumbnail) images.push(thumbnail);\n  }\n\n  d.content_images = images;\n  d.has_images = images.length > 0;\n  d.validation = {\n    plain_content_length: d.plain_content.length,\n    image_count: images.length,\n  };\n}\n\nreturn inputItems;"
       },
       "id": "f003714e-8743-4f1f-a59f-db72f67d8b79",
       "name": "Data Validator",
@@ -861,49 +687,19 @@
     },
     {
       "parameters": {
-        "httpMethod": "POST",
-        "path": "nurture-leads",
-        "options": {}
-      },
-      "id": "2f76181f-ed26-495c-a301-be9d2a51b90e",
-      "name": "Webhook Nurture Laravel",
-      "type": "n8n-nodes-base.webhook",
-      "typeVersion": 1,
-      "position": [
-        -1408,
-        80
-      ],
-      "webhookId": "nurture-leads"
-    },
-    {
-      "parameters": {
-        "fieldToSplitOut": "body.data",
-        "options": {}
-      },
-      "id": "0f456043-6a49-430f-9277-835164c2b5e1",
-      "name": "Tách danh sách khách hàng",
-      "type": "n8n-nodes-base.itemLists",
-      "typeVersion": 2,
-      "position": [
-        -1152,
-        80
-      ]
-    },
-    {
-      "parameters": {
         "fromEmail": "huynhdangkhoa3344@gmail.com",
-        "toEmail": "={{ $('Tách danh sách khách hàng').item.json.email }}",
-        "subject": "=[CTUT] Chào {{ $('Tách danh sách khách hàng').item.json.full_name }}, bạn có bỏ lỡ cơ hội?",
-        "html": "=<p>{{ $json.text }}</p>",
+        "toEmail": "={{ $('Chuẩn hóa người nhận chiến dịch').item.json.email }}",
+        "subject": "={{ $('Chuẩn hóa người nhận chiến dịch').item.json.subject }}",
+        "html": "={{ '<p>' + String($json.text || $('Chuẩn hóa người nhận chiến dịch').item.json.message || '').replace(/\\n/g, '<br>') + '</p>' }}",
         "options": {}
       },
       "id": "7b4f93f1-f135-4060-917c-a78b1338c680",
-      "name": "Gửi Email (Gmail/SMTP)",
+      "name": "Gửi Email Chiến Dịch",
       "type": "n8n-nodes-base.emailSend",
       "typeVersion": 2.1,
       "position": [
-        -560,
-        96
+        560,
+        1488
       ],
       "webhookId": "a361eb22-a8cf-4fbe-905b-2d5405bc0bf1",
       "credentials": {
@@ -911,12 +707,13 @@
           "id": "8De94I3Ck8tAc0IN",
           "name": "SMTP account"
         }
-      }
+      },
+      "notes": "Gửi Email cho item channel=email. Nội dung được LLM viết lại từ thông tin admin nhập."
     },
     {
       "parameters": {
         "promptType": "define",
-        "text": "=Bạn là chuyên viên tư vấn tuyển sinh tại CTUT.\nHãy viết 1 đoạn email ngắn gọn (không quá 3 câu) thật thân thiện để hối thúc thí sinh {{ $json.full_name }} nhanh chóng hoàn tất hồ sơ đăng ký vào ngành {{ $json.intended_major }}.\nGhi chú: Giọng văn lôi cuốn, tạo cảm giác khan hiếm chỉ tiêu.",
+        "text": "=Bạn là chuyên viên tư vấn tuyển sinh CTUT.\nHãy viết lại nội dung Email ngắn gọn, thân thiện, tối đa 4 câu.\nPhải giữ nguyên ý và dữ kiện do Admin cung cấp; không tự tạo ưu đãi, thời hạn, chỉ tiêu hoặc số liệu mới.\n\nNgười nhận: {{ $json.full_name || 'bạn' }}\nNgành quan tâm: {{ $json.intended_major || 'chưa xác định' }}\nĐiểm Lead: {{ $json.score }}\nNội dung gốc của Admin:\n{{ $json.message }}",
         "batching": {}
       },
       "id": "954e082a-5c6e-41c3-9d1f-00d8dd74de68",
@@ -924,9 +721,10 @@
       "type": "@n8n/n8n-nodes-langchain.chainLlm",
       "typeVersion": 1.9,
       "position": [
-        -912,
-        80
-      ]
+        224,
+        1488
+      ],
+      "notes": "Chỉ cá nhân hóa Email từ nội dung Admin nhập; không dùng cho Messenger."
     },
     {
       "parameters": {
@@ -944,8 +742,8 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1.3,
       "position": [
-        -960,
-        288
+        160,
+        1744
       ],
       "credentials": {
         "openAiApi": {
@@ -979,7 +777,7 @@
             },
             {
               "name": "ai_answer",
-              "value": "=={{$json.data.answer }}"
+              "value": "={{ $json.data.answer }}"
             },
             {
               "name": "channel",
@@ -996,7 +794,8 @@
       "position": [
         -672,
         672
-      ]
+      ],
+      "notes": "Nhận câu trả lời RAG và tạo AiApproval pending."
     },
     {
       "parameters": {
@@ -1041,13 +840,13 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "http://tuyensinhtest.test/api/n8n/rag/answer ",
+        "url": "http://tuyensinhtest.test/api/n8n/rag/answer",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
-              "name": "X-N8N-Token ",
-              "value": "your_secret_token_here  "
+              "name": "X-N8N-Token",
+              "value": "your_secret_token_here"
             }
           ]
         },
@@ -1063,7 +862,8 @@
         976
       ],
       "id": "022b2b39-f545-4d29-97ef-97fa5c0a1321",
-      "name": "HTTP Request"
+      "name": "HTTP Request",
+      "notes": "Nhánh new_lead: gọi Laravel RAG để tạo bản trả lời nháp. Đã bỏ khoảng trắng thừa trong URL/Header."
     },
     {
       "parameters": {
@@ -1392,17 +1192,58 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ { recipient: { id: $json.body.data.sender_id }, message: { text: $json.body.data.message } } }}",
+        "jsonBody": "={{ { recipient: { id: $json.sender_id }, message: { text: $json.message } } }}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
       "position": [
-        -352,
-        1440
+        224,
+        1648
       ],
       "id": "98c52c2e-7e83-4903-bdb7-5ae71fb29501",
-      "name": "Send FB Message (Hot Lead)"
+      "name": "Gửi Messenger Chiến Dịch",
+      "notes": "Dùng chung cho Hot Lead tự động và chiến dịch thủ công. Chỉ nhận messenger_psid hợp lệ từ Laravel."
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst output = [];\n\nfunction fillTemplate(template, data) {\n  const name = String(data.full_name || '').trim() || 'bạn';\n  const major = String(data.intended_major || '').trim() || 'ngành bạn quan tâm';\n  const score = data.score === null || data.score === undefined\n    ? ''\n    : String(data.score);\n\n  return String(template || '')\n    .replace(/\\{name\\}/g, name)\n    .replace(/\\{major\\}/g, major)\n    .replace(/\\{score\\}/g, score)\n    .trim();\n}\n\nfor (const item of items) {\n  const body = item.json.body || item.json;\n  const eventType = String(body.event_type || '').trim();\n  const data = body.data || {};\n\n  if (eventType === 'lead_became_hot') {\n    const senderId = String(data.sender_id || '').trim();\n    if (!senderId) {\n      throw new Error('lead_became_hot thiếu sender_id.');\n    }\n\n    output.push({\n      json: {\n        campaign_id: data.campaign_id || '',\n        campaign_name: data.campaign_name || 'Chăm sóc Hot Lead tự động',\n        campaign_mode: 'auto_hot',\n        lead_id: data.lead_id || null,\n        channel: 'messenger',\n        recipient: senderId,\n        sender_id: senderId,\n        email: '',\n        full_name: data.full_name || '',\n        intended_major: data.intended_major || '',\n        score: data.score ?? null,\n        subject: '',\n        message: fillTemplate(data.message, data),\n      },\n    });\n    continue;\n  }\n\n  if (eventType === 'run_lead_campaign') {\n    const recipients = Array.isArray(data.recipients)\n      ? data.recipients\n      : [];\n\n    for (const recipient of recipients) {\n      const channel = String(recipient.channel || '').trim().toLowerCase();\n      const email = String(recipient.email || recipient.recipient || '').trim();\n      const senderId = String(recipient.sender_id || recipient.recipient || '').trim();\n\n      if (channel === 'email' && !email) continue;\n      if (channel === 'messenger' && !senderId) continue;\n      if (!['email', 'messenger'].includes(channel)) continue;\n\n      const merged = {\n        ...recipient,\n        campaign_id: data.campaign_id || '',\n        campaign_name: data.campaign_name || '',\n        campaign_mode: data.campaign_mode || 'manual',\n      };\n\n      output.push({\n        json: {\n          campaign_id: merged.campaign_id,\n          campaign_name: merged.campaign_name,\n          campaign_mode: merged.campaign_mode,\n          lead_id: recipient.lead_id || null,\n          channel,\n          recipient: channel === 'email' ? email : senderId,\n          email: channel === 'email' ? email : '',\n          sender_id: channel === 'messenger' ? senderId : '',\n          full_name: recipient.full_name || '',\n          intended_major: recipient.intended_major || '',\n          score: recipient.score ?? null,\n          subject: fillTemplate(data.subject || '', merged),\n          message: fillTemplate(data.message || '', merged),\n        },\n      });\n    }\n  }\n}\n\nif (!output.length) {\n  throw new Error('Không có người nhận hợp lệ sau khi chuẩn hóa chiến dịch.');\n}\n\nreturn output;"
+      },
+      "id": "85d21490-ac45-4135-8e9f-f2f79dc61277",
+      "name": "Chuẩn hóa người nhận chiến dịch",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -560,
+        1568
+      ],
+      "notes": "Gộp lead_became_hot và run_lead_campaign thành cấu trúc người nhận chung. Không ghép danh tính Email với Messenger."
+    },
+    {
+      "parameters": {
+        "dataType": "string",
+        "value1": "={{ $json.channel }}",
+        "rules": {
+          "rules": [
+            {
+              "value2": "email"
+            },
+            {
+              "value2": "messenger",
+              "output": 1
+            }
+          ]
+        }
+      },
+      "id": "964ab499-ed34-4531-a9f6-cc475219da58",
+      "name": "Router Kênh Chiến Dịch",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [
+        -240,
+        1568
+      ],
+      "notes": "Email và Messenger là hai nhánh độc lập. Một lần chạy thủ công có thể tạo item cho cả hai kênh."
     }
   ],
   "connections": {
@@ -1422,101 +1263,6 @@
         [
           {
             "node": "Format Error Message",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Chưa ai gọi?": {
-      "main": [
-        [
-          {
-            "node": "Gửi Nurture Email",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Check Trạng Thái": {
-      "main": [
-        [
-          {
-            "node": "Chưa ai gọi?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Đợi 24 giờ": {
-      "main": [
-        [
-          {
-            "node": "Check Trạng Thái",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Lưu Google Sheets": {
-      "main": [
-        [
-          {
-            "node": "Đợi 24 giờ",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Báo động Sales": {
-      "main": [
-        [
-          {
-            "node": "Lưu Google Sheets",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Check Lead Score": {
-      "main": [
-        [
-          {
-            "node": "Báo động Sales",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Đợi 24 giờ",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Format Lead Data": {
-      "main": [
-        [
-          {
-            "node": "Check Lead Score",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Lọc Trùng Lead": {
-      "main": [
-        [
-          {
-            "node": "Format Lead Data",
             "type": "main",
             "index": 0
           }
@@ -1853,11 +1599,6 @@
         ],
         [
           {
-            "node": "Lọc Trùng Lead",
-            "type": "main",
-            "index": 0
-          },
-          {
             "node": "HTTP Request",
             "type": "main",
             "index": 0
@@ -1865,7 +1606,14 @@
         ],
         [
           {
-            "node": "Send FB Message (Hot Lead)",
+            "node": "Chuẩn hóa người nhận chiến dịch",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Chuẩn hóa người nhận chiến dịch",
             "type": "main",
             "index": 0
           }
@@ -1949,33 +1697,11 @@
         ]
       ]
     },
-    "Webhook Nurture Laravel": {
-      "main": [
-        [
-          {
-            "node": "Tách danh sách khách hàng",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Tách danh sách khách hàng": {
-      "main": [
-        [
-          {
-            "node": "Basic LLM Chain Nurture",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Basic LLM Chain Nurture": {
       "main": [
         [
           {
-            "node": "Gửi Email (Gmail/SMTP)",
+            "node": "Gửi Email Chiến Dịch",
             "type": "main",
             "index": 0
           }
@@ -2129,6 +1855,35 @@
         [
           {
             "node": "Router (Switch)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chuẩn hóa người nhận chiến dịch": {
+      "main": [
+        [
+          {
+            "node": "Router Kênh Chiến Dịch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Router Kênh Chiến Dịch": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain Nurture",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Gửi Messenger Chiến Dịch",
             "type": "main",
             "index": 0
           }

@@ -182,9 +182,6 @@ Route::prefix('admin')->middleware('admin')->group(function () {
     Route::get('/admission-cms/lead-management', [AdmissionAdminController::class, 'leadManagement'])
         ->name('admin.admission-cms.leads');
 
-    Route::get('/admission-cms/campaign-management', [AdmissionAdminController::class, 'campaignManagement'])
-        ->name('admin.admission-cms.campaigns');
-
     Route::get('/admission-cms/ai-approvals', [AdmissionAdminController::class, 'approvalManagement'])
         ->name('admin.admission-cms.approvals');
 
@@ -218,8 +215,7 @@ Route::prefix('admin')->middleware('admin')->group(function () {
     Route::get('/admission-cms/documents', [AdmissionAdminController::class, 'documents']);
     Route::post('/admission-cms/documents', [AdmissionAdminController::class, 'storeDocument']);
     Route::post('/admission-cms/rag/ask', [AdmissionAdminController::class, 'askRag']);
-    Route::post('/admission-cms/nurture', [AdmissionAdminController::class, 'triggerNurture'])
-        ->name('admin.admission-cms.campaigns.run');
+    Route::post('/admission-cms/nurture', [AdmissionAdminController::class, 'triggerNurture']);
 
     Route::get('/admission-cms/approvals', [AdmissionAdminController::class, 'listApprovals']);
     Route::post('/admission-cms/approvals/{id}/action', [AdmissionAdminController::class, 'handleApprovalAction']);

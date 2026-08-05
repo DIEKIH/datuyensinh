@@ -288,23 +288,11 @@ class AdmissionWebhookController extends Controller
                     \App\Jobs\SendLeadToN8n::dispatch([
                         'event_type' => 'lead_became_hot',
                         'data' => [
-                            'campaign_name' =>
-                                'Chăm sóc Hot Lead tự động',
-                            'campaign_mode' => 'auto_hot',
-                            'channel' => 'messenger',
+                            'channel' => $channel,
                             'sender_id' => $messengerPsid,
                             'lead_id' => $leadId,
-                            'full_name' =>
-                                $latestLead->full_name ?? '',
-                            'intended_major' =>
-                                $latestLead->intended_major ?? '',
-                            'score' =>
-                                $scoreData['lead_score'] ?? 0,
-                            'message' =>
-                                'Chúc mừng {name}! Bạn đã trở thành '
-                                . 'ứng viên tiềm năng của CTUT. '
-                                . 'Nhà trường sẽ tiếp tục gửi các '
-                                . 'thông tin tuyển sinh phù hợp đến bạn.',
+                            'score' => $scoreData['lead_score'] ?? 0,
+                            'message' => 'Chúc mừng bạn! Bạn đã tương tác rất tích cực và trở thành Ứng viên tiềm năng. Chúng tôi tặng bạn 1 Voucher miễn phí xét tuyển trị giá 500k!',
                         ],
                     ]);
                 }

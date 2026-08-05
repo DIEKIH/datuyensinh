@@ -1,293 +1,622 @@
 @extends('users.layouts.app')
 
-@section('title', 'Đăng Ký Tư Vấn Tuyển Sinh')
+@section('title', 'Đăng ký tư vấn tuyển sinh')
 
 @section('css')
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet"
+>
+
 <style>
     :root {
-        --primary: #2563eb;
-        --primary-hover: #1d4ed8;
-        --secondary: #0ea5e9;
-        --dark: #0f172a;
-        --light: #f8fafc;
-        --gray: #64748b;
-        --border: #e2e8f0;
-        --glass-bg: rgba(255, 255, 255, 0.95);
+        --lead-primary: #1769aa;
+        --lead-primary-dark: #0d4f86;
+        --lead-secondary: #2f9ed0;
+        --lead-accent: #f59e0b;
+        --lead-success: #059669;
+        --lead-text: #17324d;
+        --lead-muted: #65778a;
+        --lead-border: #dbe5ee;
+        --lead-surface: #ffffff;
+        --lead-soft: #f4f9fc;
+        --lead-shadow: 0 24px 60px rgba(28, 74, 112, .14);
     }
-    body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; }
-    
+
+    body {
+        font-family: 'Inter', sans-serif;
+        background: #eef5f9;
+    }
+
     .lead-page {
         position: relative;
-        padding: 80px 0;
-        background: linear-gradient(135deg, #eff6ff 0%, #e0f2fe 100%);
         min-height: 100vh;
+        padding: 64px 0;
         overflow: hidden;
+        background:
+            radial-gradient(
+                circle at 8% 15%,
+                rgba(78, 165, 211, .16),
+                transparent 30%
+            ),
+            radial-gradient(
+                circle at 92% 10%,
+                rgba(23, 105, 170, .13),
+                transparent 28%
+            ),
+            linear-gradient(135deg, #f7fbfe 0%, #eaf4fa 100%);
     }
-    
-    /* Decorative Background Elements */
-    .lead-page::before {
+
+    .lead-page::before,
+    .lead-page::after {
         content: '';
         position: absolute;
-        top: -100px;
-        right: -100px;
-        width: 400px;
-        height: 400px;
-        background: radial-gradient(circle, rgba(37,99,235,0.15) 0%, rgba(255,255,255,0) 70%);
         border-radius: 50%;
-        z-index: 0;
+        pointer-events: none;
     }
-    
+
+    .lead-page::before {
+        width: 360px;
+        height: 360px;
+        top: -180px;
+        right: -100px;
+        border: 1px solid rgba(23, 105, 170, .12);
+        box-shadow:
+            0 0 0 48px rgba(23, 105, 170, .035),
+            0 0 0 96px rgba(23, 105, 170, .02);
+    }
+
+    .lead-page::after {
+        width: 220px;
+        height: 220px;
+        bottom: -115px;
+        left: -80px;
+        background: rgba(47, 158, 208, .08);
+    }
+
     .lead-wrap {
-        max-width: 1200px;
+        position: relative;
+        z-index: 1;
+        width: min(1180px, calc(100% - 32px));
         margin: 0 auto;
-        padding: 0 20px;
+    }
+
+    .lead-shell {
+        display: grid;
+        grid-template-columns: minmax(0, .88fr) minmax(560px, 1.12fr);
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, .86);
+        border-radius: 28px;
+        background: rgba(255, 255, 255, .88);
+        box-shadow: var(--lead-shadow);
+        backdrop-filter: blur(18px);
+    }
+
+    .lead-intro {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        min-height: 760px;
+        padding: 56px 48px;
+        overflow: hidden;
+        color: #fff;
+        background:
+            linear-gradient(
+                145deg,
+                rgba(13, 79, 134, .97),
+                rgba(23, 105, 170, .94) 58%,
+                rgba(47, 158, 208, .9)
+            );
+    }
+
+    .lead-intro::before {
+        content: '';
+        position: absolute;
+        width: 330px;
+        height: 330px;
+        top: -175px;
+        right: -130px;
+        border-radius: 50%;
+        border: 1px solid rgba(255, 255, 255, .2);
+        box-shadow:
+            0 0 0 52px rgba(255, 255, 255, .045),
+            0 0 0 104px rgba(255, 255, 255, .025);
+    }
+
+    .lead-intro::after {
+        content: '';
+        position: absolute;
+        width: 180px;
+        height: 180px;
+        left: -80px;
+        bottom: -70px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, .08);
+    }
+
+    .lead-intro-content {
         position: relative;
         z-index: 1;
     }
-    
-    .lead-hero {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 60px;
-        align-items: center;
-    }
-    
-    /* Left Column - Copy */
-    .lead-copy {
-        animation: fadeUp 0.8s ease-out;
-    }
+
     .lead-kicker {
-        display: inline-block;
-        padding: 6px 14px;
-        background: rgba(37, 99, 235, 0.1);
-        color: var(--primary);
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 22px;
+        padding: 7px 12px;
+        border: 1px solid rgba(255, 255, 255, .22);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, .1);
+        font-size: 12px;
         font-weight: 700;
-        font-size: 14px;
-        border-radius: 20px;
-        margin-bottom: 20px;
+        letter-spacing: .65px;
         text-transform: uppercase;
-        letter-spacing: 0.5px;
     }
+
     .lead-title {
-        color: var(--dark);
-        font-size: 42px;
-        line-height: 1.2;
+        max-width: 530px;
+        margin: 0 0 20px;
+        font-size: clamp(34px, 4vw, 48px);
+        line-height: 1.12;
         font-weight: 800;
-        margin-bottom: 20px;
-        letter-spacing: -1px;
+        letter-spacing: -1.4px;
     }
+
     .lead-title span {
-        background: linear-gradient(135deg, var(--primary), var(--secondary));
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
+        color: #cceeff;
     }
+
     .lead-desc {
-        color: var(--gray);
-        font-size: 18px;
-        line-height: 1.7;
-        margin-bottom: 40px;
+        max-width: 520px;
+        margin: 0 0 32px;
+        color: rgba(255, 255, 255, .82);
+        font-size: 16px;
+        line-height: 1.75;
     }
-    
+
     .lead-points {
-        list-style: none;
+        display: grid;
+        gap: 13px;
+        margin: 0;
         padding: 0;
-        margin: 0 0 40px 0;
-        display: flex;
-        flex-direction: column;
-        gap: 16px;
+        list-style: none;
     }
+
     .lead-points li {
         display: flex;
-        align-items: center;
-        gap: 16px;
-        color: #334155;
-        font-size: 16px;
-        font-weight: 500;
-        padding: 12px 16px;
-        background: #fff;
-        border-radius: 12px;
-        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-    .lead-points li:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 10px 15px -3px rgba(0,0,0,0.08);
-    }
-    .lead-points i {
-        color: #10b981;
-        font-size: 20px;
-    }
-    
-    /* Right Column - Form */
-    .lead-form-card {
-        background: var(--glass-bg);
-        backdrop-filter: blur(16px);
-        border: 1px solid rgba(255, 255, 255, 0.4);
-        border-radius: 24px;
-        padding: 40px;
-        box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.15);
-        animation: fadeUp 0.8s ease-out 0.2s backwards;
-    }
-    
-    .lead-form-title {
-        font-size: 24px;
-        font-weight: 800;
-        color: var(--dark);
-        margin-bottom: 24px;
-        text-align: center;
-    }
-    
-    .lead-source {
-        background: #f1f5f9;
-        color: var(--gray);
-        border-radius: 8px;
-        padding: 10px 14px;
-        font-size: 13px;
-        margin-bottom: 24px;
-        text-align: center;
-        border: 1px dashed var(--border);
-    }
-    
-    /* Form Inputs */
-    .form-group {
-        margin-bottom: 20px;
-        position: relative;
-    }
-    .form-label {
-        font-weight: 600;
-        color: #475569;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 13px 14px;
+        border: 1px solid rgba(255, 255, 255, .13);
+        border-radius: 13px;
+        background: rgba(255, 255, 255, .075);
+        color: rgba(255, 255, 255, .92);
         font-size: 14px;
-        margin-bottom: 8px;
-        display: block;
+        line-height: 1.5;
     }
-    .form-control {
-        width: 100%;
-        padding: 14px 16px;
-        border: 1px solid var(--border);
-        border-radius: 12px;
-        font-size: 15px;
-        color: #1e293b;
-        background: #fff;
-        transition: all 0.3s ease;
-    }
-    .form-control:focus {
-        border-color: var(--primary);
-        box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
-        outline: none;
-    }
-    textarea.form-control {
-        resize: vertical;
-        min-height: 100px;
-    }
-    
-    .row-2-cols {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 20px;
-    }
-    
-    /* Submit Button */
-    .btn-submit {
-        width: 100%;
-        padding: 16px;
-        background: linear-gradient(135deg, var(--primary), var(--secondary));
-        color: #fff;
-        border: none;
-        border-radius: 12px;
-        font-size: 16px;
-        font-weight: 700;
-        cursor: pointer;
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-        display: flex;
+
+    .lead-point-icon {
+        width: 26px;
+        height: 26px;
+        flex: 0 0 26px;
+        display: inline-flex;
         align-items: center;
         justify-content: center;
-        gap: 10px;
-        margin-top: 10px;
+        margin-top: 1px;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, .15);
+        color: #dff5ff;
+        font-size: 12px;
     }
-    .btn-submit:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.4);
+
+    .lead-contact-note {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-top: 30px;
+        padding-top: 24px;
+        border-top: 1px solid rgba(255, 255, 255, .16);
+        color: rgba(255, 255, 255, .78);
+        font-size: 13px;
+        line-height: 1.5;
     }
-    .btn-submit:active {
-        transform: translateY(0);
+
+    .lead-contact-note i {
+        font-size: 19px;
+        color: #dff5ff;
     }
-    
-    /* RAG Result Box */
-    #leadRagResultBox {
-        margin-top: 24px;
-        padding: 20px;
-        background: linear-gradient(to right, rgba(37,99,235,0.05), rgba(14,165,233,0.05));
-        border-left: 4px solid var(--primary);
-        border-radius: 0 12px 12px 0;
-        display: none;
-        animation: fadeIn 0.4s ease-out;
+
+    .lead-form-panel {
+        padding: 38px 42px 42px;
+        background: rgba(255, 255, 255, .97);
     }
-    #leadRagResultContent {
-        color: #334155;
-        font-size: 15px;
+
+    .lead-form-heading {
+        display: flex;
+        align-items: center;
+        gap: 13px;
+        margin-bottom: 10px;
+    }
+
+    .lead-form-icon {
+        width: 44px;
+        height: 44px;
+        flex: 0 0 44px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 13px;
+        color: var(--lead-primary);
+        background: #e8f4fb;
+        font-size: 18px;
+    }
+
+    .lead-form-title {
+        margin: 0;
+        color: var(--lead-text);
+        font-size: 23px;
+        font-weight: 800;
+        letter-spacing: -.35px;
+    }
+
+    .lead-form-subtitle {
+        margin: 0 0 26px;
+        color: var(--lead-muted);
+        font-size: 13px;
         line-height: 1.6;
     }
-    
-    /* Animations */
-    @keyframes fadeUp {
-        from { opacity: 0; transform: translateY(30px); }
-        to { opacity: 1; transform: translateY(0); }
+
+    .lead-required-note {
+        margin-left: auto;
+        color: #8a99a8;
+        font-size: 11px;
+        white-space: nowrap;
     }
-    @keyframes fadeIn {
-        from { opacity: 0; }
-        to { opacity: 1; }
+
+    .lead-section {
+        margin-bottom: 23px;
+        padding-bottom: 3px;
     }
-    
-    /* Responsive */
-    @media (max-width: 992px) {
-        .lead-hero {
-            grid-template-columns: 1fr;
-            gap: 40px;
-        }
-        .lead-title {
-            font-size: 32px;
-        }
-        .lead-form-card {
-            padding: 30px 20px;
-        }
+
+    .lead-section-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 14px;
+        color: #435b70;
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: .45px;
+        text-transform: uppercase;
     }
-    @media (max-width: 576px) {
-        .row-2-cols {
-            grid-template-columns: 1fr;
-            gap: 0;
-        }
+
+    .lead-section-title::after {
+        content: '';
+        height: 1px;
+        flex: 1;
+        background: #e8eef3;
     }
-    
-    /* RAG Ask Card */
-    .rag-ask-card {
-        margin-top: 60px;
-        background: #fff;
-        border-radius: 24px;
-        padding: 40px;
-        box-shadow: 0 20px 40px -10px rgba(0,0,0,0.08);
-        border: 1px solid var(--border);
-        animation: fadeUp 0.8s ease-out 0.4s backwards;
-    }
-    .rag-ask-grid {
+
+    .lead-form-grid {
         display: grid;
-        grid-template-columns: 400px 1fr;
-        gap: 40px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 17px;
     }
-    .rag-answer-box {
-        background: #f8fafc;
-        border: 1px solid var(--border);
-        border-radius: 16px;
-        padding: 24px;
-        height: 100%;
-        min-height: 200px;
-        color: #475569;
-        font-size: 15px;
-        line-height: 1.7;
+
+    .lead-form-grid .form-group {
+        min-width: 0;
     }
-    @media (max-width: 992px) {
-        .rag-ask-grid {
+
+    .lead-form-grid > .form-group:only-child,
+    .lead-form-grid > .form-group.lead-field-full {
+        grid-column: 1 / -1;
+    }
+
+    .form-group {
+        position: relative;
+        margin-bottom: 17px;
+    }
+
+    .lead-form-grid .form-group {
+        margin-bottom: 0;
+    }
+
+    .form-label {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        margin-bottom: 7px;
+        color: #3f5366;
+        font-size: 13px;
+        font-weight: 700;
+    }
+
+    .required-mark {
+        color: #dc2626;
+    }
+
+    .form-control {
+        width: 100%;
+        min-height: 46px;
+        padding: 11px 13px;
+        border: 1px solid var(--lead-border);
+        border-radius: 11px;
+        outline: none;
+        background: #fff;
+        color: #20384d;
+        font-size: 14px;
+        transition:
+            border-color .18s ease,
+            box-shadow .18s ease,
+            background .18s ease;
+    }
+
+    .form-control::placeholder {
+        color: #a4b1bd;
+    }
+
+    .form-control:hover {
+        border-color: #b7cad9;
+    }
+
+    .form-control:focus {
+        border-color: var(--lead-primary);
+        box-shadow: 0 0 0 4px rgba(23, 105, 170, .1);
+    }
+
+    .form-control:disabled {
+        cursor: not-allowed;
+        color: #8493a2;
+        background: #f3f6f8;
+    }
+
+    select.form-control {
+        cursor: pointer;
+    }
+
+    textarea.form-control {
+        min-height: 105px;
+        resize: vertical;
+        line-height: 1.55;
+    }
+
+    .dynamic-checkbox-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 9px;
+        min-height: 46px;
+        padding: 10px 11px;
+        border: 1px solid var(--lead-border);
+        border-radius: 11px;
+        background: #fff;
+    }
+
+    .dynamic-checkbox-option {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin: 0;
+        padding: 5px 8px;
+        border-radius: 8px;
+        background: #f3f8fb;
+        color: #40586d;
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+    }
+
+    .dynamic-checkbox-option input {
+        accent-color: var(--lead-primary);
+    }
+
+    .lead-submit-row {
+        margin-top: 7px;
+    }
+
+    .btn-submit {
+        width: 100%;
+        min-height: 50px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 9px;
+        padding: 13px 18px;
+        border: 0;
+        border-radius: 12px;
+        color: #fff;
+        background:
+            linear-gradient(
+                135deg,
+                var(--lead-primary-dark),
+                var(--lead-primary) 55%,
+                var(--lead-secondary)
+            );
+        box-shadow: 0 12px 24px rgba(23, 105, 170, .2);
+        font-size: 14px;
+        font-weight: 800;
+        cursor: pointer;
+        transition:
+            transform .18s ease,
+            box-shadow .18s ease,
+            opacity .18s ease;
+    }
+
+    .btn-submit:hover:not(:disabled) {
+        transform: translateY(-1px);
+        box-shadow: 0 15px 28px rgba(23, 105, 170, .27);
+    }
+
+    .btn-submit:active:not(:disabled) {
+        transform: translateY(0);
+    }
+
+    .btn-submit:disabled {
+        cursor: not-allowed;
+        opacity: .72;
+        box-shadow: none;
+    }
+
+    #leadFormMessage {
+        min-height: 21px;
+        margin-top: 13px;
+        text-align: center;
+        font-size: 13px;
+        font-weight: 700;
+    }
+
+    #leadFormMessage.text-success {
+        color: var(--lead-success) !important;
+    }
+
+    #leadFormMessage.text-danger {
+        color: #dc2626 !important;
+    }
+
+    #leadRagResultBox {
+        display: none;
+        margin-top: 18px;
+        padding: 16px 17px;
+        border: 1px solid #cce3f0;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #f2f9fd, #edf7fc);
+        animation: leadFadeIn .25s ease-out;
+    }
+
+    .lead-ai-result-title {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        margin-bottom: 7px;
+        color: var(--lead-primary-dark);
+        font-size: 13px;
+        font-weight: 800;
+    }
+
+    #leadRagResultContent {
+        color: #395267;
+        font-size: 13px;
+        line-height: 1.65;
+        white-space: pre-wrap;
+    }
+
+    .lead-privacy-note {
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+        gap: 7px;
+        margin-top: 13px;
+        color: #8291a0;
+        font-size: 11px;
+        line-height: 1.45;
+        text-align: center;
+    }
+
+    .lead-privacy-note i {
+        margin-top: 2px;
+        color: var(--lead-success);
+    }
+
+    @keyframes leadFadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(4px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @media (max-width: 1060px) {
+        .lead-shell {
             grid-template-columns: 1fr;
+        }
+
+        .lead-intro {
+            min-height: auto;
+            padding: 45px 42px;
+        }
+
+        .lead-title {
+            max-width: 720px;
+        }
+
+        .lead-desc {
+            max-width: 720px;
+        }
+
+        .lead-points {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .lead-points li {
+            height: 100%;
+        }
+    }
+
+    @media (max-width: 767.98px) {
+        .lead-page {
+            padding: 28px 0;
+        }
+
+        .lead-wrap {
+            width: min(100% - 20px, 1180px);
+        }
+
+        .lead-shell {
+            border-radius: 20px;
+        }
+
+        .lead-intro {
+            padding: 34px 24px;
+        }
+
+        .lead-title {
+            font-size: 33px;
+        }
+
+        .lead-desc {
+            font-size: 14px;
+        }
+
+        .lead-points {
+            grid-template-columns: 1fr;
+        }
+
+        .lead-form-panel {
+            padding: 29px 22px 32px;
+        }
+
+        .lead-form-grid {
+            grid-template-columns: 1fr;
+            gap: 15px;
+        }
+
+        .lead-form-grid > .form-group {
+            grid-column: auto;
+        }
+
+        .lead-required-note {
+            display: none;
+        }
+    }
+
+    @media (max-width: 420px) {
+        .lead-intro,
+        .lead-form-panel {
+            padding-left: 18px;
+            padding-right: 18px;
+        }
+
+        .lead-title {
+            font-size: 29px;
+        }
+
+        .lead-form-heading {
+            align-items: flex-start;
         }
     }
 </style>
@@ -296,122 +625,314 @@
 @section('content')
 <section class="lead-page">
     <div class="lead-wrap">
-        <div class="lead-hero">
-            <!-- Left Copy -->
-            <div class="lead-copy">
-                <div class="lead-kicker">Tư vấn tuyển sinh thông minh</div>
-                <h1 class="lead-title">Đăng ký tư vấn và <span>định hướng tương lai</span> cùng chuyên gia</h1>
-                <p class="lead-desc">
-                    Để lại thông tin, hệ thống AI của chúng tôi sẽ phân tích và xếp lịch tư vấn với chuyên gia phù hợp nhất, giải đáp mọi thắc mắc về ngành nghề, học phí và lộ trình học tập.
+        <div class="lead-shell">
+            <aside class="lead-intro">
+                <div class="lead-intro-content">
+                    <div class="lead-kicker">
+                        <i class="fas fa-graduation-cap"></i>
+                        Tư vấn tuyển sinh
+                    </div>
+
+                    <h1 class="lead-title">
+                        Đăng ký tư vấn và
+                        <span>định hướng ngành học</span>
+                    </h1>
+
+                    <p class="lead-desc">
+                        Để lại thông tin để đội ngũ tư vấn hỗ trợ giải đáp về
+                        ngành đào tạo, phương thức xét tuyển, học phí và các nội
+                        dung liên quan đến tuyển sinh.
+                    </p>
+
+                    <ul class="lead-points">
+                        <li>
+                            <span class="lead-point-icon">
+                                <i class="fas fa-comments"></i>
+                            </span>
+                            <span>
+                                Tiếp nhận và tổng hợp nhu cầu tư vấn của thí sinh.
+                            </span>
+                        </li>
+                        <li>
+                            <span class="lead-point-icon">
+                                <i class="fas fa-filter-circle-dollar"></i>
+                            </span>
+                            <span>
+                                Phân loại thông tin để hỗ trợ đúng nội dung quan tâm.
+                            </span>
+                        </li>
+                        <li>
+                            <span class="lead-point-icon">
+                                <i class="fas fa-shield-halved"></i>
+                            </span>
+                            <span>
+                                Thông tin đăng ký chỉ được sử dụng cho hoạt động tư vấn.
+                            </span>
+                        </li>
+                    </ul>
+
+                    <div class="lead-contact-note">
+                        <i class="fas fa-circle-info"></i>
+                        <span>
+                            Các trường có dấu
+                            <strong>(*)</strong>
+                            là thông tin bắt buộc.
+                        </span>
+                    </div>
+                </div>
+            </aside>
+
+            <main class="lead-form-panel">
+                <div class="lead-form-heading">
+                    <span class="lead-form-icon">
+                        <i class="fas fa-user-pen"></i>
+                    </span>
+
+                    <div>
+                        <h2 class="lead-form-title">
+                            Thông tin đăng ký tư vấn
+                        </h2>
+                    </div>
+
+                    <span class="lead-required-note">
+                        <span class="required-mark">*</span>
+                        Bắt buộc
+                    </span>
+                </div>
+
+                <p class="lead-form-subtitle">
+                    Vui lòng nhập thông tin chính xác để bộ phận tư vấn có thể
+                    liên hệ và hỗ trợ phù hợp.
                 </p>
-                <ul class="lead-points">
-                    <li><i class="fas fa-check-circle"></i><span>Trợ lý ảo AI túc trực 24/7 trả lời tức thì</span></li>
-                    <li><i class="fas fa-check-circle"></i><span>Tự động phân loại ưu tiên dựa trên hồ sơ</span></li>
-                    <li><i class="fas fa-check-circle"></i><span>Bảo mật thông tin thí sinh 100%</span></li>
-                </ul>
-            </div>
 
-            <!-- Right Form -->
-            <div class="lead-form-card">
-                <div class="lead-form-title">Điền thông tin đăng ký</div>
-                
-                <form id="publicLeadForm">
+                <form id="publicLeadForm" novalidate>
                     @csrf
-                    <input type="hidden" name="utm_source" value="{{ $utm['source'] ?? '' }}">
-                    <input type="hidden" name="utm_medium" value="{{ $utm['medium'] ?? '' }}">
-                    <input type="hidden" name="utm_campaign" value="{{ $utm['campaign'] ?? '' }}">
-                    <input type="hidden" name="utm_content" value="{{ $utm['content'] ?? '' }}">
 
-                    <div class="form-group">
-                        <label class="form-label">Họ và tên *</label>
-                        <input class="form-control" name="full_name" placeholder="Ví dụ: Nguyễn Văn A" required>
-                    </div>
-                    
-                    <div class="row-2-cols">
-                        <div class="form-group">
-                            <label class="form-label">Số điện thoại *</label>
-                            <input class="form-control" name="phone" placeholder="09xxxxxxx" required>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Email</label>
-                            <input class="form-control" name="email" type="email" placeholder="email@example.com">
-                        </div>
-                    </div>
-                    
+                    <input
+                        type="hidden"
+                        name="utm_source"
+                        value="{{ $utm['source'] ?? '' }}"
+                    >
+                    <input
+                        type="hidden"
+                        name="utm_medium"
+                        value="{{ $utm['medium'] ?? '' }}"
+                    >
+                    <input
+                        type="hidden"
+                        name="utm_campaign"
+                        value="{{ $utm['campaign'] ?? '' }}"
+                    >
+                    <input
+                        type="hidden"
+                        name="utm_content"
+                        value="{{ $utm['content'] ?? '' }}"
+                    >
 
-
-                    <div class="row-2-cols">
-                        <div class="form-group">
-                            <label class="form-label">Tỉnh / Thành phố</label>
-                            <select class="form-control" name="province" id="selectProvince">
-                                <option value="">-- Chọn Tỉnh/Thành --</option>
-                            </select>
+                    <section class="lead-section">
+                        <div class="lead-section-title">
+                            Thông tin liên hệ
                         </div>
-                        <div class="form-group">
-                            <label class="form-label">Quận / Huyện</label>
-                            <select class="form-control" name="district" id="selectDistrict" disabled>
-                                <option value="">-- Chọn Quận/Huyện --</option>
-                            </select>
-                        </div>
-                    </div>
-                    
-                    <div class="row-2-cols">
-                        <div class="form-group">
-                            <label class="form-label">Trường THPT</label>
-                            <input class="form-control" name="high_school" id="inputSchool" placeholder="Nhập tên Trường THPT">
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Ngành quan tâm</label>
-                            <input class="form-control" name="intended_major" value="{{ $major ?? '' }}" placeholder="VD: Công nghệ thông tin">
-                        </div>
-                    </div>
 
-                    <div id="dynamicFieldsContainer" class="row-2-cols"></div>
+                        <div class="form-group">
+                            <label class="form-label" for="leadFullName">
+                                Họ và tên
+                                <span class="required-mark">*</span>
+                            </label>
+                            <input
+                                id="leadFullName"
+                                class="form-control"
+                                name="full_name"
+                                type="text"
+                                autocomplete="name"
+                                placeholder="Ví dụ: Nguyễn Văn A"
+                                required
+                            >
+                        </div>
 
-                    <div class="form-group">
-                        <label class="form-label">Nội dung cần tư vấn</label>
-                        <textarea class="form-control" name="note" placeholder="Bạn muốn hỏi thêm về học phí, ký túc xá hay điểm chuẩn?"></textarea>
-                    </div>
+                        <div class="lead-form-grid">
+                            <div class="form-group">
+                                <label class="form-label" for="leadPhone">
+                                    Số điện thoại
+                                    <span class="required-mark">*</span>
+                                </label>
+                                <input
+                                    id="leadPhone"
+                                    class="form-control"
+                                    name="phone"
+                                    type="tel"
+                                    autocomplete="tel"
+                                    placeholder="Ví dụ: 0912345678"
+                                    required
+                                >
+                            </div>
 
-                    <button class="btn-submit" type="submit">
-                        Gửi thông tin <i class="fas fa-arrow-right"></i>
-                    </button>
-                    
-                    <div id="leadFormMessage" class="mt-3 text-center small fw-bold"></div>
-                    
-                    <div id="leadRagResultBox">
-                        <h6 class="fw-bold mb-2 text-primary" style="font-size: 15px;"><i class="fas fa-robot me-1"></i> Trợ lý AI phản hồi:</h6>
-                        <div id="leadRagResultContent"></div>
+                            <div class="form-group">
+                                <label class="form-label" for="leadEmail">
+                                    Email
+                                </label>
+                                <input
+                                    id="leadEmail"
+                                    class="form-control"
+                                    name="email"
+                                    type="email"
+                                    autocomplete="email"
+                                    placeholder="email@example.com"
+                                >
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="lead-section">
+                        <div class="lead-section-title">
+                            Thông tin học tập
+                        </div>
+
+                        <div class="lead-form-grid">
+                            <div class="form-group">
+                                <label class="form-label" for="selectProvince">
+                                    Tỉnh / Thành phố
+                                </label>
+                                <select
+                                    class="form-control"
+                                    name="province"
+                                    id="selectProvince"
+                                >
+                                    <option value="">
+                                        Đang tải Tỉnh/Thành...
+                                    </option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label" for="selectDistrict">
+                                    Quận / Huyện
+                                </label>
+                                <select
+                                    class="form-control"
+                                    name="district"
+                                    id="selectDistrict"
+                                    disabled
+                                >
+                                    <option value="">
+                                        -- Chọn Quận/Huyện --
+                                    </option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label" for="inputSchool">
+                                    Trường THPT
+                                </label>
+                                <input
+                                    id="inputSchool"
+                                    class="form-control"
+                                    name="high_school"
+                                    type="text"
+                                    placeholder="Nhập tên trường THPT"
+                                >
+                            </div>
+
+                            <div class="form-group">
+                                <label
+                                    class="form-label"
+                                    for="leadIntendedMajor"
+                                >
+                                    Ngành quan tâm
+                                </label>
+                                <input
+                                    id="leadIntendedMajor"
+                                    class="form-control"
+                                    name="intended_major"
+                                    type="text"
+                                    value="{{ $major ?? '' }}"
+                                    placeholder="Ví dụ: Công nghệ thông tin"
+                                >
+                            </div>
+                        </div>
+                    </section>
+
+                    <section
+                        class="lead-section"
+                        id="dynamicFieldsSection"
+                        style="display: none;"
+                    >
+                        <div class="lead-section-title">
+                            Thông tin bổ sung
+                        </div>
+
+                        <div
+                            id="dynamicFieldsContainer"
+                            class="lead-form-grid"
+                        ></div>
+                    </section>
+
+                    <section class="lead-section">
+                        <div class="lead-section-title">
+                            Nhu cầu tư vấn
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="leadNote">
+                                Nội dung cần tư vấn
+                            </label>
+                            <textarea
+                                id="leadNote"
+                                class="form-control"
+                                name="note"
+                                rows="4"
+                                placeholder="Nhập nội dung cần được hỗ trợ..."
+                            ></textarea>
+                        </div>
+                    </section>
+
+                    <div class="lead-submit-row">
+                        <button
+                            id="leadSubmitButton"
+                            class="btn-submit"
+                            type="submit"
+                        >
+                            <i class="fas fa-paper-plane"></i>
+                            <span>Gửi đăng ký tư vấn</span>
+                        </button>
+
+                        <div
+                            id="leadFormMessage"
+                            role="status"
+                            aria-live="polite"
+                        ></div>
+
+                        <div id="leadRagResultBox">
+                            <div class="lead-ai-result-title">
+                                <i class="fas fa-robot"></i>
+                                Trợ lý AI phản hồi
+                            </div>
+                            <div id="leadRagResultContent"></div>
+                        </div>
+
+                        <div class="lead-privacy-note">
+                            <i class="fas fa-lock"></i>
+                            <span>
+                                Thông tin được gửi qua kết nối bảo mật và phục vụ
+                                cho hoạt động tư vấn tuyển sinh.
+                            </span>
+                        </div>
                     </div>
                 </form>
-            </div>
-        </div>
-
-        <!-- RAG Ask Section -->
-        <div class="rag-ask-card">
-            <div class="rag-ask-grid">
-                <div>
-                    <h2 class="lead-title" style="font-size: 28px; margin-bottom: 12px;">Hỏi nhanh<br><span>Trợ lý AI</span></h2>
-                    <p class="text-muted mb-4" style="font-size: 15px;">Không tiện để lại thông tin? Hãy hỏi thẳng trợ lý ảo của chúng tôi, AI đã được đào tạo bằng quy chế tuyển sinh mới nhất.</p>
-                    <textarea id="publicRagQuestion" class="form-control mb-3" rows="4" placeholder="VD: Điều kiện xét tuyển học bạ ngành IT là gì?"></textarea>
-                    <button id="publicAskRag" class="btn-submit" type="button" style="padding: 12px;">
-                        <i class="fas fa-sparkles"></i> Tìm câu trả lời
-                    </button>
-                </div>
-                <div>
-                    <div id="publicRagAnswer" class="rag-answer-box d-flex align-items-center justify-content-center text-muted">
-                        <div class="text-center">
-                            <i class="fas fa-comment-dots fa-3x mb-3 text-light"></i>
-                            <p class="mb-0">Câu trả lời sẽ hiển thị ở đây...</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            </main>
         </div>
     </div>
 </section>
 @endsection
 
 @section('js')
-<script src="{{ asset('js/admission-lead-form.js') }}"></script>
+@php
+    $leadFormJsVersion = @filemtime(
+        public_path('js/admission-lead-form.js')
+    ) ?: '1';
+@endphp
+
+<script
+    src="{{ asset('js/admission-lead-form.js') }}?v={{ $leadFormJsVersion }}"
+></script>
 @endsection

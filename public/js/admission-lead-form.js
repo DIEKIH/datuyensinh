@@ -1,155 +1,321 @@
 $(function () {
-    const csrf = $('meta[name="csrf-token"]').attr('content');
+    'use strict';
+
+    const csrf = $('meta[name="csrf-token"]').attr('content') || '';
+
+    function escapeHtml(value) {
+        return String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
 
     function setMessage(type, message) {
-        const color = type === 'success' ? 'text-success' : 'text-danger';
-        $('#leadFormMessage').removeClass('text-success text-danger').addClass(color).text(message);
+        const $message = $('#leadFormMessage');
+
+        $message
+            .removeClass('text-success text-danger')
+            .addClass(type === 'success' ? 'text-success' : 'text-danger')
+            .text(message || '');
+    }
+
+    function setSubmitting(isSubmitting) {
+        const $button = $('#leadSubmitButton');
+
+        $button.prop('disabled', isSubmitting);
+
+        if (isSubmitting) {
+            $button.html(
+                '<i class="fas fa-spinner fa-spin"></i>'
+                + '<span>Đang gửi thông tin...</span>'
+            );
+            return;
+        }
+
+        $button.html(
+            '<i class="fas fa-paper-plane"></i>'
+            + '<span>Gửi đăng ký tư vấn</span>'
+        );
+    }
+
+    function resetLocationFields() {
+        $('#selectDistrict')
+            .html('<option value="">-- Chọn Quận/Huyện --</option>')
+            .prop('disabled', true);
+    }
+
+    function createSelectField(field, key, requiredAttribute) {
+        let html = `
+            <select
+                class="form-control"
+                name="custom[${escapeHtml(key)}]"
+                ${requiredAttribute}
+            >
+                <option value="">
+                    -- Chọn ${escapeHtml(field.criterion_name)} --
+                </option>
+        `;
+
+        const options = Array.isArray(field.options)
+            ? field.options
+            : [];
+
+        options.forEach(function (option) {
+            html += `
+                <option value="${escapeHtml(option.value)}">
+                    ${escapeHtml(option.label)}
+                </option>
+            `;
+        });
+
+        html += '</select>';
+
+        return html;
+    }
+
+    function createCheckboxField(field, key) {
+        const options = Array.isArray(field.options)
+            ? field.options
+            : [];
+
+        if (!options.length) {
+            return `
+                <div class="dynamic-checkbox-group">
+                    <label class="dynamic-checkbox-option">
+                        <input
+                            type="checkbox"
+                            name="custom[${escapeHtml(key)}]"
+                            value="1"
+                        >
+                        <span>Có</span>
+                    </label>
+                </div>
+            `;
+        }
+
+        const items = options.map(function (option) {
+            return `
+                <label class="dynamic-checkbox-option">
+                    <input
+                        type="checkbox"
+                        name="custom[${escapeHtml(key)}][]"
+                        value="${escapeHtml(option.value)}"
+                    >
+                    <span>${escapeHtml(option.label)}</span>
+                </label>
+            `;
+        }).join('');
+
+        return `<div class="dynamic-checkbox-group">${items}</div>`;
+    }
+
+    function createInputField(field, key, requiredAttribute) {
+        let type = 'text';
+
+        if (field.input_type === 'number') {
+            type = 'number';
+        } else if (field.input_type === 'date') {
+            type = 'date';
+        }
+
+        return `
+            <input
+                class="form-control"
+                type="${type}"
+                name="custom[${escapeHtml(key)}]"
+                ${requiredAttribute}
+            >
+        `;
+    }
+
+    function renderDynamicFields(fields) {
+        const $container = $('#dynamicFieldsContainer');
+        const $section = $('#dynamicFieldsSection');
+
+        $container.empty();
+
+        if (!Array.isArray(fields) || !fields.length) {
+            $section.hide();
+            return;
+        }
+
+        fields.forEach(function (field) {
+            if (!field || !field.data_field || !field.criterion_name) {
+                return;
+            }
+
+            const key = String(field.data_field).replace(/^custom\./, '');
+            const requiredAttribute = field.is_required ? 'required' : '';
+            const requiredMark = field.is_required
+                ? '<span class="required-mark">*</span>'
+                : '';
+
+            let control = '';
+
+            if (field.input_type === 'select') {
+                control = createSelectField(
+                    field,
+                    key,
+                    requiredAttribute
+                );
+            } else if (field.input_type === 'checkbox') {
+                control = createCheckboxField(field, key);
+            } else {
+                control = createInputField(
+                    field,
+                    key,
+                    requiredAttribute
+                );
+            }
+
+            $container.append(`
+                <div class="form-group">
+                    <label class="form-label">
+                        ${escapeHtml(field.criterion_name)}
+                        ${requiredMark}
+                    </label>
+                    ${control}
+                </div>
+            `);
+        });
+
+        $section.toggle($container.children().length > 0);
     }
 
     $.ajax({
         url: '/api/admission/scoring/dynamic-fields',
         method: 'GET'
-    }).done(function(fields) {
-        if (!fields || !fields.length) return;
-        const container = $('#dynamicFieldsContainer');
-        
-        fields.forEach(function(field) {
-            const key = field.data_field.replace('custom.', '');
-            const requiredAttr = field.is_required ? 'required' : '';
-            const requiredLabel = field.is_required ? ' *' : '';
-            let inputHtml = '';
-            
-            if (field.input_type === 'select') {
-                inputHtml = `<select class="form-control" name="custom[${key}]" ${requiredAttr}>`;
-                inputHtml += `<option value="">-- Chọn ${field.criterion_name} --</option>`;
-                if (field.options && field.options.length) {
-                    field.options.forEach(opt => {
-                        inputHtml += `<option value="${opt.value}">${opt.label}</option>`;
-                    });
-                }
-                inputHtml += `</select>`;
-            } else if (field.input_type === 'checkbox') {
-                if (field.options && field.options.length) {
-                    inputHtml = `<div style="display: flex; flex-wrap: wrap; gap: 10px;">`;
-                    field.options.forEach((opt, idx) => {
-                        inputHtml += `
-                        <label style="display: flex; align-items: center; gap: 4px; font-weight: normal;">
-                            <input type="checkbox" name="custom[${key}][]" value="${opt.value}">
-                            ${opt.label}
-                        </label>`;
-                    });
-                    inputHtml += `</div>`;
-                } else {
-                    inputHtml = `
-                    <label style="display: flex; align-items: center; gap: 4px; font-weight: normal;">
-                        <input type="checkbox" name="custom[${key}]" value="1">
-                        Có
-                    </label>`;
-                }
-            } else {
-                const type = field.input_type === 'number' ? 'number' : (field.input_type === 'date' ? 'date' : 'text');
-                inputHtml = `<input class="form-control" type="${type}" name="custom[${key}]" ${requiredAttr}>`;
-            }
-            
-            const groupHtml = `
-            <div class="form-group">
-                <label class="form-label">${field.criterion_name}${requiredLabel}</label>
-                ${inputHtml}
-            </div>`;
-            container.append(groupHtml);
+    })
+        .done(renderDynamicFields)
+        .fail(function () {
+            $('#dynamicFieldsSection').hide();
         });
-    });
 
     let provincesData = [];
-    $.get('https://provinces.open-api.vn/api/?depth=2', function(res) {
-        provincesData = res;
-        let html = '<option value="">-- Chọn Tỉnh/Thành --</option>';
-        res.forEach(p => {
-            html += `<option value="${p.name}" data-code="${p.code}">${p.name}</option>`;
-        });
-        $('#selectProvince').html(html);
-    });
 
-    $('#selectProvince').on('change', function() {
-        const code = $(this).find(':selected').data('code');
-        const districtSelect = $('#selectDistrict');
-        if (!code) {
-            districtSelect.html('<option value="">-- Chọn Quận/Huyện --</option>').prop('disabled', true);
+    $.get('https://provinces.open-api.vn/api/?depth=2')
+        .done(function (response) {
+            provincesData = Array.isArray(response) ? response : [];
+
+            let options = '<option value="">-- Chọn Tỉnh/Thành --</option>';
+
+            provincesData.forEach(function (province) {
+                options += `
+                    <option
+                        value="${escapeHtml(province.name)}"
+                        data-code="${escapeHtml(province.code)}"
+                    >
+                        ${escapeHtml(province.name)}
+                    </option>
+                `;
+            });
+
+            $('#selectProvince').html(options);
+        })
+        .fail(function () {
+            $('#selectProvince').html(
+                '<option value="">Không tải được danh sách Tỉnh/Thành</option>'
+            );
+        });
+
+    $('#selectProvince').on('change', function () {
+        const provinceCode = $(this).find(':selected').data('code');
+        const $district = $('#selectDistrict');
+
+        if (!provinceCode) {
+            resetLocationFields();
             return;
         }
-        
-        const province = provincesData.find(p => p.code == code);
-        if (province && province.districts) {
-            let html = '<option value="">-- Chọn Quận/Huyện --</option>';
-            province.districts.forEach(d => {
-                html += `<option value="${d.name}">${d.name}</option>`;
-            });
-            districtSelect.html(html).prop('disabled', false);
-        }
+
+        const province = provincesData.find(function (item) {
+            return String(item.code) === String(provinceCode);
+        });
+
+        const districts = province && Array.isArray(province.districts)
+            ? province.districts
+            : [];
+
+        let options = '<option value="">-- Chọn Quận/Huyện --</option>';
+
+        districts.forEach(function (district) {
+            options += `
+                <option value="${escapeHtml(district.name)}">
+                    ${escapeHtml(district.name)}
+                </option>
+            `;
+        });
+
+        $district
+            .html(options)
+            .prop('disabled', districts.length === 0);
     });
 
     $('#publicLeadForm').on('submit', function (event) {
         event.preventDefault();
 
-        const form = $(this);
-        const submitButton = form.find('button[type="submit"]');
-        submitButton.prop('disabled', true).text('Dang gui...');
+        const form = this;
+
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            return;
+        }
+
+        const $form = $(form);
+
+        setSubmitting(true);
         setMessage('success', '');
+        $('#leadRagResultBox').stop(true, true).hide();
 
         $.ajax({
             url: '/dang-ky-tu-van-n8n',
             method: 'POST',
-            data: form.serialize(),
-            headers: { 'X-CSRF-TOKEN': csrf },
-        }).done(function (res) {
-            setMessage('success', res.message || 'Da ghi nhan thong tin dang ky.');
-            form[0].reset();
-            if (res.rag_answer) {
-                $('#leadRagResultContent').text(res.rag_answer);
-                $('#leadRagResultBox').slideDown();
-            } else {
-                $('#leadRagResultBox').slideUp();
+            data: $form.serialize(),
+            headers: {
+                'X-CSRF-TOKEN': csrf
             }
-        }).fail(function (xhr) {
-            const errors = xhr.responseJSON && xhr.responseJSON.errors;
-            if (errors) {
-                const firstKey = Object.keys(errors)[0];
-                setMessage('error', errors[firstKey][0]);
-                return;
-            }
+        })
+            .done(function (response) {
+                setMessage(
+                    'success',
+                    response.message
+                        || 'Đã ghi nhận thông tin đăng ký tư vấn.'
+                );
 
-            setMessage('error', 'Khong the gui dang ky. Vui long thu lai.');
-        }).always(function () {
-            submitButton.prop('disabled', false).html('<i class="fas fa-paper-plane me-1"></i> Gui dang ky');
-        });
-    });
+                form.reset();
+                resetLocationFields();
 
-    $('#publicAskRag').on('click', function () {
-        const question = $('#publicRagQuestion').val().trim();
+                if (response.rag_answer) {
+                    $('#leadRagResultContent').text(response.rag_answer);
+                    $('#leadRagResultBox').stop(true, true).slideDown(180);
+                }
+            })
+            .fail(function (xhr) {
+                const response = xhr.responseJSON || {};
+                const errors = response.errors || null;
 
-        if (!question) {
-            $('#publicRagAnswer').text('Nhap cau hoi truoc khi tra cuu.');
-            return;
-        }
+                if (errors && Object.keys(errors).length) {
+                    const firstKey = Object.keys(errors)[0];
+                    const firstError = Array.isArray(errors[firstKey])
+                        ? errors[firstKey][0]
+                        : errors[firstKey];
 
-        $('#publicRagAnswer').text('Dang tra cuu kho quy che...');
+                    setMessage(
+                        'error',
+                        firstError || 'Thông tin gửi lên chưa hợp lệ.'
+                    );
+                    return;
+                }
 
-        $.ajax({
-            url: '/api/n8n/rag/answer',
-            method: 'POST',
-            data: {
-                question: question,
-                channel: $('input[name="utm_source"]').val() || 'website',
-            },
-        }).done(function (res) {
-            const data = res.data || {};
-            const sources = (data.sources || []).map(function (source) {
-                return source.document_title;
-            }).filter(Boolean);
-
-            $('#publicRagAnswer').text((data.answer || 'Chua co cau tra loi.') + (sources.length ? '\n\nNguon: ' + sources.join(', ') : ''));
-        }).fail(function () {
-            $('#publicRagAnswer').text('Chua the tra cuu RAG luc nay. Vui long de lai thong tin de tu van vien lien he.');
-        });
+                setMessage(
+                    'error',
+                    response.message
+                        || 'Không thể gửi đăng ký. Vui lòng thử lại.'
+                );
+            })
+            .always(function () {
+                setSubmitting(false);
+            });
     });
 });

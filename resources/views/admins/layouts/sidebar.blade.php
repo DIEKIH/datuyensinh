@@ -20,6 +20,31 @@
     .sidebar::-webkit-scrollbar-track {
         background: transparent;
     }
+
+
+    .nav-submenu {
+        margin: 4px 0 8px 34px;
+        padding-left: 10px;
+        border-left: 1px solid rgba(255, 255, 255, 0.14);
+    }
+
+    .nav-submenu .nav-link {
+        padding: 7px 10px;
+        font-size: 12px;
+        border-radius: 7px;
+        opacity: .86;
+    }
+
+    .nav-submenu .nav-link i {
+        width: 16px;
+        font-size: 11px;
+    }
+
+    .nav-submenu .nav-link.active {
+        opacity: 1;
+        background: rgba(255, 255, 255, 0.12);
+    }
+
 </style>
 
 <nav class="sidebar">
@@ -71,10 +96,52 @@
             </div>
 
             <div class="nav-item">
-                <a href="{{ url('admin/admission-cms') }}"
+                <a href="{{ route('admin.admission-cms.dashboard') }}"
                     class="nav-link {{ request()->is('admin/admission-cms*') ? 'active' : '' }}">
                     <i class="fas fa-user-graduate"></i> CMS tuyển sinh
                 </a>
+
+                @if (request()->is('admin/admission-cms*'))
+                    <div class="nav-submenu">
+                        <a href="{{ route('admin.admission-cms.dashboard') }}"
+                            class="nav-link {{ request()->routeIs('admin.admission-cms.dashboard') ? 'active' : '' }}">
+                            <i class="fas fa-chart-pie"></i> Tổng quan
+                        </a>
+                        <a href="{{ route('admin.admission-cms.leads') }}"
+                            class="nav-link {{ request()->routeIs('admin.admission-cms.leads') ? 'active' : '' }}">
+                            <i class="fas fa-users"></i> Danh sách lead
+                        </a>
+                        <a href="{{ route('admin.admission-cms.approvals') }}"
+                            class="nav-link {{ request()->routeIs('admin.admission-cms.approvals') ? 'active' : '' }}">
+                            <i class="fas fa-user-check"></i> Duyệt AI
+                        </a>
+                        <a href="{{ route('admin.admission-cms.campaigns') }}"
+                            class="nav-link {{ request()->routeIs('admin.admission-cms.campaigns') ? 'active' : '' }}">
+                            <i class="fas fa-bullhorn"></i>
+                            <span>Chiến dịch</span>
+                        </a>
+                        <a href="{{ route('admin.admission-cms.openai') }}"
+                            class="nav-link {{ request()->routeIs('admin.admission-cms.openai') ? 'active' : '' }}">
+                            <i class="fas fa-brain"></i> OpenAI / RAG
+                        </a>
+                        <a href="{{ route('admin.admission-cms.scoring') }}"
+                            class="nav-link {{ request()->routeIs('admin.admission-cms.scoring') ? 'active' : '' }}">
+                            <i class="fas fa-sliders-h"></i> Chấm điểm
+                        </a>
+                        <a href="{{ route('admin.admission-cms.toxic') }}"
+                            class="nav-link {{ request()->routeIs('admin.admission-cms.toxic') ? 'active' : '' }}">
+                            <i class="fas fa-shield-alt"></i> Cảnh báo MXH
+                        </a>
+                        <a href="{{ route('admin.admission-cms.social-posts') }}"
+                            class="nav-link {{ request()->routeIs('admin.admission-cms.social-posts') ? 'active' : '' }}">
+                            <i class="fas fa-share-alt"></i> Bài đã đăng
+                        </a>
+                        <a href="{{ route('admin.admission-cms.n8n') }}"
+                            class="nav-link {{ request()->routeIs('admin.admission-cms.n8n') ? 'active' : '' }}">
+                            <i class="fas fa-project-diagram"></i> Theo dõi n8n
+                        </a>
+                    </div>
+                @endif
             </div>
 
             <div class="nav-item">
