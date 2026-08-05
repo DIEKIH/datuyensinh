@@ -48,7 +48,7 @@ $(function () {
                     if (lead.zalo_account_id) contacts.push('<div class="small text-muted">Zalo ID: ' + Cms.escapeHtml(lead.zalo_account_id) + '</div>');
 
                     return '<tr>' +
-                        '<td><strong>' + Cms.escapeHtml(lead.full_name || 'Chưa có tên') + '</strong>' +
+                        '<td><a href="#" class="view-lead text-decoration-none fw-bold" data-id="' + lead.id + '">' + Cms.escapeHtml(lead.full_name || 'Chưa có tên') + '</a>' +
                             '<div class="text-muted small">Lead #' + Cms.escapeHtml(lead.id) + '</div></td>' +
                         '<td>' + (contacts.length ? contacts.join('') : '<span class="text-muted">Chưa có thông tin</span>') + '</td>' +
                         '<td><strong>' + Cms.escapeHtml(lead.channel || 'Không rõ') + '</strong>' +
@@ -122,6 +122,66 @@ $(function () {
                 loadLeads(1);
             })
             .always(function () { $select.prop('disabled', false); });
+    });
+
+    $(document).on('click', '.view-lead', function (e) {
+        e.preventDefault();
+        const id = $(this).data('id');
+        $('#detailLeadName').text('Đang tải...');
+        $('#detailScoreLogs').html('<tr><td colspan="5" class="text-center text-muted">Đang tải...</td></tr>');
+        $('#detailActivities').html('<div class="text-center text-muted">Đang tải...</div>');
+        
+        const modal = new bootstrap.Modal(document.getElementById('leadDetailModal'));
+        modal.show();
+
+        $.get('/admin/admission-cms/leads/' + id)
+            .done(function (res) {
+                if (res.success && res.data) {
+                    const lead = res.data.lead;
+                    $('#detailLeadName').text(lead.full_name || 'Chưa có tên');
+
+                    // Score Logs
+                    const logs = res.data.scoreLogs || [];
+                    if (logs.length > 0) {
+                        const logsHtml = logs.map(l => {
+                            const criterionName = l.criterion_name ? (l.criterion_name + ' <small class="text-muted">(' + l.criterion_code + ')</small>') : '<i class="text-muted">N/A</i>';
+                            const scoreClass = l.score_added > 0 ? 'text-success' : 'text-muted';
+                            return '<tr>' +
+                                '<td>' + Cms.formatDate(l.created_at) + '</td>' +
+                                '<td>' + Cms.escapeHtml(l.source_channel || 'N/A') + '</td>' +
+                                '<td>' + Cms.escapeHtml(l.action_type || 'N/A') + '</td>' +
+                                '<td>' + criterionName + '</td>' +
+                                '<td class="fw-bold ' + scoreClass + '">+' + Cms.escapeHtml(l.score_added) + '</td>' +
+                                '</tr>';
+                        }).join('');
+                        $('#detailScoreLogs').html(logsHtml);
+                    } else {
+                        $('#detailScoreLogs').html('<tr><td colspan="5" class="text-center text-muted">Chưa có lịch sử cộng điểm</td></tr>');
+                    }
+
+                    // Activities
+                    const activities = res.data.activities || [];
+                    if (activities.length > 0) {
+                        const actHtml = activities.map(a => {
+                            const icon = a.direction === 'inbound' ? '<i class="fas fa-arrow-right text-primary me-2"></i>' : '<i class="fas fa-arrow-left text-success me-2"></i>';
+                            return '<div class="mb-3 pb-3 border-bottom">' +
+                                '<div class="d-flex justify-content-between mb-1">' +
+                                '<div>' + icon + '<strong>' + Cms.escapeHtml(a.channel) + ' - ' + Cms.escapeHtml(a.type) + '</strong></div>' +
+                                '<div class="small text-muted">' + Cms.formatDate(a.occurred_at) + '</div>' +
+                                '</div>' +
+                                '<div class="bg-light p-2 rounded small">' + Cms.escapeHtml(a.content || '(Không có nội dung)') + '</div>' +
+                                '</div>';
+                        }).join('');
+                        $('#detailActivities').html(actHtml);
+                    } else {
+                        $('#detailActivities').html('<div class="text-center text-muted">Chưa có tương tác nào</div>');
+                    }
+                }
+            })
+            .fail(function (xhr) {
+                $('#detailLeadName').text('Lỗi tải dữ liệu');
+                $('#detailScoreLogs').html('<tr><td colspan="5" class="text-center text-danger">Không tải được lịch sử cộng điểm</td></tr>');
+            });
     });
 
     loadLeads(1);

@@ -35,9 +35,8 @@ $(function () {
                 $('#toxicCommentsBody').html(data.map(function (comment) {
                     const actions = comment.status === 'pending'
                         ? '<div class="d-grid gap-1">' +
-                            '<button class="btn btn-outline-secondary btn-sm btn-toxic-action" data-id="' + comment.id + '" data-action="ignore">Bỏ qua</button>' +
-                            '<button class="btn btn-outline-danger btn-sm btn-toxic-action" data-id="' + comment.id + '" data-action="delete">Xóa comment</button>' +
-                            '<button class="btn btn-dark btn-sm btn-toxic-action" data-id="' + comment.id + '" data-action="block">Block</button>' +
+                            '<button class="btn btn-outline-success btn-sm btn-toxic-action" data-id="' + comment.id + '" data-action="ignore">Bỏ ẩn (Cho hiển thị lại)</button>' +
+                            '<button class="btn btn-outline-danger btn-sm btn-toxic-action" data-id="' + comment.id + '" data-action="delete">Xóa vĩnh viễn trên FB</button>' +
                             '</div>'
                         : '-';
 

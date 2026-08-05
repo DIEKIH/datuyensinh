@@ -83,6 +83,45 @@
         </div>
     </div>
 </div>
+<div class="modal fade" id="leadDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header">
+                <h5 class="modal-title">Chi tiết Thí sinh: <strong id="detailLeadName"></strong></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <ul class="nav nav-tabs" id="leadDetailTabs" role="tablist">
+                    <li class="nav-item">
+                        <button class="nav-link active" id="score-log-tab" data-bs-toggle="tab" data-bs-target="#score-log" type="button" role="tab">Lịch sử cộng điểm</button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" id="activity-log-tab" data-bs-toggle="tab" data-bs-target="#activity-log" type="button" role="tab">Tương tác</button>
+                    </li>
+                </ul>
+                <div class="tab-content p-3 border border-top-0">
+                    <div class="tab-pane fade show active" id="score-log" role="tabpanel">
+                        <table class="table table-sm admission-table">
+                            <thead>
+                                <tr>
+                                    <th>Thời gian</th>
+                                    <th>Kênh / Nguồn</th>
+                                    <th>Thao tác</th>
+                                    <th>Tiêu chí thỏa mãn</th>
+                                    <th>Điểm cộng</th>
+                                </tr>
+                            </thead>
+                            <tbody id="detailScoreLogs"></tbody>
+                        </table>
+                    </div>
+                    <div class="tab-pane fade" id="activity-log" role="tabpanel">
+                        <div id="detailActivities" style="max-height: 400px; overflow-y: auto;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 @endsection
 
 @section('admission_js')

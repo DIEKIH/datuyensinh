@@ -70,6 +70,7 @@ class AdmissionLeadScoringService
             $isMatch = $this->evaluateCondition($fieldValue, $criterion->operator, $criterion->comparison_value);
 
             $criterionDetails = [
+                'criterion_id' => $criterion->id,
                 'criterion_code' => $criterion->criterion_code,
                 'criterion_name' => $criterion->criterion_name,
                 'actual_value' => $fieldValue,

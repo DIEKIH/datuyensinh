@@ -436,21 +436,41 @@ class AdmissionAdminController extends Controller
             return response()->json(['success' => false, 'message' => 'Không tìm thấy comment.']);
         }
 
-        $action = $request->input('action'); // 'ignore', 'delete', 'block'
+        $action = $request->input('action'); // 'ignore', 'delete'
         
+        $n8nUrl = env('N8N_TOXIC_ACTION_WEBHOOK_URL', 'http://localhost:5678/webhook/toxic-action');
+
         if ($action === 'ignore') {
+            // "Bỏ ẩn" (Unhide) trên Facebook thông qua N8N
+            try {
+                \Illuminate\Support\Facades\Http::post($n8nUrl, [
+                    'action' => 'unhide',
+                    'comment_id' => $comment->comment_id,
+                    'post_id' => $comment->post_id,
+                    'platform' => $comment->platform,
+                ]);
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error('N8N Unhide Comment Error: ' . $e->getMessage());
+            }
+
             DB::table('social_toxic_comments')->where('id', $id)->update(['status' => 'ignored']);
-            return response()->json(['success' => true, 'message' => 'Đã bỏ qua cảnh báo này.']);
-        } elseif ($action === 'delete') {
-            // Thực tế sẽ gọi Facebook Graph API để xóa comment
-            // Http::delete("https://graph.facebook.com/v18.0/{$comment->comment_id}?access_token=...");
+            return response()->json(['success' => true, 'message' => 'Đã yêu cầu Bỏ ẩn bình luận này.']);
             
+        } elseif ($action === 'delete') {
+            // "Xóa" vĩnh viễn trên Facebook thông qua N8N
+            try {
+                \Illuminate\Support\Facades\Http::post($n8nUrl, [
+                    'action' => 'delete',
+                    'comment_id' => $comment->comment_id,
+                    'post_id' => $comment->post_id,
+                    'platform' => $comment->platform,
+                ]);
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error('N8N Delete Comment Error: ' . $e->getMessage());
+            }
+
             DB::table('social_toxic_comments')->where('id', $id)->update(['status' => 'deleted']);
-            return response()->json(['success' => true, 'message' => 'Đã ra lệnh xóa comment trên hệ thống (Giả lập).']);
-        } elseif ($action === 'block') {
-            // Thực tế sẽ gọi API ban user
-            DB::table('social_toxic_comments')->where('id', $id)->update(['status' => 'blocked']);
-            return response()->json(['success' => true, 'message' => 'Đã block người dùng này (Giả lập).']);
+            return response()->json(['success' => true, 'message' => 'Đã yêu cầu Xóa bình luận này trên Facebook.']);
         }
 
         return response()->json(['success' => false, 'message' => 'Hành động không hợp lệ.']);
@@ -646,7 +666,14 @@ class AdmissionAdminController extends Controller
             ->orderByDesc('created_at')
             ->get();
 
-        return response()->json(['success' => true, 'data' => compact('lead', 'activities')]);
+        $scoreLogs = DB::table('admission_lead_score_logs')
+            ->leftJoin('admission_scoring_criteria', 'admission_lead_score_logs.criterion_id', '=', 'admission_scoring_criteria.id')
+            ->where('admission_lead_score_logs.lead_id', $id)
+            ->select('admission_lead_score_logs.*', 'admission_scoring_criteria.criterion_name', 'admission_scoring_criteria.criterion_code')
+            ->orderByDesc('admission_lead_score_logs.created_at')
+            ->get();
+
+        return response()->json(['success' => true, 'data' => compact('lead', 'activities', 'scoreLogs')]);
     }
 
     public function updateLeadStatus(Request $request, $id)

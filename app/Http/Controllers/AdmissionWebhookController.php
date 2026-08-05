@@ -257,6 +257,31 @@ class AdmissionWebhookController extends Controller
 
                 $scoreData = $this->scoring->score((array) $lead, $activities);
 
+                // --- GHI NHAN LOG CHAM DIEM ---
+                $matchedCriteria = $scoreData['matched_criteria'] ?? [];
+                $existingLogs = DB::table('admission_lead_score_logs')
+                    ->where('lead_id', $leadId)
+                    ->pluck('criterion_id')
+                    ->toArray();
+
+                foreach ($matchedCriteria as $mc) {
+                    $cId = $mc['criterion_id'] ?? null;
+                    if ($cId && !in_array($cId, $existingLogs)) {
+                        DB::table('admission_lead_score_logs')->insert([
+                            'lead_id' => $leadId,
+                            'channel_account_id' => $account ? $account->id : null,
+                            'criterion_id' => $cId,
+                            'action_type' => $interactionType,
+                            'score_added' => $mc['weight'] ?? 0,
+                            'source_channel' => $channel,
+                            'external_id' => $request->input('comment_id', null),
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ]);
+                    }
+                }
+                // -----------------------------
+
                 $oldGrade = strtolower((string) ($lead->score_grade ?? 'cold'));
                 $newGrade = strtolower((string) ($scoreData['lead_level'] ?? 'cold'));
 
