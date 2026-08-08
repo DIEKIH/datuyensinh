@@ -3,7 +3,18 @@ $(function () {
 
     if (!$('#admissionOpenAiPage').length) return;
 
-    const Cms = window.AdmissionCms;
+    const Cms = window.AdmissionCms || {
+        escapeHtml: function (unsafe) {
+            return (unsafe || '').toString().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        },
+        errorMessage: function (xhr, defaultMsg) {
+            return xhr.responseJSON?.message || defaultMsg || 'Có lỗi xảy ra';
+        },
+        tableMessage: function (colspan, text, type) {
+            const icon = type === 'loading' ? '<i class="fas fa-spinner fa-spin me-2"></i>' : '';
+            return `<tr><td colspan="${colspan}" class="text-center text-muted py-4">${icon}${text}</td></tr>`;
+        }
+    };
 
     function loadConfig() {
         $('#openaiFileRows').html(Cms.tableMessage(3, 'Đang đồng bộ danh sách file...', 'loading'));
