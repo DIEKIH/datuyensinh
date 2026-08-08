@@ -1311,6 +1311,7 @@ class AdmissionAdminController extends Controller
             'category' => 'openai_direct',
             'status' => 'active',
             'source_url' => $fileId,
+            'content' => 'Uploaded to OpenAI Vector Store',
             'created_at' => now(),
             'updated_at' => now(),
         ]);
