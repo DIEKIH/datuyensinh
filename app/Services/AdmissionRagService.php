@@ -312,7 +312,7 @@ class AdmissionRagService
 
     public function uploadFileToOpenAIVectorStore($filePath, $fileName = null)
     {
-        if (!$this->apiKey || !$this->assistantId) return false;
+        if (!$this->apiKey) return false;
 
         // 1. Upload File lên bộ nhớ của OpenAI
         $name = $fileName ? $fileName : basename($filePath);
@@ -325,12 +325,8 @@ class AdmissionRagService
         $fileId = $response->json('id');
         if (!$fileId) return false;
 
-        // 2. Lấy Vector Store ID hiện tại của con Assistant
-        $asstResponse = Http::withToken($this->apiKey)
-            ->withHeaders(['OpenAI-Beta' => 'assistants=v2'])
-            ->get("{$this->baseUrl}/assistants/{$this->assistantId}");
-            
-        $vectorStoreId = $asstResponse->json('tool_resources.file_search.vector_store_ids.0');
+        // 2. Lấy Vector Store ID từ config
+        $vectorStoreId = config('services.openai.vector_store_id');
 
         // 3. Đưa file vừa upload vào Vector Store để Assistant đọc được
         if ($vectorStoreId) {
