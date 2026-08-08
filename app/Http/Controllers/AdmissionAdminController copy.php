@@ -429,201 +429,53 @@ class AdmissionAdminController extends Controller
         ]);
     }
 
-    public function storeToxicCommentWebhook(Request $request)
-    {
-        $configuredSecret = trim((string) env('N8N_TO_LARAVEL_SECRET', ''));
-        $receivedSecret = trim((string) $request->header('X-Webhook-Secret', ''));
-
-        if (
-            $configuredSecret === ''
-            || $receivedSecret === ''
-            || !hash_equals($configuredSecret, $receivedSecret)
-        ) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Webhook không hợp lệ.',
-            ], 401);
-        }
-
-        $validator = Validator::make($request->all(), [
-            'platform' => 'required|string|max:40',
-            'comment_id' => 'required|string|max:255',
-            'post_id' => 'nullable|string|max:255',
-            'sender_id' => 'nullable|string|max:255',
-            'sender_name' => 'nullable|string|max:255',
-            'message' => 'nullable|string|max:10000',
-            'sentiment_category' => 'nullable|string|max:100',
-            'ai_reason' => 'nullable|string|max:5000',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Dữ liệu bình luận chưa hợp lệ.',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        $data = $validator->validated();
-
-        $existingId = DB::table('social_toxic_comments')
-            ->where('platform', $data['platform'])
-            ->where('comment_id', $data['comment_id'])
-            ->value('id');
-
-        if ($existingId) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Bình luận đã được ghi nhận trước đó.',
-                'data' => ['id' => (int) $existingId],
-            ]);
-        }
-
-        $id = DB::table('social_toxic_comments')->insertGetId([
-            'platform' => $data['platform'],
-            'comment_id' => $data['comment_id'],
-            'post_id' => $data['post_id'] ?? null,
-            'sender_id' => $data['sender_id'] ?? null,
-            'sender_name' => $data['sender_name'] ?? null,
-            'message' => $data['message'] ?? null,
-            'sentiment_category' => $data['sentiment_category'] ?? 'toxic',
-            'ai_reason' => $data['ai_reason'] ?? null,
-            'status' => 'pending',
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Đã lưu bình luận chờ Admin xử lý.',
-            'data' => ['id' => (int) $id],
-        ]);
-    }
-
     public function handleToxicCommentAction(Request $request, $id)
     {
-        $validator = Validator::make($request->all(), [
-            'action' => 'required|in:ignore,delete',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Hành động không hợp lệ.',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        $comment = DB::table('social_toxic_comments')
-            ->where('id', $id)
-            ->first();
-
+        $comment = DB::table('social_toxic_comments')->where('id', $id)->first();
         if (!$comment) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Không tìm thấy bình luận.',
-            ], 404);
+            return response()->json(['success' => false, 'message' => 'Không tìm thấy comment.']);
         }
 
-        if ($comment->platform !== 'facebook') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Nền tảng này chưa hỗ trợ thao tác bình luận.',
-            ], 422);
-        }
+        $action = $request->input('action'); // 'ignore', 'delete'
+        
+        $n8nUrl = env('N8N_TOXIC_ACTION_WEBHOOK_URL', 'http://localhost:5678/webhook/toxic-action');
 
-        $adminAction = $validator->validated()['action'];
-        $n8nAction = $adminAction === 'ignore' ? 'unhide' : 'delete';
-        $newStatus = $adminAction === 'ignore' ? 'ignored' : 'deleted';
-
-        $payload = [
-            'event_type' => 'toxic_comment_action',
-            'data' => [
-                'record_id' => (int) $comment->id,
-                'action' => $n8nAction,
-                'comment_id' => (string) $comment->comment_id,
-                'post_id' => (string) ($comment->post_id ?? ''),
-                'platform' => (string) $comment->platform,
-            ],
-        ];
-
-        $n8nUrl = env(
-            'N8N_MASTER_WEBHOOK_URL',
-            'http://localhost:5678/webhook/master-receiver'
-        );
-
-        try {
-            $http = \Illuminate\Support\Facades\Http::withoutVerifying()
-                ->acceptJson()
-                ->timeout(30);
-
-            $webhookSecret = trim((string) env('N8N_WEBHOOK_SECRET', ''));
-
-            if ($webhookSecret !== '') {
-                $http = $http->withHeaders([
-                    'X-Webhook-Secret' => $webhookSecret,
+        if ($action === 'ignore') {
+            // "Bỏ ẩn" (Unhide) trên Facebook thông qua N8N
+            try {
+                \Illuminate\Support\Facades\Http::post($n8nUrl, [
+                    'source' => 'admin_cms',
+                    'action' => 'unhide',
+                    'comment_id' => $comment->comment_id,
+                    'post_id' => $comment->post_id,
+                    'platform' => $comment->platform,
                 ]);
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error('N8N Unhide Comment Error: ' . $e->getMessage());
             }
 
-            $response = $http->post($n8nUrl, $payload);
-
-            if (!$response->successful()) {
-                \Illuminate\Support\Facades\Log::error(
-                    'N8N Toxic Comment Action HTTP Error',
-                    [
-                        'status' => $response->status(),
-                        'response' => $response->body(),
-                        'payload' => $payload,
-                    ]
-                );
-
-                return response()->json([
-                    'success' => false,
-                    'message' => 'n8n chưa xử lý được bình luận trên Facebook.',
-                ], 502);
-            }
-
-            $responseData = $response->json();
-
-            if (
-                is_array($responseData)
-                && array_key_exists('success', $responseData)
-                && $responseData['success'] === false
-            ) {
-                return response()->json([
-                    'success' => false,
-                    'message' => $responseData['message']
-                        ?? 'Facebook không chấp nhận thao tác bình luận.',
-                ], 502);
-            }
-
-            DB::table('social_toxic_comments')
-                ->where('id', $id)
-                ->update([
-                    'status' => $newStatus,
-                    'updated_at' => now(),
+            DB::table('social_toxic_comments')->where('id', $id)->update(['status' => 'ignored']);
+            return response()->json(['success' => true, 'message' => 'Đã yêu cầu Bỏ ẩn bình luận này.']);
+            
+        } elseif ($action === 'delete') {
+            // "Xóa" vĩnh viễn trên Facebook thông qua N8N
+            try {
+                \Illuminate\Support\Facades\Http::post($n8nUrl, [
+                    'source' => 'admin_cms',
+                    'action' => 'delete',
+                    'comment_id' => $comment->comment_id,
+                    'post_id' => $comment->post_id,
+                    'platform' => $comment->platform,
                 ]);
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error('N8N Delete Comment Error: ' . $e->getMessage());
+            }
 
-            return response()->json([
-                'success' => true,
-                'message' => $adminAction === 'ignore'
-                    ? 'Đã bỏ ẩn bình luận trên Facebook.'
-                    : 'Đã xóa bình luận trên Facebook.',
-            ]);
-        } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::error(
-                'N8N Toxic Comment Action Exception',
-                [
-                    'message' => $e->getMessage(),
-                    'payload' => $payload,
-                ]
-            );
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Không kết nối được đến n8n.',
-            ], 502);
+            DB::table('social_toxic_comments')->where('id', $id)->update(['status' => 'deleted']);
+            return response()->json(['success' => true, 'message' => 'Đã yêu cầu Xóa bình luận này trên Facebook.']);
         }
+
+        return response()->json(['success' => false, 'message' => 'Hành động không hợp lệ.']);
     }
 
     public function listSocialPosts(Request $request)

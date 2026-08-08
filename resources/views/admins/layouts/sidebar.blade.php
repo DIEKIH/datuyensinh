@@ -120,10 +120,6 @@
                             <i class="fas fa-bullhorn"></i>
                             <span>Chiến dịch</span>
                         </a>
-                        <a href="{{ route('admin.admission-cms.openai') }}"
-                            class="nav-link {{ request()->routeIs('admin.admission-cms.openai') ? 'active' : '' }}">
-                            <i class="fas fa-brain"></i> OpenAI / RAG
-                        </a>
                         <a href="{{ route('admin.admission-cms.scoring') }}"
                             class="nav-link {{ request()->routeIs('admin.admission-cms.scoring') ? 'active' : '' }}">
                             <i class="fas fa-sliders-h"></i> Chấm điểm

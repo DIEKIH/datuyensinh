@@ -68,3 +68,17 @@ Route::prefix('admission/scoring')->group(function () {
         Route::delete('/criteria/{id}', [AdmissionScoringController::class, 'deleteCriterion']);
     });
 });
+
+
+use App\Http\Controllers\SocialPostApprovalController;
+
+/* Đặt trong routes/api.php. */
+Route::middleware([
+    VerifyN8nWebhook::class,
+    'throttle:15,1',
+])->group(function () {
+    Route::post(
+        '/n8n/social-post-approvals',
+        [SocialPostApprovalController::class, 'storeFromN8n']
+    );
+});

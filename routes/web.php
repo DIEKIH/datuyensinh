@@ -19,6 +19,7 @@ use App\Http\Controllers\AdviseController;
 use App\Http\Controllers\AdmissionAdminController;
 use App\Http\Controllers\AdmissionLeadController;
 use App\Http\Controllers\FacebookAuthController;
+use App\Http\Controllers\SocialPostApprovalController;
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -240,7 +241,24 @@ Route::prefix('admin')->middleware('admin')->group(function () {
     Route::post('/admission-cms/scoring/criteria', [\App\Http\Controllers\AdmissionScoringController::class, 'storeCriterion']);
     Route::put('/admission-cms/scoring/criteria/{id}', [\App\Http\Controllers\AdmissionScoringController::class, 'updateCriterion']);
     Route::delete('/admission-cms/scoring/criteria/{id}', [\App\Http\Controllers\AdmissionScoringController::class, 'deleteCriterion']);
-});
+
+    Route::get(
+    '/admission-cms/social-post-approvals/manage',
+    [SocialPostApprovalController::class, 'page']
+    )->name('admin.admission-cms.social-post-approvals.manage');
+
+    Route::get(
+        '/admission-cms/social-post-approvals',
+        [SocialPostApprovalController::class, 'index']
+    )->name('admin.admission-cms.social-post-approvals.index');
+
+    Route::post(
+        '/admission-cms/social-post-approvals/{id}/action',
+        [SocialPostApprovalController::class, 'action']
+    )->name('admin.admission-cms.social-post-approvals.action');
+
+
+    });
 
 
 

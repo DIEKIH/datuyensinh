@@ -11,14 +11,16 @@
         href="{{ route('admin.admission-cms.approvals') }}">
         <i class="fas fa-user-check"></i> Duyệt AI
     </a>
+    <a class="admission-nav-link {{ request()->routeIs('admin.admission-cms.social-post-approvals.*') ? 'active' : '' }}"
+    href="{{ route('admin.admission-cms.social-post-approvals.manage') }}">
+        <i class="fas fa-newspaper"></i>
+        Duyệt bài đăng
+    </a>
     <a class="admission-nav-link {{ request()->routeIs('admin.admission-cms.campaigns') ? 'active' : '' }}"
         href="{{ route('admin.admission-cms.campaigns') }}">
         <i class="fas fa-bullhorn"></i> Chiến dịch
     </a>
-    <a class="admission-nav-link {{ request()->routeIs('admin.admission-cms.openai') ? 'active' : '' }}"
-        href="{{ route('admin.admission-cms.openai') }}">
-        <i class="fas fa-brain"></i> OpenAI / RAG
-    </a>
+
     <a class="admission-nav-link {{ request()->routeIs('admin.admission-cms.scoring') ? 'active' : '' }}"
         href="{{ route('admin.admission-cms.scoring') }}">
         <i class="fas fa-sliders-h"></i> Chấm điểm

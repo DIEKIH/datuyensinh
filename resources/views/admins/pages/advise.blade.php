@@ -1322,6 +1322,11 @@
                     id="tabBtnLibrary">
                 <i class="fas fa-book-open"></i> Kho câu hỏi
             </button>
+            <button class="cb-tab-btn"
+                    data-tab="openai"
+                    id="tabBtnOpenai">
+                <i class="fas fa-brain"></i> Quản lý OpenAI
+            </button>
         </div>
 
         {{-- ── TAB: SESSIONS ──────────────────────── --}}
@@ -1839,6 +1844,56 @@
                 </section>
             </div>
         </div>
+
+        {{-- ── TAB: OPENAI ──────────────────────── --}}
+        <div class="cb-tab-pane" id="pane-openai">
+            <div class="cb-card-header" style="border-top:1px solid #e5e7eb;border-radius:0;display:flex;justify-content:space-between;align-items:center;">
+                <span class="cb-card-title">
+                    <i class="fas fa-brain me-1 text-primary"></i>
+                    Quản lý OpenAI
+                </span>
+                <div>
+                    <input type="file" id="uploadOpenAiFile" class="d-none" accept=".pdf,.txt,.docx,.json">
+                    <button id="chooseOpenAiFile" class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-cloud-upload-alt me-1"></i> Tải tài liệu
+                    </button>
+                </div>
+            </div>
+            <div class="p-4" style="background-color: #f8f9fc;">
+                <div class="row g-3" id="admissionOpenAiPage">
+                    <div class="col-xl-6">
+                        <section class="admission-card h-100" style="background:#fff;border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,.08);padding:20px;">
+                            <div class="admission-card-header mb-3">
+                                <h2 class="admission-card-title" style="font-size:1.1rem;margin:0;font-weight:600;">Kịch bản Prompt</h2>
+                                <div class="admission-card-subtitle text-muted small mt-1">Instructions dùng chung cho trợ lý tuyển sinh</div>
+                            </div>
+                            <div class="admission-card-body">
+                                <textarea id="openaiPrompt" class="form-control mb-3" rows="18" placeholder="Đang tải instructions..."></textarea>
+                                <button id="saveOpenAiPrompt" class="btn btn-primary w-100">
+                                    <i class="fas fa-save me-1"></i> Lưu và đồng bộ
+                                </button>
+                            </div>
+                        </section>
+                    </div>
+                    <div class="col-xl-6">
+                        <section class="admission-card h-100" style="background:#fff;border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,.08);padding:20px;">
+                            <div class="admission-card-header mb-3">
+                                <h2 class="admission-card-title" style="font-size:1.1rem;margin:0;font-weight:600;">Tài liệu Vector Store</h2>
+                                <div class="admission-card-subtitle text-muted small mt-1">Danh sách file đang được OpenAI sử dụng</div>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead><tr><th>Tên file</th><th>Dung lượng</th><th>Thao tác</th></tr></thead>
+                                    <tbody id="openaiFileRows">
+                                        <tr><td colspan="3" class="text-center text-muted py-3">Đang đồng bộ danh sách file...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -1848,8 +1903,8 @@
     @php
         $adviseJsVersion = @filemtime(
             public_path('js/admins/advise.js')
-        ) ?: '1';
+        ) ?: 1;
     @endphp
-
-    <script src="{{ asset('js/admins/advise.js') }}?v={{ $adviseJsVersion }}"></script>
+    <script src="/js/admins/advise.js?v={{ $adviseJsVersion }}"></script>
+    <script src="{{ asset('js/admins/admission/openai.js') }}"></script>
 @endsection

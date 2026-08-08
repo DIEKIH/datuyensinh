@@ -502,28 +502,167 @@ class AdmissionWebhookController extends Controller
     }
 
     public function reportToxicComment(Request $request)
-    {
-        try {
-            DB::table('social_toxic_comments')->insert([
-                'platform' => $request->input('platform', 'facebook'),
-                'comment_id' => $request->input('comment_id', ''),
-                'post_id' => $request->input('post_id'),
-                'sender_id' => $request->input('sender_id'),
-                'sender_name' => $request->input('sender_name', 'Unknown User'),
-                'message' => $request->input('message', ''),
-                'sentiment_category' => $request->input('sentiment_category', 'toxic'),
-                'ai_reason' => $request->input('ai_reason', ''),
-                'status' => 'pending',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
+{
+    $data = $request->validate([
+        'platform' => 'nullable|string|max:50',
+        'comment_id' => 'required|string|max:255',
+        'post_id' => 'nullable|string|max:255',
+        'post_message' => 'nullable|string',
+        'post_url' => 'nullable|string|max:1000',
+        'sender_id' => 'nullable|string|max:255',
+        'sender_name' => 'nullable|string|max:255',
+        'message' => 'required|string',
+        'sentiment_category' => 'required|string|max:100',
+        'ai_reason' => 'nullable|string',
 
-            return response()->json(['success' => true, 'message' => 'Đã ghi nhận bình luận vi phạm']);
+        'facebook_hide_status' =>
+            'nullable|in:hidden,failed,unknown',
+        'facebook_hidden' => 'nullable',
+        'facebook_can_hide' => 'nullable',
+        'facebook_hide_error' => 'nullable|string',
+        'facebook_hide_attempted_at' => 'nullable|date',
+    ]);
+
+    $toNullableBoolean = function ($value) {
+        if (
+            $value === null
+            || $value === ''
+            || $value === '?'
+        ) {
+            return null;
+        }
+
+        return filter_var(
+            $value,
+            FILTER_VALIDATE_BOOLEAN,
+            FILTER_NULL_ON_FAILURE
+        );
+    };
+
+    $facebookHidden = $toNullableBoolean(
+        $request->input('facebook_hidden')
+    );
+
+    $facebookCanHide = $toNullableBoolean(
+        $request->input('facebook_can_hide')
+    );
+
+    /*
+     * MySQL DATETIME/TIMESTAMP không nhận trực tiếp dạng:
+     * 2026-08-05T15:08:51.034Z
+     *
+     * Chuẩn hóa về:
+     * 2026-08-05 22:08:51
+     */
+    $facebookHideAttemptedAt = now();
+
+    if (!empty($data['facebook_hide_attempted_at'])) {
+        try {
+            $facebookHideAttemptedAt =
+                \Carbon\Carbon::parse(
+                    $data['facebook_hide_attempted_at']
+                )
+                ->setTimezone('Asia/Ho_Chi_Minh')
+                ->format('Y-m-d H:i:s');
         } catch (\Throwable $e) {
-            Log::error('[AdmissionWebhookController] reportToxicComment error: ' . $e->getMessage());
-            return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
+            Log::warning(
+                '[AdmissionWebhookController] '
+                . 'facebook_hide_attempted_at không hợp lệ: '
+                . $data['facebook_hide_attempted_at']
+            );
+
+            $facebookHideAttemptedAt = now();
         }
     }
+
+    try {
+        $commentData = [
+            'platform' => $data['platform'] ?? 'facebook',
+            'post_id' => $data['post_id'] ?? null,
+            'post_message' =>
+                $data['post_message'] ?? null,
+            'post_url' => $data['post_url'] ?? null,
+            'sender_id' => $data['sender_id'] ?? null,
+            'sender_name' =>
+                $data['sender_name'] ?? 'Unknown User',
+            'message' => $data['message'],
+            'sentiment_category' =>
+                $data['sentiment_category'],
+            'ai_reason' => $data['ai_reason'] ?? null,
+
+            'facebook_hide_status' =>
+                $data['facebook_hide_status']
+                ?? 'unknown',
+            'facebook_hidden' => $facebookHidden,
+            'facebook_can_hide' => $facebookCanHide,
+            'facebook_hide_error' =>
+                $data['facebook_hide_error'] ?? null,
+            'facebook_hide_attempted_at' =>
+                $facebookHideAttemptedAt,
+
+            'updated_at' => now(),
+        ];
+
+        $existing = DB::table(
+            'social_toxic_comments'
+        )
+            ->where(
+                'platform',
+                $commentData['platform']
+            )
+            ->where(
+                'comment_id',
+                $data['comment_id']
+            )
+            ->first();
+
+        if ($existing) {
+            /*
+             * Không đặt lại trạng thái xử lý của Admin.
+             * Chỉ cập nhật nội dung và kết quả thao tác Facebook.
+             */
+            DB::table('social_toxic_comments')
+                ->where('id', $existing->id)
+                ->update($commentData);
+
+            $id = $existing->id;
+        } else {
+            $commentData['comment_id'] =
+                $data['comment_id'];
+            $commentData['status'] = 'pending';
+            $commentData['created_at'] = now();
+
+            $id = DB::table(
+                'social_toxic_comments'
+            )->insertGetId($commentData);
+        }
+
+        return response()->json([
+            'success' => true,
+            'id' => $id,
+            'message' =>
+                $commentData['facebook_hide_status']
+                    === 'hidden'
+                    ? 'Đã ẩn và ghi nhận bình luận vi phạm.'
+                    : 'Đã ghi nhận bình luận vi phạm, '
+                        . 'nhưng Facebook chưa ẩn được.',
+            'facebook_hide_status' =>
+                $commentData['facebook_hide_status'],
+        ]);
+    } catch (\Throwable $e) {
+        Log::error(
+            '[AdmissionWebhookController] '
+            . 'reportToxicComment error: '
+            . $e->getMessage()
+        );
+
+        return response()->json([
+            'success' => false,
+            'error' => $e->getMessage(),
+        ], 500);
+    }
+}
+
 
     public function storeSocialPost(Request $request)
     {
