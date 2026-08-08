@@ -5,13 +5,13 @@
         "text": "={{ $json.message }}",
         "additionalFields": {}
       },
-      "id": "d7e0af95-d7fa-4903-8035-aa43d8747f43",
+      "id": "9b3a82af-142b-447f-8284-d83ff4ce02ab",
       "name": "Send Error Alert",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1,
       "position": [
-        -1040,
-        640
+        -576,
+        1616
       ],
       "webhookId": "3451981e-06b4-42e2-b4e2-c18c29307934",
       "disabled": true
@@ -20,202 +20,24 @@
       "parameters": {
         "jsCode": "return { message: 'Lỗi hệ thống N8N ở Node: ' + $json.execution.lastNodeExecuted };"
       },
-      "id": "1746d3b2-a526-4aa0-9843-65987d128a17",
+      "id": "e4d61d08-510a-41a6-b5ee-97957c8d5693",
       "name": "Format Error Message",
       "type": "n8n-nodes-base.code",
       "typeVersion": 1,
       "position": [
-        -1248,
-        640
+        -784,
+        1616
       ]
     },
     {
       "parameters": {},
-      "id": "9ec48d65-4639-44e6-8d7d-fc51f6b2697a",
+      "id": "ea6eb8a1-038b-46b6-afcd-92b8fb233bc1",
       "name": "Error Trigger",
       "type": "n8n-nodes-base.errorTrigger",
       "typeVersion": 1,
       "position": [
-        -1440,
-        640
-      ]
-    },
-    {
-      "parameters": {
-        "fromEmail": "huynhdangkhoa3344@gmail.com",
-        "toEmail": "huynhdangkhoa3344@gmail.com",
-        "subject": "Trường gửi bạn thông tin học phí",
-        "options": {}
-      },
-      "id": "8f62f5bd-a6ff-44a2-b233-5de337261840",
-      "name": "Gửi Nurture Email",
-      "type": "n8n-nodes-base.emailSend",
-      "typeVersion": 2,
-      "position": [
-        1408,
-        2096
-      ],
-      "webhookId": "b28229e9-111e-4a39-9d9b-e69a9faa9b25",
-      "credentials": {
-        "smtp": {
-          "id": "8De94I3Ck8tAc0IN",
-          "name": "SMTP account"
-        }
-      },
-      "disabled": true
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "boolean": [
-            {
-              "value1": "=={{ $json.status_response.data.is_contacted }}"
-            }
-          ]
-        }
-      },
-      "id": "afe8c017-2cd0-4809-bcb6-811427253949",
-      "name": "Chưa ai gọi?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 1,
-      "position": [
-        1216,
-        2096
-      ]
-    },
-    {
-      "parameters": {
-        "jsCode": "const items = $input.all();\nconst token = 'your_secret_token_here';\n\nfor (const item of items) {\n  const id = item.json.body?.data?.id || '';\n\n  try {\n    const response = await this.helpers.httpRequest({\n      method: 'GET',\n      url: `http://tuyensinhtest.test/api/n8n/leads/${id}/status`,\n      headers: {\n        'X-N8N-Token': token\n      },\n      json: true\n    });\n    item.json.status_response = response;\n  } catch (err) {\n    item.json.status_error = err.message;\n  }\n}\n\nreturn items;"
-      },
-      "id": "414defb6-b9be-4a83-8bd9-ccd477b22f63",
-      "name": "Check Trạng Thái",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 1,
-      "position": [
-        1008,
-        2096
-      ]
-    },
-    {
-      "parameters": {
-        "unit": "minutes"
-      },
-      "id": "e0dc0c2b-a3a9-4f99-9f3d-09478b521233",
-      "name": "Đợi 24 giờ",
-      "type": "n8n-nodes-base.wait",
-      "typeVersion": 1,
-      "position": [
-        688,
-        1984
-      ],
-      "webhookId": "aa1c8d61-7fde-4d33-bd44-6a1e925e0fdd"
-    },
-    {
-      "parameters": {
-        "authentication": "oAuth2",
-        "sheetId": "1J68idNrZXG-8yAiIoA_T7JXoCLSAzf2DtzLITkCXHBI/edit?gid=0#gid=0",
-        "options": {}
-      },
-      "id": "fce1c6ed-2ffc-4d8b-a2b6-3c56674278c7",
-      "name": "Lưu Google Sheets",
-      "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 1,
-      "position": [
-        592,
-        1808
-      ],
-      "credentials": {
-        "googleSheetsOAuth2Api": {
-          "id": "684pxYWV2VKzeOku",
-          "name": "Google Sheets account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "text": "HOT LEAD!!! Gọi ngay!!!",
-        "additionalFields": {}
-      },
-      "id": "68872d56-6e2e-4fa0-8e87-02260ba900e6",
-      "name": "Báo động Sales",
-      "type": "n8n-nodes-base.telegram",
-      "typeVersion": 1,
-      "position": [
-        368,
-        1680
-      ],
-      "webhookId": "0649a53c-cdbd-4bc1-8a4e-fc53ab28bd3d",
-      "disabled": true
-    },
-    {
-      "parameters": {
-        "value1": {},
-        "rules": {
-          "rules": [
-            {
-              "operation": "largerEqual",
-              "value2": 80
-            },
-            {
-              "value2": 80,
-              "output": 1
-            }
-          ]
-        }
-      },
-      "id": "a2debed0-6e28-4b6b-8e06-1a8e8057c073",
-      "name": "Check Lead Score",
-      "type": "n8n-nodes-base.switch",
-      "typeVersion": 1,
-      "position": [
-        48,
-        1744
-      ]
-    },
-    {
-      "parameters": {
-        "values": {
-          "number": [
-            {
-              "name": "score",
-              "value": "={{ $json.body.data.score }}"
-            },
-            {
-              "name": "score_grade",
-              "value": "={{ $json.body.data.score_grade }}"
-            }
-          ],
-          "string": [
-            {
-              "name": "channel",
-              "value": "={{ $json.body.data.channel }}"
-            }
-          ]
-        },
-        "options": {
-          "dotNotation": true
-        }
-      },
-      "id": "ac1617ad-6c43-4c5c-8a84-83e5f8655f10",
-      "name": "Format Lead Data",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 2,
-      "position": [
-        -224,
-        1744
-      ]
-    },
-    {
-      "parameters": {
-        "operation": "removeDuplicates"
-      },
-      "id": "ef1b3af2-1c39-4498-a8c6-5f7f55e6ae1e",
-      "name": "Lọc Trùng Lead",
-      "type": "n8n-nodes-base.itemLists",
-      "typeVersion": 1,
-      "position": [
-        -464,
-        1664
+        -976,
+        1616
       ]
     },
     {
@@ -223,26 +45,26 @@
         "url": "https://openapi.zalo.me/v2.0/oa/message",
         "options": {}
       },
-      "id": "8ec73ea9-9db8-467c-94b4-b186c72eccff",
+      "id": "ed23e40a-2663-4eda-966c-c76dd988d569",
       "name": "Zalo OA Reply",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 1,
       "position": [
-        1504,
-        1392
+        2000,
+        2272
       ]
     },
     {
       "parameters": {
-        "jsCode": "const items = $input.all();\nconst token = $env.FB_MESSENGER_TOKEN || '';\nif (!token) {\n  throw new Error('Thiếu FB_MESSENGER_TOKEN trong môi trường chạy n8n.');\n}\n\n// Trạm xuất phát\nconst transformNode = $('Transform FB Message').first();\n\nfor (const item of items) {\n  // Lấy lại sender_id gốc\n  const originalData = transformNode ? transformNode.json.body?.data : {};\n  const sender_id = originalData?.sender_id || item.json.sender_id || '';\n  \n  // Lấy câu trả lời AI từ payload hiện tại\n  const messageText = item.json.message || item.json.body?.data?.message || 'Xin lỗi, hệ thống đang bận.';\n\n  if (!sender_id) {\n    item.json.fb_error = 'Thiếu sender_id để gửi tin.';\n    continue;\n  }\n\n  try {\n    const response = await this.helpers.httpRequest({\n      method: 'POST',\n      url: 'https://graph.facebook.com/v18.0/me/messages',\n      qs: { access_token: token },\n      body: {\n        recipient: { id: sender_id },\n        message: { text: messageText }\n      },\n      json: true\n    });\n    item.json.fb_reply_response = response;\n  } catch (err) {\n    item.json.fb_reply_error = err.message;\n  }\n}\n\nreturn items;"
+        "jsCode": "const items = $input.all();\nconst token = $env.FB_MESSENGER_TOKEN || '';\nif (!token) {\n  throw new Error('Thiếu FB_MESSENGER_TOKEN trong môi trường chạy n8n.');\n}\n\n// Trạm xuất phát\nconst transformNode = $('Transform FB Message').first();\n\nfor (const item of items) {\n  // Lấy lại sender_id gốc\n  const originalData = transformNode ? transformNode.json.body?.data : {};\n  const sender_id = originalData?.sender_id || item.json.sender_id || '';\n  \n  // Lấy câu trả lời AI từ payload hiện tại\n  const messageText = item.json.message || item.json.body?.data?.message || 'Xin lỗi, hệ thống đang bận.';\n\n  if (!sender_id) {\n    item.json.fb_error = 'Thiếu sender_id để gửi tin.';\n    continue;\n  }\n\n  try {\n    const response = await this.helpers.httpRequest({\n      method: 'POST',\n      url: 'https://graph.facebook.com/v26.0/me/messages',\n      qs: { access_token: token },\n      body: {\n        recipient: { id: sender_id },\n        message: { text: messageText }\n      },\n      json: true\n    });\n    item.json.fb_reply_response = response;\n  } catch (err) {\n    item.json.fb_reply_error = err.message;\n  }\n}\n\nreturn items;"
       },
-      "id": "b86ece4f-171b-41cd-8e9e-8280ee6b8035",
+      "id": "7031b0ab-c14b-4fcd-bb0f-c2e0e5f16370",
       "name": "FB Messenger Reply",
       "type": "n8n-nodes-base.code",
       "typeVersion": 1,
       "position": [
-        1488,
-        1168
+        1984,
+        2048
       ]
     },
     {
@@ -269,52 +91,52 @@
           ]
         }
       },
-      "id": "abd9b99c-598c-4b7f-8f0e-2a6983bf8486",
+      "id": "f2fac1d4-b7e7-4365-a9b6-846468715693",
       "name": "Channel Router",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 1,
       "position": [
-        1264,
-        1344
+        1760,
+        2224
       ]
     },
     {
       "parameters": {
         "options": {}
       },
-      "id": "abe24313-3f6b-4329-b281-5dc40d5789be",
+      "id": "64339a0b-85bf-47a1-863d-9f1d638ee46a",
       "name": "Prepare Routing",
       "type": "n8n-nodes-base.set",
       "typeVersion": 2,
       "position": [
-        1072,
-        1344
+        1536,
+        2320
       ]
     },
     {
       "parameters": {
         "jsCode": "return items;"
       },
-      "id": "b304a1ec-d8b7-4ca8-99ce-dad5e07ce216",
+      "id": "fbb41325-b545-4b17-9003-69d2c9a84881",
       "name": "Format Output (Cắt Chữ)",
       "type": "n8n-nodes-base.code",
       "typeVersion": 1,
       "position": [
-        864,
-        1344
+        1328,
+        2320
       ]
     },
     {
       "parameters": {
         "jsCode": "const items = $input.all();\nconst token = 'your_secret_token_here';\nconst transformNode = $('Transform FB Message').first();\n\nfor (const item of items) {\n  const originalData = transformNode ? transformNode.json.body?.data : {};\n  const message = originalData?.message || item.json.message || '';\n  const sender_id = originalData?.sender_id || item.json.sender_id || '';\n  const sender_name = originalData?.sender_name || '';\n  const interaction_type = originalData?.interaction_type || 'chat';\n  const is_comment = originalData?.is_comment || false;\n  const comment_id = originalData?.comment_id || '';\n  const post_id = originalData?.post_id || '';\n\n  // Không thể định danh lead nếu Facebook không trả sender_id.\n  if (!sender_id) {\n    item.json.lead_error = 'Facebook không trả sender_id nên không thể lưu lead.';\n    continue;\n  }\n\n  try {\n    const response = await this.helpers.httpRequest({\n      method: 'POST',\n      url: 'http://tuyensinhtest.test/api/n8n/leads',\n      headers: {\n        'X-N8N-Token': token,\n        'Content-Type': 'application/json'\n      },\n      body: {\n        channel: 'facebook',\n        question: message,\n        sender_id: sender_id,\n        sender_name: sender_name,\n        interaction_type: interaction_type,\n        is_comment: is_comment,\n        comment_id: comment_id,\n        post_id: post_id\n      },\n      json: true\n    });\n    \n    item.json.rag_response = response;\n    \n    // Chỉ ghi đè message RAG nếu không phải là Like/Share (Vì Like/Share Laravel sẽ bỏ qua RAG)\n    if (interaction_type !== 'like' && interaction_type !== 'share') {\n      if (response && response.data && response.data.answer) {\n        item.json.message = response.data.answer;\n      }\n    }\n  } catch (err) {\n    item.json.rag_error = err.message;\n    if (interaction_type !== 'like' && interaction_type !== 'share') {\n        item.json.message = 'Lỗi khi gọi AI: ' + err.message;\n    }\n  }\n}\n\nreturn items;"
       },
-      "id": "9eb28c92-c85f-4fd3-b330-740ed1e8130b",
+      "id": "31273407-35fe-4a8a-b391-0c3130301c8d",
       "name": "Gọi Laravel RAG",
       "type": "n8n-nodes-base.code",
       "typeVersion": 1,
       "position": [
-        672,
-        1344
+        1136,
+        2320
       ]
     },
     {
@@ -322,13 +144,13 @@
         "text": "Cảnh báo: Khách đang tức giận. Yêu cầu NV can thiệp!",
         "additionalFields": {}
       },
-      "id": "0d6c5afc-f256-492c-8465-d8c6f8b2b6bb",
+      "id": "fd9e681f-5be9-4488-b441-e7f55f3d0d24",
       "name": "Báo Sales Can Thiệp",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1,
       "position": [
-        672,
-        1152
+        1136,
+        2128
       ],
       "webhookId": "a82edb8f-faac-4383-a0f5-169951d937dd",
       "disabled": true
@@ -344,39 +166,39 @@
           ]
         }
       },
-      "id": "3bd27ac8-928e-4a68-b725-680c2db69509",
+      "id": "f37fd626-38ae-4354-8cbf-340f3aedb1e0",
       "name": "Khách giận dữ?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
       "position": [
-        464,
-        1248
+        928,
+        2224
       ]
     },
     {
       "parameters": {
         "options": {}
       },
-      "id": "9a91262b-9e8b-4f79-8da2-a6b31d5c3736",
+      "id": "90032182-bf2c-4bed-a494-39a405b94cad",
       "name": "Extract Sentiment",
       "type": "n8n-nodes-base.set",
       "typeVersion": 2,
       "position": [
-        272,
-        1248
+        736,
+        2224
       ]
     },
     {
       "parameters": {
         "jsCode": "const items = $input.all();\nfor (const item of items) {\n  item.json.sentiment_result = \"neutral\";\n}\nreturn items;"
       },
-      "id": "5469f5f0-6e35-49a9-8e76-476d7ebca923",
+      "id": "82ef1b26-485f-492f-afd2-637e00a186af",
       "name": "Sentiment AI",
       "type": "n8n-nodes-base.code",
       "typeVersion": 1,
       "position": [
-        64,
-        1248
+        528,
+        2224
       ]
     },
     {
@@ -384,13 +206,13 @@
         "url": "={{ $json.body.data.media_url }}",
         "options": {}
       },
-      "id": "c9091cda-f106-4e45-8031-c742f90d0eb3",
+      "id": "2e592986-e7d1-431a-9393-6a97d87c7007",
       "name": "Tải Ảnh Tạm",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 1,
       "position": [
-        -128,
-        1152
+        336,
+        2128
       ]
     },
     {
@@ -404,26 +226,26 @@
           ]
         }
       },
-      "id": "a74617f5-85c9-419a-a520-11ff328f8ee0",
+      "id": "e1dcc28d-fd5b-4c60-b201-a298021f0de7",
       "name": "Có Ảnh Không?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
       "position": [
-        -336,
-        1248
+        128,
+        2224
       ]
     },
     {
       "parameters": {
         "jsCode": "return items;"
       },
-      "id": "9cf6cccc-9b70-4431-83a4-bde9ac7ac577",
+      "id": "1ae6948e-b9a1-47aa-bca4-ca896d09bf83",
       "name": "Sanitize Input",
       "type": "n8n-nodes-base.code",
       "typeVersion": 1,
       "position": [
-        -528,
-        1248
+        -64,
+        2224
       ]
     },
     {
@@ -452,24 +274,24 @@
           ]
         }
       },
-      "id": "9011639d-c67a-46fb-9e9e-f180385c3cff",
+      "id": "e5a4fef0-7258-4897-a46b-f33e14406d95",
       "name": "Laravel Log Callback",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 1,
       "position": [
-        4304,
-        576
+        4800,
+        1456
       ]
     },
     {
       "parameters": {},
-      "id": "6036eecc-c807-4896-82ab-ed3032de9d09",
+      "id": "c3c9f959-b8a5-4947-9057-585034bf6003",
       "name": "Merge",
       "type": "n8n-nodes-base.merge",
       "typeVersion": 2,
       "position": [
-        3936,
-        528
+        4432,
+        1408
       ]
     },
     {
@@ -477,13 +299,13 @@
         "url": "https://api.trello.com/1/cards",
         "options": {}
       },
-      "id": "bff10f7e-67b2-404e-a30a-a2a64a86287b",
+      "id": "1c1767c4-1653-4d47-be6c-a653124dcdb1",
       "name": "Trello (TikTok Task)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 1,
       "position": [
-        3152,
-        816
+        3648,
+        1696
       ],
       "onError": "continueErrorOutput",
       "notes": "Chưa có method/body/auth/card fields nên chỉ là placeholder."
@@ -493,20 +315,20 @@
         "url": "https://openapi.zalo.me/v2.0/article/create",
         "options": {}
       },
-      "id": "554d2055-2107-4929-a386-b92f6336ab42",
+      "id": "5990d8cc-ddd2-4059-943d-2a8282c985f5",
       "name": "Đăng Zalo",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 1,
       "position": [
-        3168,
-        640
+        3664,
+        1520
       ],
       "notes": "Chưa có method/body/auth nên chưa thể xem là node hoạt động hoàn chỉnh."
     },
     {
       "parameters": {
         "requestMethod": "POST",
-        "url": "https://graph.facebook.com/v18.0/me/feed",
+        "url": "https://graph.facebook.com/v26.0/me/feed",
         "options": {},
         "bodyParametersUi": {
           "parameter": [
@@ -525,26 +347,26 @@
           ]
         }
       },
-      "id": "0fbeca7f-2151-4273-a7ea-ab3e189d2e61",
+      "id": "5e3db158-f1c4-4806-b017-6af373750a3b",
       "name": "Đăng FB (Không Ảnh)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 1,
       "position": [
-        3408,
-        512
+        3904,
+        1392
       ]
     },
     {
       "parameters": {
-        "jsCode": "const token = $env.FB_PAGE_ACCESS_TOKEN || '';\nconst inputItems = $input.all();\n\nif (!token) throw new Error('Thiếu Facebook Page Access Token.');\n\nasync function doRequest(options) {\n    try {\n        return await this.helpers.httpRequest(options);\n    } catch (e) {\n        const fbErr = e.response && e.response.data ? JSON.stringify(e.response.data) : e.message;\n        throw new Error('Lỗi từ Facebook: ' + fbErr + ' | Payload: ' + JSON.stringify(options.body));\n    }\n}\n\n// Lấy ngrok url tự động\n// let ngrokUrl = 'https://examining-civilization-yeast-lang.trycloudflare.com';\nlet ngrokUrl = '';\ntry {\n  const ngrokRes = await this.helpers.httpRequest({ method: 'GET', url: 'http://127.0.0.1:4040/api/tunnels', json: true });\n  if (ngrokRes && ngrokRes.tunnels && ngrokRes.tunnels.length > 0) {\n    ngrokUrl = ngrokRes.tunnels[0].public_url;\n  }\n} catch(e) { console.log('Không lấy được ngrok'); }\n\nfor (const item of inputItems) {\n  let images = Array.isArray(item.json.content_images)\n    ? item.json.content_images.filter(Boolean).slice(0, 5)\n    : [];\n    \n  // Thay thế domain local thành public ngrok\n  images = images.map(img => {\n    if (ngrokUrl && img.includes('tuyensinhtest.test')) {\n      return img.replace(/http[s]?:\\/\\/tuyensinhtest\\.test/g, ngrokUrl);\n    }\n    return img;\n  });\n\n  const message = String(item.json.facebook_message || '').trim();\n\n  if (!message) throw new Error('Thiếu facebook_message.');\n  if (images.length === 0) throw new Error('Nhánh có ảnh nhưng content_images rỗng.');\n\n  if (images.length === 1) {\n    item.json.fb_response = await doRequest.call(this, {\n      method: 'POST',\n      url: 'https://graph.facebook.com/v18.0/me/photos',\n      qs: { access_token: token },\n      body: { url: images[0], message },\n      json: true,\n    });\n    continue;\n  }\n\n  const attachedMedia = [];\n  for (const imageUrl of images) {\n    const upload = await doRequest.call(this, {\n      method: 'POST',\n      url: 'https://graph.facebook.com/v18.0/me/photos',\n      qs: { access_token: token },\n      body: { url: imageUrl, published: false },\n      json: true,\n    });\n\n    if (upload?.id) attachedMedia.push({ media_fbid: upload.id });\n  }\n\n  if (attachedMedia.length === 0) {\n    throw new Error('Facebook không trả về media_fbid cho các ảnh đã tải.');\n  }\n\n  item.json.fb_response = await doRequest.call(this, {\n    method: 'POST',\n    url: 'https://graph.facebook.com/v18.0/me/feed',\n    qs: { access_token: token },\n    body: { message, attached_media: attachedMedia },\n    json: true,\n  });\n}\n\nreturn inputItems;"
+        "jsCode": "const token = $env.FB_PAGE_ACCESS_TOKEN || '';\nconst inputItems = $input.all();\n\nif (!token) throw new Error('Thiếu Facebook Page Access Token.');\n\nasync function doRequest(options) {\n    try {\n        return await this.helpers.httpRequest(options);\n    } catch (e) {\n        const fbErr = e.response && e.response.data ? JSON.stringify(e.response.data) : e.message;\n        throw new Error('Lỗi từ Facebook: ' + fbErr + ' | Payload: ' + JSON.stringify(options.body));\n    }\n}\n\n// Lấy ngrok url tự động\n// let ngrokUrl = 'https://examining-civilization-yeast-lang.trycloudflare.com';\nlet ngrokUrl = '';\ntry {\n  const ngrokRes = await this.helpers.httpRequest({ method: 'GET', url: 'http://127.0.0.1:4040/api/tunnels', json: true });\n  if (ngrokRes && ngrokRes.tunnels && ngrokRes.tunnels.length > 0) {\n    ngrokUrl = ngrokRes.tunnels[0].public_url;\n  }\n} catch(e) { console.log('Không lấy được ngrok'); }\n\nfor (const item of inputItems) {\n  let images = Array.isArray(item.json.content_images)\n    ? item.json.content_images.filter(Boolean).slice(0, 5)\n    : [];\n    \n  // Thay thế domain local thành public ngrok\n  images = images.map(img => {\n    if (ngrokUrl && img.includes('tuyensinhtest.test')) {\n      return img.replace(/http[s]?:\\/\\/tuyensinhtest\\.test/g, ngrokUrl);\n    }\n    return img;\n  });\n\n  const message = String(item.json.facebook_message || '').trim();\n\n  if (!message) throw new Error('Thiếu facebook_message.');\n  if (images.length === 0) throw new Error('Nhánh có ảnh nhưng content_images rỗng.');\n\n  if (images.length === 1) {\n    item.json.fb_response = await doRequest.call(this, {\n      method: 'POST',\n      url: 'https://graph.facebook.com/v26.0/me/photos',\n      qs: { access_token: token },\n      body: { url: images[0], message },\n      json: true,\n    });\n    continue;\n  }\n\n  const attachedMedia = [];\n  for (const imageUrl of images) {\n    const upload = await doRequest.call(this, {\n      method: 'POST',\n      url: 'https://graph.facebook.com/v26.0/me/photos',\n      qs: { access_token: token },\n      body: { url: imageUrl, published: false },\n      json: true,\n    });\n\n    if (upload?.id) attachedMedia.push({ media_fbid: upload.id });\n  }\n\n  if (attachedMedia.length === 0) {\n    throw new Error('Facebook không trả về media_fbid cho các ảnh đã tải.');\n  }\n\n  item.json.fb_response = await doRequest.call(this, {\n    method: 'POST',\n    url: 'https://graph.facebook.com/v26.0/me/feed',\n    qs: { access_token: token },\n    body: { message, attached_media: attachedMedia },\n    json: true,\n  });\n}\n\nreturn inputItems;"
       },
-      "id": "c406810c-77f5-428c-a501-69524522817a",
+      "id": "3d86fa46-dcb2-42aa-8b5e-0aa4f7a55ac7",
       "name": "Đăng FB (Có Ảnh)",
       "type": "n8n-nodes-base.code",
       "typeVersion": 1,
       "position": [
-        3568,
-        176
+        4064,
+        1056
       ],
       "notes": "Đã sửa: chuẩn hóa lại URL ảnh trước khi gọi Facebook, chặn host local và ghi image_url_used để kiểm tra."
     },
@@ -559,26 +381,26 @@
           ]
         }
       },
-      "id": "09557689-d029-45d7-9abb-60a580f26447",
+      "id": "03d51b69-6617-4627-831f-90d382d05718",
       "name": "FB Có Ảnh Không?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
       "position": [
-        3168,
-        448
+        3664,
+        1328
       ]
     },
     {
       "parameters": {
         "jsCode": "const inputItems = $input.all();\nconst source = $('Data Validator').first().json.body?.data || {};\n\nfor (const item of inputItems) {\n  const caption = String(item.json.caption || '').trim();\n  const hashtags = String(item.json.hashtags || '').trim();\n  const articleUrl = String(source.url || '').trim();\n\n  item.json.article_id = source.id || null;\n  item.json.article_title = source.title || '';\n  item.json.article_url = articleUrl;\n  item.json.content_images = Array.isArray(source.content_images) ? source.content_images : [];\n  item.json.has_images = Boolean(source.has_images);\n  item.json.facebook_message = [caption, articleUrl, hashtags]\n    .filter(Boolean)\n    .join('\\n\\n');\n}\n\nreturn inputItems;"
       },
-      "id": "7babfc34-29f3-4489-9741-8214ef89fcda",
+      "id": "541571e1-f62a-4766-80e3-a7617f3b630a",
       "name": "Prepare Payload",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2528,
-        384
+        3024,
+        1264
       ]
     },
     {
@@ -592,24 +414,24 @@
           ]
         }
       },
-      "id": "46208dfa-a28a-4963-9c13-545bb73ddbf5",
+      "id": "cbc49e37-dd8a-4de4-aabe-d24098e4d981",
       "name": "Check Approval",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
       "position": [
-        2176,
-        544
+        2672,
+        1424
       ]
     },
     {
       "parameters": {},
-      "id": "e1cb0ab9-f122-4b9b-aca6-72a82d1ee150",
+      "id": "9e55d123-03b8-49f9-8004-f7c403f09db2",
       "name": "Wait (Duyệt)",
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1,
       "position": [
-        1776,
-        608
+        2272,
+        1488
       ],
       "webhookId": "f6fb3ad6-d3be-438e-96b1-4079da57a3dc"
     },
@@ -618,13 +440,13 @@
         "text": "Có bài viết mới cần duyệt!",
         "additionalFields": {}
       },
-      "id": "1feac880-e727-4d3b-9430-48adf895e29b",
+      "id": "fb7f5618-3ce7-4076-8c84-3e4087432338",
       "name": "Telegram Approval",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1,
       "position": [
-        1376,
-        752
+        1872,
+        1632
       ],
       "webhookId": "0bb2a82d-40f8-4dc3-98fe-66ba97269f8e",
       "disabled": true
@@ -641,26 +463,26 @@
           ]
         }
       },
-      "id": "8a292428-7a00-4cc5-bb59-a30b771af772",
+      "id": "dfc3e85b-135a-4174-97bd-32a03a2e8b6d",
       "name": "IF Auto Publish?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
       "position": [
-        272,
-        640
+        736,
+        1616
       ]
     },
     {
       "parameters": {
-        "jsCode": "const inputItems = $input.all();\nconst source = $('Data Validator').first().json.body?.data || {};\n\nfunction normalize(value) {\n  return String(value || '')\n    .normalize('NFD')\n    .replace(/[\\u0300-\\u036f]/g, '')\n    .toLowerCase()\n    .replace(/đ/g, 'd')\n    .replace(/[^a-z0-9]/g, '');\n}\n\nconst normalizedSource = normalize(`${source.title || ''} ${source.plain_content || ''}`);\n\nfor (const item of inputItems) {\n  let content = item.json.choices?.[0]?.message?.content || '';\n  content = String(content)\n    .replace(/^```(?:text|markdown)?\\s*/i, '')\n    .replace(/\\s*```$/i, '')\n    .trim();\n\n  if (!content) {\n    throw new Error('OpenAI không trả về choices[0].message.content.');\n  }\n\n  // Không cho AI tự chèn URL hoặc lời dẫn đến liên kết.\n  content = content\n    .replace(/https?:\\/\\/\\S+/gi, '')\n    .replace(/(?:👉\\s*)?(?:xem\\s+chi\\s+tiết(?:\\s+tại)?|chi\\s+tiết\\s+bài\\s+viết|link)\\s*:?/giu, '')\n    .replace(/[ \\t]+\\n/g, '\\n')\n    .replace(/\\n{3,}/g, '\\n\\n')\n    .trim();\n\n  const found = content.match(/#[\\p{L}\\p{N}_]+/gu) || [];\n  const hashtags = [];\n  const seen = new Set();\n\n  for (const tag of found) {\n    const key = normalize(tag);\n    if (!key || seen.has(key)) continue;\n\n    // #CTUT được phép cố định; hashtag còn lại phải liên hệ trực tiếp với nguồn.\n    const alphaPart = key.replace(/ctut/g, '').replace(/\\d+/g, '');\n    const numberParts = key.match(/\\d+/g) || [];\n    const related = key === 'ctut'\n      || normalizedSource.includes(key)\n      || (alphaPart.length >= 4\n        && normalizedSource.includes(alphaPart)\n        && numberParts.every((number) => normalizedSource.includes(number)));\n    if (related) {\n      hashtags.push(tag);\n      seen.add(key);\n    }\n  }\n\n  if (hashtags.length < 4 || hashtags.length > 5) {\n    throw new Error(`AI tạo ${hashtags.length} hashtag hợp lệ; yêu cầu 4-5 hashtag bám sát nội dung nguồn.`);\n  }\n\n  const caption = content\n    .replace(/#[\\p{L}\\p{N}_]+/gu, '')\n    .replace(/[ \\t]+\\n/g, '\\n')\n    .replace(/\\n{3,}/g, '\\n\\n')\n    .trim();\n\n  if (!caption) throw new Error('AI không tạo phần mô tả Facebook.');\n\n  item.json.caption = caption;\n  item.json.hashtags = hashtags.slice(0, 5).join(' ');\n  item.json.text = `${caption}\\n\\n${item.json.hashtags}`;\n  item.json.ai_valid = true;\n}\n\nreturn inputItems;"
+        "jsCode": "const inputItems = $input.all();\nconst source = $('Data Validator').first().json.body?.data || {};\n\nfunction normalize(value) {\n  return String(value || '')\n    .normalize('NFD')\n    .replace(/[\\u0300-\\u036f]/g, '')\n    .toLowerCase()\n    .replace(/đ/g, 'd')\n    .replace(/[^a-z0-9]/g, '');\n}\n\nconst normalizedSource = normalize(`${source.title || ''} ${source.plain_content || ''}`);\n\nfor (const item of inputItems) {\n  let content = item.json.choices?.[0]?.message?.content || '';\n  content = String(content)\n    .replace(/^```(?:text|markdown)?\\s*/i, '')\n    .replace(/\\s*```$/i, '')\n    .trim();\n\n  if (!content) {\n    throw new Error('OpenAI không trả về choices[0].message.content.');\n  }\n\n  content = content\n    .replace(/https?:\\/\\/\\S+/gi, '')\n    .replace(/(?:👉\\s*)?(?:xem\\s+chi\\s+tiết(?:\\s+tại)?|chi\\s+tiết\\s+bài\\s+viết|link)\\s*:?/giu, '')\n    .replace(/[ \\t]+\\n/g, '\\n')\n    .replace(/\\n{3,}/g, '\\n\\n')\n    .trim();\n\n  const found = content.match(/#[\\p{L}\\p{N}_]+/gu) || [];\n  const hashtags = [];\n  const seen = new Set();\n\n  for (const tag of found) {\n    const key = normalize(tag);\n    if (!key || seen.has(key)) continue;\n    const alphaPart = key.replace(/ctut/g, '').replace(/\\d+/g, '');\n    const numberParts = key.match(/\\d+/g) || [];\n    const related = key === 'ctut'\n      || normalizedSource.includes(key)\n      || (alphaPart.length >= 4\n        && normalizedSource.includes(alphaPart)\n        && numberParts.every((number) => normalizedSource.includes(number)));\n    if (related) {\n      hashtags.push(tag);\n      seen.add(key);\n    }\n  }\n\n  if (hashtags.length < 4 || hashtags.length > 5) {\n    throw new Error(`AI tạo ${hashtags.length} hashtag hợp lệ; yêu cầu 4-5 hashtag bám sát nội dung nguồn.`);\n  }\n\n  const caption = content\n    .replace(/#[\\p{L}\\p{N}_]+/gu, '')\n    .replace(/[ \\t]+\\n/g, '\\n')\n    .replace(/\\n{3,}/g, '\\n\\n')\n    .trim();\n\n  if (!caption) throw new Error('AI không tạo phần mô tả Facebook.');\n\n  item.json.caption = caption;\n  item.json.hashtags = hashtags.slice(0, 5).join(' ');\n  item.json.text = `${caption}\\n\\n${item.json.hashtags}`;\n  item.json.ai_valid = true;\n}\n\nreturn inputItems;"
       },
-      "id": "217c33db-99ff-44fa-a701-feeb60042a48",
+      "id": "474150f9-309e-41eb-a550-fa814ff87b47",
       "name": "Extract AI JSON",
       "type": "n8n-nodes-base.code",
       "typeVersion": 1,
       "position": [
-        -144,
-        736
+        320,
+        1712
       ]
     },
     {
@@ -676,13 +498,13 @@
           "timeout": 60000
         }
       },
-      "id": "2b81e77a-02d5-4815-b33b-a0d1aeff9bb7",
+      "id": "8a6fbe90-54ab-4c51-995b-cbba0bd9f943",
       "name": "AI Content Gen",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        -352,
-        736
+        112,
+        1712
       ],
       "retryOnFail": true,
       "maxTries": 3,
@@ -714,44 +536,48 @@
             {
               "value2": "lead_became_hot",
               "output": 3
+            },
+            {
+              "value2": "run_lead_campaign",
+              "output": 3
             }
           ]
         }
       },
-      "id": "fa5f3791-c04c-429b-8a5a-ddb7f0766014",
+      "id": "184b6f37-543f-4ee7-b8ea-c4d238644492",
       "name": "Router (Switch)",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 1,
       "position": [
-        -832,
-        1248
+        -368,
+        2224
       ]
     },
     {
       "parameters": {
         "options": {}
       },
-      "id": "5cd217bd-3cef-4e17-bd05-3b727fb63be7",
+      "id": "546c1421-7932-4e97-ba72-381fbb092d3c",
       "name": "Set Metadata",
       "type": "n8n-nodes-base.set",
       "typeVersion": 2,
       "position": [
-        -1040,
-        1248
+        -576,
+        2224
       ],
       "notes": "Hiện là node truyền dữ liệu; chưa có metadata cần gán."
     },
     {
       "parameters": {
-        "jsCode": "const inputItems = $input.all();\n\nfunction decodeHtmlEntities(value) {\n  return String(value || '')\n    .replace(/&nbsp;/gi, ' ')\n    .replace(/&amp;/gi, '&')\n    .replace(/&quot;/gi, '\"')\n    .replace(/&#39;|&apos;/gi, \"'\")\n    .replace(/&lt;/gi, '<')\n    .replace(/&gt;/gi, '>');\n}\n\nfunction htmlToPlainText(value) {\n  return decodeHtmlEntities(value)\n    .replace(/<(br|\\/p|\\/div|\\/li|\\/h[1-6])\\b[^>]*>/gi, '\\n')\n    .replace(/<[^>]+>/g, ' ')\n    .replace(/[ \\t]+/g, ' ')\n    .replace(/\\n[ \\t]+/g, '\\n')\n    .replace(/\\n{3,}/g, '\\n\\n')\n    .trim();\n}\n\nfunction normalizeImageUrl(rawUrl, baseUrl) {\n  let url = String(rawUrl || '').trim();\n  if (!url || url.startsWith('data:')) return '';\n\n  if (url.includes(',')) url = url.split(',')[0].trim();\n  url = url.split(/\\s+/)[0];\n\n  try {\n    let parsedUrl = new URL(url, baseUrl || undefined);\n    \n    if (['tuyensinhtest.test', 'localhost', '127.0.0.1'].includes(parsedUrl.hostname)) {\n        if (baseUrl) {\n            let baseParsed = new URL(baseUrl);\n            parsedUrl.protocol = baseParsed.protocol;\n            parsedUrl.hostname = baseParsed.hostname;\n            parsedUrl.port = baseParsed.port;\n        }\n    }\n    return parsedUrl.href;\n  } catch (error) {\n    return url;\n  }\n}\n\nfor (const item of inputItems) {\n  const body = item.json.body;\n  if (!body || typeof body !== 'object') {\n    throw new Error('Webhook thiếu body JSON.');\n  }\n\n  if (!body.event_type) {\n    throw new Error('Webhook thiếu body.event_type.');\n  }\n\n  // Sự kiện lead_became_hot chỉ cần sender_id + message, không cần xử lý HTML/ảnh như bài viết\n  // → bỏ qua toàn bộ phần validate/xử lý nội dung bên dưới, giữ nguyên item để đi tiếp\n  if (body.event_type === 'lead_became_hot') {\n    continue;\n  }\n\n  if (!body.data || typeof body.data !== 'object') {\n    throw new Error('Webhook thiếu body.data.');\n  }\n\n  const d = body.data;\n  const htmlContent = d.content || d.noidung || '';\n  const fallbackPlainContent = htmlToPlainText(htmlContent);\n  d.title = String(d.title || '').trim();\n  d.plain_content = String(d.plain_content || fallbackPlainContent)\n    .replace(/\\r\\n/g, '\\n')\n    .replace(/[ \\t]+/g, ' ')\n    .replace(/\\n[ \\t]+/g, '\\n')\n    .replace(/\\n{3,}/g, '\\n\\n')\n    .trim();\n\n  if (body.event_type === 'new_article') {\n    if (!d.title) throw new Error('Bài viết thiếu body.data.title.');\n    if (!d.plain_content) {\n      throw new Error('Bài viết thiếu body.data.plain_content và không thể tạo lại từ content.');\n    }\n  }\n\n  d.auto_publish = [1, true, '1', 'true'].includes(d.auto_publish) ? 1 : 0;\n\n  const baseUrl = d.url || d.thumbnail || '';\n  const images = [];\n  const imageRegex = /<(?:img|source)\\b[^>]*\\b(?:src|data-src|data-original|srcset)=[\"']([^\"']+)[\"']/gi;\n  let match;\n\n  while ((match = imageRegex.exec(String(htmlContent))) !== null) {\n    const normalized = normalizeImageUrl(match[1], baseUrl);\n    if (normalized && !images.includes(normalized)) images.push(normalized);\n  }\n\n  if (images.length === 0 && d.thumbnail) {\n    const thumbnail = normalizeImageUrl(d.thumbnail, baseUrl);\n    if (thumbnail) images.push(thumbnail);\n  }\n\n  d.content_images = images;\n  d.has_images = images.length > 0;\n  d.validation = {\n    plain_content_length: d.plain_content.length,\n    image_count: images.length,\n  };\n}\n\nreturn inputItems;"
+        "jsCode": "const inputItems = $input.all();\n\nfunction decodeHtmlEntities(value) {\n  return String(value || '')\n    .replace(/&nbsp;/gi, ' ')\n    .replace(/&amp;/gi, '&')\n    .replace(/&quot;/gi, '\"')\n    .replace(/&#39;|&apos;/gi, \"'\")\n    .replace(/&lt;/gi, '<')\n    .replace(/&gt;/gi, '>');\n}\n\nfunction htmlToPlainText(value) {\n  return decodeHtmlEntities(value)\n    .replace(/<(br|\\/p|\\/div|\\/li|\\/h[1-6])\\b[^>]*>/gi, '\\n')\n    .replace(/<[^>]+>/g, ' ')\n    .replace(/[ \\t]+/g, ' ')\n    .replace(/\\n[ \\t]+/g, '\\n')\n    .replace(/\\n{3,}/g, '\\n\\n')\n    .trim();\n}\n\nfunction normalizeImageUrl(rawUrl, baseUrl) {\n  let url = String(rawUrl || '').trim();\n  if (!url || url.startsWith('data:')) return '';\n\n  if (url.includes(',')) url = url.split(',')[0].trim();\n  url = url.split(/\\s+/)[0];\n\n  try {\n    let parsedUrl = new URL(url, baseUrl || undefined);\n    \n    if (['tuyensinhtest.test', 'localhost', '127.0.0.1'].includes(parsedUrl.hostname)) {\n        if (baseUrl) {\n            let baseParsed = new URL(baseUrl);\n            parsedUrl.protocol = baseParsed.protocol;\n            parsedUrl.hostname = baseParsed.hostname;\n            parsedUrl.port = baseParsed.port;\n        }\n    }\n    return parsedUrl.href;\n  } catch (error) {\n    return url;\n  }\n}\n\nfor (const item of inputItems) {\n  const body = item.json.body;\n  if (!body || typeof body !== 'object') {\n    throw new Error('Webhook thiếu body JSON.');\n  }\n\n  if (!body.event_type) {\n    throw new Error('Webhook thiếu body.event_type.');\n  }\n\n  if (body.event_type === 'lead_became_hot') {\n    if (!body.data || typeof body.data !== 'object') throw new Error('lead_became_hot thiếu body.data.');\n    if (!String(body.data.sender_id || '').trim()) throw new Error('lead_became_hot thiếu body.data.sender_id.');\n    if (!String(body.data.message || '').trim()) throw new Error('lead_became_hot thiếu body.data.message.');\n    continue;\n  }\n\n  if (body.event_type === 'run_lead_campaign') {\n    if (!body.data || typeof body.data !== 'object') throw new Error('run_lead_campaign thiếu body.data.');\n    if (!Array.isArray(body.data.recipients) || body.data.recipients.length === 0) throw new Error('run_lead_campaign không có danh sách recipients.');\n    if (!String(body.data.message || '').trim()) throw new Error('run_lead_campaign thiếu body.data.message.');\n    continue;\n  }\n\n  if (!body.data || typeof body.data !== 'object') throw new Error('Webhook thiếu body.data.');\n\n  const d = body.data;\n  const htmlContent = d.content || d.noidung || '';\n  const fallbackPlainContent = htmlToPlainText(htmlContent);\n  d.title = String(d.title || '').trim();\n  d.plain_content = String(d.plain_content || fallbackPlainContent)\n    .replace(/\\r\\n/g, '\\n')\n    .replace(/[ \\t]+/g, ' ')\n    .replace(/\\n[ \\t]+/g, '\\n')\n    .replace(/\\n{3,}/g, '\\n\\n')\n    .trim();\n\n  if (body.event_type === 'new_article') {\n    if (!d.title) throw new Error('Bài viết thiếu body.data.title.');\n    if (!d.plain_content) throw new Error('Bài viết thiếu body.data.plain_content và không thể tạo lại từ content.');\n  }\n\n  d.auto_publish = [1, true, '1', 'true'].includes(d.auto_publish) ? 1 : 0;\n\n  const baseUrl = d.url || d.thumbnail || '';\n  const images = [];\n  const imageRegex = /<(?:img|source)\\b[^>]*\\b(?:src|data-src|data-original|srcset)=[\"']([^\"']+)[\"']/gi;\n  let match;\n\n  while ((match = imageRegex.exec(String(htmlContent))) !== null) {\n    const normalized = normalizeImageUrl(match[1], baseUrl);\n    if (normalized && !images.includes(normalized)) images.push(normalized);\n  }\n\n  if (images.length === 0 && d.thumbnail) {\n    const thumbnail = normalizeImageUrl(d.thumbnail, baseUrl);\n    if (thumbnail) images.push(thumbnail);\n  }\n\n  d.content_images = images;\n  d.has_images = images.length > 0;\n  d.validation = { plain_content_length: d.plain_content.length, image_count: images.length };\n}\n\nreturn inputItems;"
       },
-      "id": "f003714e-8743-4f1f-a59f-db72f67d8b79",
+      "id": "834a5f89-81e4-4f1c-853f-b6ec8558853b",
       "name": "Data Validator",
       "type": "n8n-nodes-base.code",
       "typeVersion": 1,
       "position": [
-        -1248,
-        1248
+        -784,
+        2224
       ],
       "notes": "Đã sửa: đổi URL ảnh local sang domain công khai, chuẩn hóa URL bài viết/thumbnail và ghi validation.first_image."
     },
@@ -759,15 +585,16 @@
       "parameters": {
         "httpMethod": "POST",
         "path": "master-receiver",
+        "responseMode": "responseNode",
         "options": {}
       },
-      "id": "e2d2132f-f7e8-4d63-8e58-52390ae36b97",
+      "id": "43113c2d-1264-43a7-9598-8b536e620b74",
       "name": "Master Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 1,
       "position": [
-        -1440,
-        1248
+        -976,
+        2224
       ],
       "webhookId": "master-receiver"
     },
@@ -777,27 +604,27 @@
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "794170f1-4377-41c9-96cf-09973b20a983",
+      "id": "d6c1a3c4-fd82-4136-928e-27859b0524d3",
       "name": "Facebook Messenger Verify",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 1,
       "position": [
-        -1456,
-        1968
+        -992,
+        2944
       ],
       "webhookId": "facebook-messenger-get"
     },
     {
       "parameters": {
-        "jsCode": "const query = $input.first().json.query || {};                                                                                          \n                                                                                                                                            \n    // Lấy tham số (n8n tự động đổi dấu chấm thành gạch dưới)                                                                               \n    const mode = query.hub_mode || query['hub.mode'];                                                                                       \n    const verifyToken = query.hub_verify_token || query['hub.verify_token'];                                                                \n    const challenge = query.hub_challenge || query['hub.challenge'];                                                                        \n                                                                                                                                            \n    // Chốt cứng token luôn, không dùng biến môi trường $env nữa                                                                            \n    const expectedToken = 'ctut';                                                                                                           \n                                                                                                                                            \n    if (mode === 'subscribe' && verifyToken === expectedToken && challenge) {                                                               \n        return [                                                                                                                            \n            {                                                                                                                               \n                json: {                                                                                                                     \n                    statusCode: 200,                                                                                                        \n                    responseBody: challenge.toString(),                                                                                     \n                },                                                                                                                          \n            },                                                                                                                              \n        ];                                                                                                                                  \n    }                                                                                                                                       \n                                                                                                                                            \n    return [                                                                                                                                \n        {                                                                                                                                   \n            json: {                                                                                                                         \n                statusCode: 403,                                                                                                            \n                responseBody: 'Invalid verify token',                                                                                       \n            },                                                                                                                              \n        },                                                                                                                                  \n    ];   "
+        "jsCode": "const query = $input.first().json.query || {};\nconst mode = query.hub_mode || query['hub.mode'];\nconst verifyToken = query.hub_verify_token || query['hub.verify_token'];\nconst challenge = query.hub_challenge || query['hub.challenge'];\nconst expectedToken = 'ctut';\nif (mode === 'subscribe' && verifyToken === expectedToken && challenge) {\n  return [{ json: { statusCode: 200, responseBody: challenge.toString() } }];\n}\nreturn [{ json: { statusCode: 403, responseBody: 'Invalid verify token' } }];"
       },
-      "id": "6691b1a3-ec57-4547-b8f9-1afa4b5f79b3",
+      "id": "f91eeb77-fbe8-4372-a1b2-af28ee2618c1",
       "name": "Verify Facebook Token",
       "type": "n8n-nodes-base.code",
       "typeVersion": 1,
       "position": [
-        -1264,
-        1968
+        -800,
+        2944
       ]
     },
     {
@@ -808,13 +635,13 @@
           "responseCode": "={{ $json.statusCode }}"
         }
       },
-      "id": "d2941a4e-ad01-4c21-981c-3c625a9b3a87",
+      "id": "80425250-d0ac-4039-85cb-5fe78a64f365",
       "name": "Respond to Webhook FB",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
       "position": [
-        -1024,
-        1968
+        -560,
+        2944
       ]
     },
     {
@@ -823,87 +650,57 @@
         "path": "facebook-messenger",
         "options": {}
       },
-      "id": "e0895bb5-8a18-4d24-94cb-6ae93d7f724f",
+      "id": "a69a2391-d144-4c97-9a97-35089babb03c",
       "name": "Facebook Messenger Events",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 1,
       "position": [
-        -1440,
-        1680
+        -976,
+        2656
       ],
       "webhookId": "facebook-messenger-post"
     },
     {
       "parameters": {
-        "jsCode": "const body = $input.first().json.body || {};\n\nlet text = '';\nlet senderId = '';\nlet senderName = '';\nlet interaction_type = 'chat';\nlet is_comment = false;\nlet comment_id = '';\nlet post_id = '';\n\nif (body.entry && body.entry[0]) {\n    let entry = body.entry[0];\n    \n    // Check for messages (Tin nhắn Messenger)\n    if (entry.messaging && entry.messaging[0]) {\n        let msg = entry.messaging[0];\n        text = msg.message ? msg.message.text : '';\n        senderId = msg.sender ? msg.sender.id : '';\n        interaction_type = 'chat';\n    } \n    // Check for feed (Bình luận, Thích, Chia sẻ)\n    else if (entry.changes && entry.changes[0]) {\n        let change = entry.changes[0];\n        \n        // CHỈ XỬ LÝ khi hành động là THÊM (add) (Bỏ qua xóa/edit để tránh lỗi)\n        if (change.field === 'feed' && change.value && change.value.verb === 'add') {\n            let itemType = change.value.item;\n            \n            if (itemType === 'comment') {\n                interaction_type = 'comment';\n                text = change.value.message || '';\n                is_comment = true;\n            } else if (itemType === 'like' || itemType === 'reaction') {\n                interaction_type = 'like';\n            } else if (itemType === 'share') {\n                interaction_type = 'share';\n            }\n            \n            // Lấy thông tin người gửi\n            senderId = change.value.from ? change.value.from.id : '';\n            senderName = change.value.from ? change.value.from.name : '';\n            comment_id = change.value.comment_id || '';\n            post_id = change.value.post_id || '';\n        }\n    }\n}\n\nreturn [\n    {\n        json: {\n            body: {\n                event_type: 'incoming_message',\n                data: {\n                    message: text,\n                    sender_id: senderId,\n                    sender_name: senderName,\n                    is_comment: is_comment,\n                    interaction_type: interaction_type,\n                    comment_id: comment_id,\n                    post_id: post_id,\n                    raw_fb: body\n                }\n            }\n        }\n    }\n];"
+        "jsCode": "const body = $input.first().json.body || {};\n\nlet text = '';\nlet senderId = '';\nlet senderName = '';\nlet interactionType = 'chat';\nlet isComment = false;\nlet commentId = '';\nlet postId = '';\n\nif (body.entry && body.entry[0]) {\n  const entry = body.entry[0];\n\n  if (entry.messaging && entry.messaging[0]) {\n    const event = entry.messaging[0];\n\n    text = event.message ? event.message.text || '' : '';\n    senderId = event.sender ? event.sender.id || '' : '';\n    interactionType = 'chat';\n  } else if (entry.changes && entry.changes[0]) {\n    const change = entry.changes[0];\n    const value = change.value || {};\n\n    if (\n      change.field === 'feed'\n      && value.verb === 'add'\n    ) {\n      if (value.item === 'comment') {\n        interactionType = 'comment';\n        text = value.message || '';\n        isComment = true;\n      } else if (\n        value.item === 'like'\n        || value.item === 'reaction'\n      ) {\n        interactionType = 'like';\n      } else if (value.item === 'share') {\n        interactionType = 'share';\n      }\n\n      senderId = value.from ? value.from.id || '' : '';\n      senderName = value.from ? value.from.name || '' : '';\n      commentId = String(value.comment_id || '').trim();\n      postId = String(value.post_id || '').trim();\n    }\n  }\n}\n\nreturn [\n  {\n    json: {\n      body: {\n        event_type: 'incoming_message',\n        data: {\n          message: text,\n          sender_id: senderId,\n          sender_name: senderName,\n          is_comment: isComment,\n          interaction_type: interactionType,\n          comment_id: commentId,\n          post_id: postId,\n          raw_fb: body\n        }\n      }\n    }\n  }\n];"
       },
-      "id": "64c58f9e-d889-4518-97b3-116836b492ee",
+      "id": "a00c8d37-f717-4cc6-b547-27ec2cb13610",
       "name": "Transform FB Message",
       "type": "n8n-nodes-base.code",
       "typeVersion": 1,
       "position": [
-        -1136,
-        1680
+        -672,
+        2656
       ]
     },
     {
       "parameters": {
-        "jsCode": "const items = $input.all();\nconst token = $env.FB_MESSENGER_TOKEN || '';\nif (!token) {\n  throw new Error('Thiếu FB_MESSENGER_TOKEN trong môi trường chạy n8n.');\n}\n\nconst transformNode = $('Transform FB Message').first();\n\nfor (const item of items) {\n  const originalData = transformNode ? transformNode.json.body?.data : {};\n  const comment_id = originalData?.comment_id || '';\n  \n  const messageText = item.json.message || item.json.body?.data?.message || 'Xin lỗi, hệ thống đang bận.';\n\n  if (!comment_id) {\n    item.json.fb_error = 'Thiếu comment_id để gửi trả lời.';\n    continue;\n  }\n\n  try {\n    const response = await this.helpers.httpRequest({\n      method: 'POST',\n      url: 'https://graph.facebook.com/v18.0/' + comment_id + '/comments',\n      qs: { access_token: token },\n      body: {\n        message: messageText\n      },\n      json: true\n    });\n    item.json.fb_reply_response = response;\n  } catch (err) {\n    item.json.fb_reply_error = err.message;\n  }\n}\n\nreturn items;"
+        "jsCode": "const items = $input.all();\nconst token = $env.FB_MESSENGER_TOKEN || '';\nif (!token) throw new Error('Thiếu FB_MESSENGER_TOKEN trong môi trường chạy n8n.');\nconst transformNode = $('Transform FB Message').first();\nfor (const item of items) {\n  const originalData = transformNode ? transformNode.json.body?.data : {};\n  const comment_id = originalData?.comment_id || '';\n  const messageText = item.json.message || item.json.body?.data?.message || 'Xin lỗi, hệ thống đang bận.';\n  if (!comment_id) { item.json.fb_error = 'Thiếu comment_id để gửi trả lời.'; continue; }\n  try {\n    const response = await this.helpers.httpRequest({ method: 'POST', url: 'https://graph.facebook.com/v26.0/' + comment_id + '/comments', qs: { access_token: token }, body: { message: messageText }, json: true });\n    item.json.fb_reply_response = response;\n  } catch (err) { item.json.fb_reply_error = err.message; }\n}\nreturn items;"
       },
-      "id": "a980ba5b-5eef-4a0b-aee4-e0aee9ef256a",
+      "id": "42f3127d-d437-461f-8beb-27c7cee6b678",
       "name": "FB Comment Reply",
       "type": "n8n-nodes-base.code",
       "typeVersion": 1,
       "position": [
-        1440,
-        1616
-      ]
-    },
-    {
-      "parameters": {
-        "httpMethod": "POST",
-        "path": "nurture-leads",
-        "options": {}
-      },
-      "id": "2f76181f-ed26-495c-a301-be9d2a51b90e",
-      "name": "Webhook Nurture Laravel",
-      "type": "n8n-nodes-base.webhook",
-      "typeVersion": 1,
-      "position": [
-        -1408,
-        80
-      ],
-      "webhookId": "nurture-leads"
-    },
-    {
-      "parameters": {
-        "fieldToSplitOut": "body.data",
-        "options": {}
-      },
-      "id": "0f456043-6a49-430f-9277-835164c2b5e1",
-      "name": "Tách danh sách khách hàng",
-      "type": "n8n-nodes-base.itemLists",
-      "typeVersion": 2,
-      "position": [
-        -1152,
-        80
+        1936,
+        2496
       ]
     },
     {
       "parameters": {
         "fromEmail": "huynhdangkhoa3344@gmail.com",
-        "toEmail": "={{ $('Tách danh sách khách hàng').item.json.email }}",
-        "subject": "=[CTUT] Chào {{ $('Tách danh sách khách hàng').item.json.full_name }}, bạn có bỏ lỡ cơ hội?",
-        "html": "=<p>{{ $json.text }}</p>",
+        "toEmail": "={{ $('Chuẩn hóa người nhận chiến dịch').item.json.email }}",
+        "subject": "={{ $('Chuẩn hóa người nhận chiến dịch').item.json.subject }}",
+        "html": "={{ '<p>' + String($json.text || $('Chuẩn hóa người nhận chiến dịch').item.json.message || '').replace(/\\n/g, '<br>') + '</p>' }}",
         "options": {}
       },
-      "id": "7b4f93f1-f135-4060-917c-a78b1338c680",
-      "name": "Gửi Email (Gmail/SMTP)",
+      "id": "bc920d3b-8378-4b81-b86c-cd40b9548523",
+      "name": "Gửi Email Chiến Dịch",
       "type": "n8n-nodes-base.emailSend",
       "typeVersion": 2.1,
       "position": [
-        -560,
-        96
+        1024,
+        2464
       ],
       "webhookId": "a361eb22-a8cf-4fbe-905b-2d5405bc0bf1",
       "credentials": {
@@ -911,22 +708,24 @@
           "id": "8De94I3Ck8tAc0IN",
           "name": "SMTP account"
         }
-      }
+      },
+      "notes": "Gửi Email cho item channel=email. Nội dung được LLM viết lại từ thông tin admin nhập."
     },
     {
       "parameters": {
         "promptType": "define",
-        "text": "=Bạn là chuyên viên tư vấn tuyển sinh tại CTUT.\nHãy viết 1 đoạn email ngắn gọn (không quá 3 câu) thật thân thiện để hối thúc thí sinh {{ $json.full_name }} nhanh chóng hoàn tất hồ sơ đăng ký vào ngành {{ $json.intended_major }}.\nGhi chú: Giọng văn lôi cuốn, tạo cảm giác khan hiếm chỉ tiêu.",
+        "text": "=Bạn là chuyên viên tư vấn tuyển sinh CTUT.\nHãy viết lại nội dung Email ngắn gọn, thân thiện, tối đa 4 câu.\nPhải giữ nguyên ý và dữ kiện do Admin cung cấp; không tự tạo ưu đãi, thời hạn, chỉ tiêu hoặc số liệu mới.\n\nNgười nhận: {{ $json.full_name || 'bạn' }}\nNgành quan tâm: {{ $json.intended_major || 'chưa xác định' }}\nĐiểm Lead: {{ $json.score }}\nNội dung gốc của Admin:\n{{ $json.message }}",
         "batching": {}
       },
-      "id": "954e082a-5c6e-41c3-9d1f-00d8dd74de68",
+      "id": "d6f35add-2f12-430b-a6d6-076e6289c649",
       "name": "Basic LLM Chain Nurture",
       "type": "@n8n/n8n-nodes-langchain.chainLlm",
       "typeVersion": 1.9,
       "position": [
-        -912,
-        80
-      ]
+        512,
+        2416
+      ],
+      "notes": "Chỉ cá nhân hóa Email từ nội dung Admin nhập; không dùng cho Messenger."
     },
     {
       "parameters": {
@@ -939,13 +738,13 @@
         "builtInTools": {},
         "options": {}
       },
-      "id": "df0eb9e7-40c5-4c78-873e-0e68225c4b63",
+      "id": "dfd8b152-dc61-4057-93f8-64786bfd0242",
       "name": "OpenAI Chat Model Nurture",
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1.3,
       "position": [
-        -960,
-        288
+        624,
+        2720
       ],
       "credentials": {
         "openAiApi": {
@@ -979,7 +778,7 @@
             },
             {
               "name": "ai_answer",
-              "value": "=={{$json.data.answer }}"
+              "value": "={{ $json.data.answer }}"
             },
             {
               "name": "channel",
@@ -989,14 +788,15 @@
         },
         "options": {}
       },
-      "id": "fa087f70-2b03-498c-bc6d-c06570bcff00",
+      "id": "2509209d-fd0a-4c98-a09e-46f22f645519",
       "name": "Đẩy vào Hàng Chờ Duyệt",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
       "position": [
-        -672,
-        672
-      ]
+        -208,
+        1648
+      ],
+      "notes": "Nhận câu trả lời RAG và tạo AiApproval pending."
     },
     {
       "parameters": {
@@ -1004,13 +804,13 @@
         "path": "send-approved-email",
         "options": {}
       },
-      "id": "cc971383-617a-4bc0-a0fe-f861b925e71a",
+      "id": "5b7871d7-23e0-4b2a-ad47-55890c8fc5dd",
       "name": "Webhook Gửi Email (Duyệt)",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 1,
       "position": [
-        -320,
-        96
+        144,
+        1072
       ],
       "webhookId": "b65cce81-da6a-49e7-8f15-2cd4881d1b62"
     },
@@ -1022,13 +822,13 @@
         "text": "={{ $json.body.data.body }}",
         "options": {}
       },
-      "id": "ad88dbb8-b41e-4a38-be27-566aa9b7150b",
+      "id": "2049ccf9-325c-4600-a04c-79125e21c3a5",
       "name": "Gửi Email Khách Hàng (Đã Duyệt)",
       "type": "n8n-nodes-base.emailSend",
       "typeVersion": 2,
       "position": [
-        -16,
-        32
+        448,
+        1008
       ],
       "webhookId": "23ea9bd9-22ee-46eb-a49e-210b03a5a7fa",
       "credentials": {
@@ -1041,29 +841,30 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "http://tuyensinhtest.test/api/n8n/rag/answer ",
+        "url": "http://tuyensinhtest.test/api/n8n/rag/answer",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
-              "name": "X-N8N-Token ",
-              "value": "your_secret_token_here  "
+              "name": "X-N8N-Token",
+              "value": "your_secret_token_here"
             }
           ]
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={                                                                                                                                       \n      \"question\": \"{{ $('Master Webhook').item.json.body.data.question }}\"                                                                  \n    } ",
+        "jsonBody": "={ \"question\": \"{{ $('Master Webhook').item.json.body.data.question }}\" }",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
       "position": [
-        -752,
-        976
+        -288,
+        1952
       ],
-      "id": "022b2b39-f545-4d29-97ef-97fa5c0a1321",
-      "name": "HTTP Request"
+      "id": "8d4b2133-5027-4850-a737-b93f15b8769d",
+      "name": "HTTP Request",
+      "notes": "Nhánh new_lead: gọi Laravel RAG để tạo bản trả lời nháp. Đã bỏ khoảng trắng thừa trong URL/Header."
     },
     {
       "parameters": {
@@ -1073,13 +874,13 @@
         "html": "=<h3>Bài viết chuẩn bị đăng lên Facebook</h3><p><b>Tiêu đề:</b> {{ $('Data Validator').item.json.body.data.title }}</p><p><b>Chuyên mục:</b> {{ $('Data Validator').item.json.body.data.category }}</p><p><b>URL bài viết:</b> {{ $('Data Validator').item.json.body.data.url }}</p><p><b>Chế độ:</b> {{ $('Data Validator').item.json.body.data.auto_publish == 1 ? 'Tự động đăng (AI duyệt)' : 'Chờ duyệt tay qua Telegram' }}</p><p><b>Caption AI sinh ra:</b><br>{{ $json.caption }}</p><p><b>Hashtag:</b> {{ $json.hashtags }}</p><p><b>Ảnh đính kèm:</b> {{ JSON.stringify($('Data Validator').item.json.body.data.content_images || []) }}</p><p><i>Email này chỉ để lưu vết đối chiếu sau này nếu có sai sót, không cần phản hồi.</i></p>",
         "options": {}
       },
-      "id": "ff613d5c-8345-4dd5-b647-b78c55efaa95",
+      "id": "9bdcb611-a600-4fac-93b4-95dec50ebc7b",
       "name": "Gửi Email Lưu Vết (Trước Khi Đăng)",
       "type": "n8n-nodes-base.emailSend",
       "typeVersion": 2.1,
       "position": [
-        64,
-        688
+        528,
+        1664
       ],
       "webhookId": "81150ee5-e229-4d4d-9691-c28e6266f714",
       "credentials": {
@@ -1097,18 +898,18 @@
         "nodeCredentialType": "openAiApi",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ {\n  model: 'gpt-4o',\n  messages: [\n    { role: 'system', content: 'Bạn là kiểm duyệt viên vòng 1. Nhiệm vụ: liệt kê từng chi tiết cụ thể xuất hiện trong CAPTION (tên riêng, ngày tháng, số liệu, tên tổ chức), sau đó kiểm tra xem TỪNG chi tiết đó có xuất hiện trong NGUỒN không. Ngoại lệ bắt buộc: tên/hashtag \"CTUT\" hoặc \"Trường Đại học Kỹ thuật - Công nghệ Cần Thơ\" LUÔN được coi là hợp lệ dù không xuất hiện nguyên văn trong NGUỒN, vì đây là tên đơn vị đăng bài, không tính là bịa đặt. Chỉ đánh approved=false nếu có ít nhất 1 chi tiết KHÁC (không phải CTUT) KHÔNG tìm thấy trong nguồn (tức bịa đặt) hoặc vi phạm chính sách quảng cáo giáo dục. Không đánh false vì lý do văn phong ngắn gọn, thiếu chi tiết phụ, hay diễn đạt khác nguồn — chỉ quan tâm có bịa hay không. Chỉ trả JSON: {\\\"approved\\\": true/false, \\\"reason\\\": \\\"...\\\"}.' },\n    { role: 'user', content: 'NGUỒN:\\n' + String($('Data Validator').item.json.body.data.plain_content || '').slice(0, 6000) + '\\n\\nCAPTION AI SINH RA:\\n' + $('Extract AI JSON').item.json.caption + '\\n' + $('Extract AI JSON').item.json.hashtags }\n  ],\n  temperature: 0,\n  max_tokens: 300,\n  response_format: { type: 'json_object' }\n} }}",
+        "jsonBody": "={{ {\n  model: 'gpt-4o',\n  messages: [\n    { role: 'system', content: 'Bạn là kiểm duyệt viên vòng 1. Nhiệm vụ: liệt kê từng chi tiết cụ thể xuất hiện trong CAPTION (tên riêng, ngày tháng, số liệu, tên tổ chức), sau đó kiểm tra xem TỪNG chi tiết đó có xuất hiện trong NGUỒN không. Ngoại lệ bắt buộc: tên/hashtag \\\"CTUT\\\" hoặc \\\"Trường Đại học Kỹ thuật - Công nghệ Cần Thơ\\\" LUÔN được coi là hợp lệ dù không xuất hiện nguyên văn trong NGUỒN, vì đây là tên đơn vị đăng bài, không tính là bịa đặt. Chỉ đánh approved=false nếu có ít nhất 1 chi tiết KHÁC (không phải CTUT) KHÔNG tìm thấy trong nguồn (tức bịa đặt) hoặc vi phạm chính sách quảng cáo giáo dục. Không đánh false vì lý do văn phong ngắn gọn, thiếu chi tiết phụ, hay diễn đạt khác nguồn — chỉ quan tâm có bịa hay không. Chỉ trả JSON: {\\\"approved\\\": true/false, \\\"reason\\\": \\\"...\\\"}.' },\n    { role: 'user', content: 'NGUỒN:\\n' + String($('Data Validator').item.json.body.data.plain_content || '').slice(0, 6000) + '\\n\\nCAPTION AI SINH RA:\\n' + $('Extract AI JSON').item.json.caption + '\\n' + $('Extract AI JSON').item.json.hashtags }\n  ],\n  temperature: 0,\n  max_tokens: 300,\n  response_format: { type: 'json_object' }\n} }}",
         "options": {
           "timeout": 30000
         }
       },
-      "id": "966aed06-5dcb-408e-9fa8-f63a6de1bc87",
+      "id": "6f71d647-9f97-4fb2-bb1e-6c80d214c1bd",
       "name": "AI Duyệt Vòng 1 (Kiểm Tra Sự Thật)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        432,
-        288
+        896,
+        1264
       ],
       "credentials": {
         "openAiApi": {
@@ -1125,18 +926,18 @@
         "nodeCredentialType": "openAiApi",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ {\n  model: 'gpt-4o',\n  messages: [\n    { role: 'system', content: 'Bạn là kiểm duyệt viên vòng 1. Nhiệm vụ: liệt kê từng chi tiết cụ thể xuất hiện trong CAPTION (tên riêng, ngày tháng, số liệu, tên tổ chức), sau đó kiểm tra xem TỪNG chi tiết đó có xuất hiện trong NGUỒN không. Ngoại lệ bắt buộc: tên/hashtag \"CTUT\" hoặc \"Trường Đại học Kỹ thuật - Công nghệ Cần Thơ\" LUÔN được coi là hợp lệ dù không xuất hiện nguyên văn trong NGUỒN, vì đây là tên đơn vị đăng bài, không tính là bịa đặt. Chỉ đánh approved=false nếu có ít nhất 1 chi tiết KHÁC (không phải CTUT) KHÔNG tìm thấy trong nguồn (tức bịa đặt) hoặc vi phạm chính sách quảng cáo giáo dục. Không đánh false vì lý do văn phong ngắn gọn, thiếu chi tiết phụ, hay diễn đạt khác nguồn — chỉ quan tâm có bịa hay không. Chỉ trả JSON: {\\\"approved\\\": true/false, \\\"reason\\\": \\\"...\\\"}.' },\n    { role: 'user', content: 'NGUỒN:\\n' + String($('Data Validator').item.json.body.data.plain_content || '').slice(0, 6000) + '\\n\\nCAPTION AI SINH RA:\\n' + $('Extract AI JSON').item.json.caption + '\\n' + $('Extract AI JSON').item.json.hashtags }\n  ],\n  temperature: 0,\n  max_tokens: 300,\n  response_format: { type: 'json_object' }\n} }}",
+        "jsonBody": "={{ {\n  model: 'gpt-4o',\n  messages: [\n    { role: 'system', content: 'Bạn là kiểm duyệt viên vòng 1. Nhiệm vụ: liệt kê từng chi tiết cụ thể xuất hiện trong CAPTION (tên riêng, ngày tháng, số liệu, tên tổ chức), sau đó kiểm tra xem TỪNG chi tiết đó có xuất hiện trong NGUỒN không. Ngoại lệ bắt buộc: tên/hashtag \\\"CTUT\\\" hoặc \\\"Trường Đại học Kỹ thuật - Công nghệ Cần Thơ\\\" LUÔN được coi là hợp lệ dù không xuất hiện nguyên văn trong NGUỒN, vì đây là tên đơn vị đăng bài, không tính là bịa đặt. Chỉ đánh approved=false nếu có ít nhất 1 chi tiết KHÁC (không phải CTUT) KHÔNG tìm thấy trong nguồn (tức bịa đặt) hoặc vi phạm chính sách quảng cáo giáo dục. Không đánh false vì lý do văn phong ngắn gọn, thiếu chi tiết phụ, hay diễn đạt khác nguồn — chỉ quan tâm có bịa hay không. Chỉ trả JSON: {\\\"approved\\\": true/false, \\\"reason\\\": \\\"...\\\"}.' },\n    { role: 'user', content: 'NGUỒN:\\n' + String($('Data Validator').item.json.body.data.plain_content || '').slice(0, 6000) + '\\n\\nCAPTION AI SINH RA:\\n' + $('Extract AI JSON').item.json.caption + '\\n' + $('Extract AI JSON').item.json.hashtags }\n  ],\n  temperature: 0,\n  max_tokens: 300,\n  response_format: { type: 'json_object' }\n} }}",
         "options": {
           "timeout": 30000
         }
       },
-      "id": "42ba874c-9179-4763-a888-416733b3fc62",
+      "id": "aaaa899d-6544-4b8c-9b6b-3e5e4c9ee262",
       "name": "AI Duyệt Vòng 2 (Kiểm Tra Thương Hiệu)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        704,
-        96
+        1168,
+        1072
       ],
       "credentials": {
         "openAiApi": {
@@ -1149,13 +950,13 @@
       "parameters": {
         "jsCode": "const source = $('Extract AI JSON').item.json;\nconst r1 = JSON.parse($('AI Duyệt Vòng 1 (Kiểm Tra Sự Thật)').item.json.choices[0].message.content);\nconst r2 = JSON.parse($('AI Duyệt Vòng 2 (Kiểm Tra Thương Hiệu)').item.json.choices[0].message.content);\nconst isApprove1 = r1.approved === true || String(r1.approved).toLowerCase() === 'true';\nconst isApprove2 = r2.approved === true || String(r2.approved).toLowerCase() === 'true';\nconst approved = isApprove1 && isApprove2;\nreturn [{ json: { ...source, ai_review: { round1: r1, round2: r2, approved } } }];"
       },
-      "id": "8543a31f-11ae-44ff-ba7a-90584fd94b4f",
+      "id": "c946c119-e682-4c4d-b3f9-1e609bde8b46",
       "name": "Tổng Hợp Kết Quả Duyệt AI",
       "type": "n8n-nodes-base.code",
       "typeVersion": 1,
       "position": [
-        1008,
-        224
+        1472,
+        1200
       ]
     },
     {
@@ -1169,13 +970,13 @@
           ]
         }
       },
-      "id": "45331a24-cb47-4f62-acaa-cfc15060418b",
+      "id": "5941bf5a-20d3-4101-a0aa-9e8df6d78a2e",
       "name": "AI Tự Duyệt Đạt?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
       "position": [
-        1296,
-        384
+        1792,
+        1264
       ]
     },
     {
@@ -1183,28 +984,28 @@
         "text": "=Bài viết \"{{ $('Data Validator').item.json.body.data.title }}\" đã bị TỪ CHỐI, không đăng lên Facebook.",
         "additionalFields": {}
       },
-      "id": "c39b972c-ea92-4c08-b2bc-f4bf2fe1ffc8",
+      "id": "db8d9efe-d4d5-45f6-b6fa-bb22c3ecec6f",
       "name": "Thông Báo Từ Chối",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1,
       "position": [
-        2640,
-        800
+        3136,
+        1680
       ],
       "webhookId": "84678dcd-fbe3-41bc-92f6-e60f53c09269",
       "disabled": true
     },
     {
       "parameters": {
-        "jsCode": "const items = $input.all();\nconst original = $('Transform FB Message').first().json.body?.data || {};\n\nfor (const item of items) {\n  let aiResult = {};\n  try {\n    const rawText = item.json.choices?.[0]?.message?.content || '{}';\n    aiResult = JSON.parse(rawText);\n  } catch (e) {\n    aiResult = { is_toxic: false };\n  }\n\n  item.json.is_toxic = aiResult.is_toxic || false;\n  item.json.category = aiResult.category || 'binh_thuong';\n  item.json.reason = aiResult.reason || '';\n\n  item.json.sender_name = original.sender_name || '';\n  item.json.sender_id = original.sender_id || '';\n  item.json.comment_id = original.comment_id || '';\n  item.json.post_id = original.post_id || '';\n}\nreturn items;"
+        "jsCode": "const items = $input.all();\nconst original = $('Transform FB Message').first().json.body?.data || {};\n\nfor (const item of items) {\n  let aiResult = {};\n  try {\n    const rawText = item.json.choices?.[0]?.message?.content || '{}';\n    aiResult = JSON.parse(rawText);\n  } catch (e) {\n    aiResult = { is_toxic: false };\n  }\n\n  item.json.is_toxic = aiResult.is_toxic || false;\n  item.json.category = aiResult.category || 'binh_thuong';\n  item.json.reason = aiResult.reason || '';\n  item.json.sender_name = original.sender_name || '';\n  item.json.sender_id = original.sender_id || '';\n  item.json.comment_id = original.comment_id || '';\n  item.json.post_id = original.post_id || '';\n}\nreturn items;"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -576,
-        2064
+        -112,
+        3040
       ],
-      "id": "0f732706-0cda-46c0-88f5-05f085a4544a",
+      "id": "5f6a0e5d-7855-46b8-b5a8-cf23806d6cc6",
       "name": "Parse AI Output"
     },
     {
@@ -1221,10 +1022,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
       "position": [
-        -272,
-        2256
+        192,
+        3232
       ],
-      "id": "c285c88c-2ee6-4e27-ac50-74fb31eaaafc",
+      "id": "000efdfa-166d-41db-be46-ebb84bf4ac19",
       "name": "Is Toxic?"
     },
     {
@@ -1256,6 +1057,14 @@
               "value": "={{ $json.post_id }}"
             },
             {
+              "name": "post_message",
+              "value": "={{ $json.post_message || '' }}"
+            },
+            {
+              "name": "post_url",
+              "value": "={{ $json.post_url || '' }}"
+            },
+            {
               "name": "sender_id",
               "value": "={{ $json.sender_id }}"
             },
@@ -1274,6 +1083,26 @@
             {
               "name": "ai_reason",
               "value": "={{ $json.reason }}"
+            },
+            {
+              "name": "facebook_hide_status",
+              "value": "={{ $json.facebook_hide_status || 'failed' }}"
+            },
+            {
+              "name": "facebook_hidden",
+              "value": "={{ $json.facebook_hidden === true }}"
+            },
+            {
+              "name": "facebook_can_hide",
+              "value": "={{ $json.facebook_can_hide === null || $json.facebook_can_hide === undefined ? '' : $json.facebook_can_hide }}"
+            },
+            {
+              "name": "facebook_hide_error",
+              "value": "={{ $json.facebook_hide_error || '' }}"
+            },
+            {
+              "name": "facebook_hide_attempted_at",
+              "value": "={{ $now.setZone('Asia/Ho_Chi_Minh').toFormat('yyyy-LL-dd HH:mm:ss') }}"
             }
           ]
         },
@@ -1282,11 +1111,12 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
       "position": [
-        32,
-        2304
+        960,
+        3152
       ],
-      "id": "dfe4f7cb-8fe7-4a23-83cc-d9af40ec724d",
-      "name": "Báo cáo lên Laravel"
+      "id": "a2523830-f5b7-4c72-a08a-02d0f55bfc7e",
+      "name": "Báo cáo lên Laravel",
+      "notes": "Luôn lưu comment dù Facebook ẩn thất bại. Thời gian gửi sang Laravel dùng định dạng MySQL yyyy-MM-dd HH:mm:ss theo Asia/Ho_Chi_Minh."
     },
     {
       "parameters": {
@@ -1296,7 +1126,7 @@
         "nodeCredentialType": "openAiApi",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ {\n  model: 'gpt-4o-mini',\n  messages: [\n    { role: 'system', content: 'Bạn là hệ thống kiểm duyệt bình luận cho fanpage tuyển sinh đại học CTUT. Phân loại bình luận có tiêu cực/xúc phạm/spam/cạnh tranh không. Chỉ trả JSON: {\\\"is_toxic\\\": true/false, \\\"category\\\": \\\"xuc_pham|spam|canh_tranh|binh_thuong\\\", \\\"reason\\\": \\\"lý do ngắn gọn\\\"}.' },\n    { role: 'user', content: 'Bình luận: \"' + String($json.body?.data?.message || '').slice(0, 2000) + '\"' }\n  ],\n  temperature: 0,\n  max_tokens: 200,\n  response_format: { type: 'json_object' }\n} }}",
+        "jsonBody": "={{ { model: 'gpt-4o-mini', messages: [ { role: 'system', content: 'Bạn là hệ thống kiểm duyệt bình luận cho fanpage tuyển sinh đại học CTUT. Phân loại bình luận có tiêu cực/xúc phạm/spam/cạnh tranh không. Chỉ trả JSON: {\"is_toxic\": true/false, \"category\": \"xuc_pham|spam|canh_tranh|binh_thuong\", \"reason\": \"lý do ngắn gọn\"}.' }, { role: 'user', content: 'Bình luận: \"' + String($json.body?.data?.message || '').slice(0, 2000) + '\"' } ], temperature: 0, max_tokens: 200, response_format: { type: 'json_object' } } }}",
         "options": {
           "timeout": 30000
         }
@@ -1304,10 +1134,10 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
       "position": [
-        -784,
-        1872
+        -320,
+        2848
       ],
-      "id": "c2ec62b4-d307-4f37-bb03-4780d55597c5",
+      "id": "04a7bd75-46b4-43c5-8a0b-2684aa1c9e0f",
       "name": "'Check Comment Toxicity",
       "credentials": {
         "openAiApi": {
@@ -1344,10 +1174,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        -944,
-        1664
+        -480,
+        2640
       ],
-      "id": "58950419-4ced-408c-95ef-43d39998a87c",
+      "id": "d6812f99-6e9a-4b67-a5b4-f2fcf6c4c961",
       "name": "If(Comment Hay Tin Nhắn?)"
     },
     {
@@ -1365,22 +1195,22 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ {\n  title: $('Prepare Payload').item.json.article_title || 'Bài viết tự động',\n  content: $('Extract AI JSON').item.json.text || '',\n  image_url: ($('Prepare Payload').item.json.content_images || [])[0] || '',\n  platforms: ['facebook', 'zalo', 'telegram']\n} }}",
+        "jsonBody": "={{ { title: $('Prepare Payload').item.json.article_title || 'Bài viết tự động', content: $('Extract AI JSON').item.json.text || '', image_url: ($('Prepare Payload').item.json.content_images || [])[0] || '', platforms: ['facebook', 'zalo', 'telegram'] } }}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
       "position": [
-        4512,
-        576
+        5008,
+        1456
       ],
-      "id": "e514935f-15bf-469c-9dcc-c48ae1519f07",
+      "id": "545d9472-eead-4390-9a20-2f5a5c42ed71",
       "name": "HTTP Request1"
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "https://graph.facebook.com/v18.0/me/messages",
+        "url": "https://graph.facebook.com/v26.0/me/messages",
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
@@ -1392,17 +1222,197 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ { recipient: { id: $json.body.data.sender_id }, message: { text: $json.body.data.message } } }}",
+        "jsonBody": "={{ { recipient: { id: $json.sender_id }, message: { text: $json.message } } }}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
       "position": [
-        -352,
-        1440
+        448,
+        2848
       ],
-      "id": "98c52c2e-7e83-4903-bdb7-5ae71fb29501",
-      "name": "Send FB Message (Hot Lead)"
+      "id": "7181f818-090d-4d18-ae96-0c9931fb3822",
+      "name": "Gửi Messenger Chiến Dịch",
+      "notes": "Dùng chung cho Hot Lead tự động và chiến dịch thủ công. Chỉ nhận messenger_psid hợp lệ từ Laravel."
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst output = [];\n\nfunction fillTemplate(template, data) {\n  const name = String(data.full_name || '').trim() || 'bạn';\n  const major = String(data.intended_major || '').trim() || 'ngành bạn quan tâm';\n  const score = data.score === null || data.score === undefined ? '' : String(data.score);\n  return String(template || '').replace(/\\{name\\}/g, name).replace(/\\{major\\}/g, major).replace(/\\{score\\}/g, score).trim();\n}\n\nfor (const item of items) {\n  const body = item.json.body || item.json;\n  const eventType = String(body.event_type || '').trim();\n  const data = body.data || {};\n\n  if (eventType === 'lead_became_hot') {\n    const senderId = String(data.sender_id || '').trim();\n    if (!senderId) throw new Error('lead_became_hot thiếu sender_id.');\n    output.push({ json: { campaign_id: data.campaign_id || '', campaign_name: data.campaign_name || 'Chăm sóc Hot Lead tự động', campaign_mode: 'auto_hot', lead_id: data.lead_id || null, channel: 'messenger', recipient: senderId, sender_id: senderId, email: '', full_name: data.full_name || '', intended_major: data.intended_major || '', score: data.score ?? null, subject: '', message: fillTemplate(data.message, data) } });\n    continue;\n  }\n\n  if (eventType === 'run_lead_campaign') {\n    const recipients = Array.isArray(data.recipients) ? data.recipients : [];\n    for (const recipient of recipients) {\n      const channel = String(recipient.channel || '').trim().toLowerCase();\n      const email = String(recipient.email || recipient.recipient || '').trim();\n      const senderId = String(recipient.sender_id || recipient.recipient || '').trim();\n      if (channel === 'email' && !email) continue;\n      if (channel === 'messenger' && !senderId) continue;\n      if (!['email', 'messenger'].includes(channel)) continue;\n      const merged = { ...recipient, campaign_id: data.campaign_id || '', campaign_name: data.campaign_name || '', campaign_mode: data.campaign_mode || 'manual' };\n      output.push({ json: { campaign_id: merged.campaign_id, campaign_name: merged.campaign_name, campaign_mode: merged.campaign_mode, lead_id: recipient.lead_id || null, channel, recipient: channel === 'email' ? email : senderId, email: channel === 'email' ? email : '', sender_id: channel === 'messenger' ? senderId : '', full_name: recipient.full_name || '', intended_major: recipient.intended_major || '', score: recipient.score ?? null, subject: fillTemplate(data.subject || '', merged), message: fillTemplate(data.message || '', merged) } });\n    }\n  }\n}\n\nif (!output.length) throw new Error('Không có người nhận hợp lệ sau khi chuẩn hóa chiến dịch.');\nreturn output;"
+      },
+      "id": "21c539e7-cf5b-4216-90c9-2d53429eed57",
+      "name": "Chuẩn hóa người nhận chiến dịch",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -96,
+        2544
+      ],
+      "notes": "Gộp lead_became_hot và run_lead_campaign thành cấu trúc người nhận chung. Không ghép danh tính Email với Messenger."
+    },
+    {
+      "parameters": {
+        "dataType": "string",
+        "value1": "={{ $json.channel }}",
+        "rules": {
+          "rules": [
+            {
+              "value2": "email"
+            },
+            {
+              "value2": "messenger",
+              "output": 1
+            }
+          ]
+        }
+      },
+      "id": "62e346c2-72da-427f-8d9a-8632ca9f6499",
+      "name": "Router Kênh Chiến Dịch",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [
+        224,
+        2544
+      ],
+      "notes": "Email và Messenger là hai nhánh độc lập. Một lần chạy thủ công có thể tạo item cho cả hai kênh."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.body.event_type }}",
+              "value2": "toxic_comment_action"
+            }
+          ]
+        }
+      },
+      "id": "b54851d0-1534-4fcb-b72f-266f77b5ebc8",
+      "name": "Là lệnh Toxic từ Admin?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -784,
+        2432
+      ],
+      "notes": "Tách lệnh từ CMS Admin trước Router cũ để không vượt giới hạn output của Switch."
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: true, accepted: true, event_type: $json.body?.event_type || \"\" } }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "22a84cbb-b704-417a-99da-ac357b840842",
+      "name": "Respond Master Accepted",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        -592,
+        2320
+      ],
+      "notes": "Trả HTTP 200 ngay cho các sự kiện cũ; workflow vẫn tiếp tục xử lý ở nhánh Data Validator."
+    },
+    {
+      "parameters": {
+        "dataType": "string",
+        "value1": "={{ $json.body.data.action }}",
+        "rules": {
+          "rules": [
+            {
+              "value2": "unhide"
+            },
+            {
+              "value2": "delete",
+              "output": 1
+            }
+          ]
+        }
+      },
+      "id": "6badeac7-7660-4bd7-bcea-b347b109c493",
+      "name": "Router Hành động Toxic",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [
+        -560,
+        2592
+      ],
+      "notes": "Nhận action=unhide hoặc action=delete từ AdmissionAdminController."
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst token = String($env.FB_PAGE_ACCESS_TOKEN || '').trim();\n\nasync function graphRequest(method, path, qs = {}) {\n  const response = await this.helpers.httpRequest({\n    method,\n    url:\n      'https://graph.facebook.com/v26.0/'\n      + String(path).replace(/^\\/+/, ''),\n    qs: {\n      ...qs,\n      access_token: token\n    },\n    json: true,\n    returnFullResponse: true,\n    ignoreHttpStatusErrors: true\n  });\n\n  const statusCode = Number(response?.statusCode || 0);\n  const body = response?.body ?? response ?? {};\n\n  if (\n    body?.error\n    || statusCode < 200\n    || statusCode >= 300\n  ) {\n    throw new Error(\n      JSON.stringify(body?.error || body)\n    );\n  }\n\n  return body;\n}\n\nfor (const item of items) {\n  const data = item.json.body?.data || {};\n  const commentId = String(data.comment_id || '').trim();\n\n  if (!token || !commentId) {\n    item.json = {\n      success: false,\n      message: !token\n        ? 'n8n chưa có FB_PAGE_ACCESS_TOKEN.'\n        : 'Thiếu comment_id để bỏ ẩn bình luận.',\n      action: 'unhide',\n      comment_id: commentId\n    };\n    continue;\n  }\n\n  try {\n    const result = await graphRequest(\n      'POST',\n      encodeURIComponent(commentId),\n      {\n        is_hidden: 'false'\n      }\n    );\n\n    item.json = {\n      success: result?.success === true,\n      message: result?.success === true\n        ? 'Đã bỏ ẩn bình luận trên Facebook.'\n        : 'Meta không xác nhận đã bỏ ẩn bình luận.',\n      action: 'unhide',\n      comment_id: commentId,\n      facebook_response: result\n    };\n  } catch (error) {\n    item.json = {\n      success: false,\n      message: 'Facebook không bỏ ẩn được bình luận.',\n      action: 'unhide',\n      comment_id: commentId,\n      error: error.message\n    };\n  }\n}\n\nreturn items;"
+      },
+      "id": "a9b841a1-da8d-408e-99f7-7be46b38449f",
+      "name": "FB Bỏ Ẩn Comment",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -304,
+        2528
+      ],
+      "notes": "Chỉ trả success=true khi Facebook thực sự xử lý thành công."
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst token = String($env.FB_PAGE_ACCESS_TOKEN || '').trim();\n\nasync function graphRequest(method, path, qs = {}) {\n  const response = await this.helpers.httpRequest({\n    method,\n    url:\n      'https://graph.facebook.com/v26.0/'\n      + String(path).replace(/^\\/+/, ''),\n    qs: {\n      ...qs,\n      access_token: token\n    },\n    json: true,\n    returnFullResponse: true,\n    ignoreHttpStatusErrors: true\n  });\n\n  const statusCode = Number(response?.statusCode || 0);\n  const body = response?.body ?? response ?? {};\n\n  if (\n    body?.error\n    || statusCode < 200\n    || statusCode >= 300\n  ) {\n    throw new Error(\n      JSON.stringify(body?.error || body)\n    );\n  }\n\n  return body;\n}\n\nfor (const item of items) {\n  const data = item.json.body?.data || {};\n  const commentId = String(data.comment_id || '').trim();\n\n  if (!token || !commentId) {\n    item.json = {\n      success: false,\n      message: !token\n        ? 'n8n chưa có FB_PAGE_ACCESS_TOKEN.'\n        : 'Thiếu comment_id để xóa bình luận.',\n      action: 'delete',\n      comment_id: commentId\n    };\n    continue;\n  }\n\n  try {\n    const result = await graphRequest(\n      'DELETE',\n      encodeURIComponent(commentId)\n    );\n\n    item.json = {\n      success: result?.success === true,\n      message: result?.success === true\n        ? 'Đã xóa bình luận trên Facebook.'\n        : 'Meta không xác nhận đã xóa bình luận.',\n      action: 'delete',\n      comment_id: commentId,\n      facebook_response: result\n    };\n  } catch (error) {\n    item.json = {\n      success: false,\n      message: 'Facebook không xóa được bình luận.',\n      action: 'delete',\n      comment_id: commentId,\n      error: error.message\n    };\n  }\n}\n\nreturn items;"
+      },
+      "id": "77ba38e2-2b42-457e-8d81-8be0b0c245f9",
+      "name": "FB Xóa Comment",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -304,
+        2688
+      ],
+      "notes": "Xóa vĩnh viễn comment theo lệnh Admin."
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": "={{ $json.success ? 200 : 502 }}"
+        }
+      },
+      "id": "7ab89554-08be-4240-a862-539b665d6a16",
+      "name": "Respond Toxic Action",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        -48,
+        2608
+      ],
+      "notes": "Laravel chỉ cập nhật ignored/deleted khi response success=true."
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst token = String($env.FB_PAGE_ACCESS_TOKEN || '').trim();\n\nfunction bodyOf(response) {\n  return response && Object.prototype.hasOwnProperty.call(\n    response,\n    'body'\n  )\n    ? response.body\n    : response;\n}\n\nasync function graphRequest(method, path, qs = {}) {\n  const response = await this.helpers.httpRequest({\n    method,\n    url:\n      'https://graph.facebook.com/v26.0/'\n      + String(path).replace(/^\\/+/, ''),\n    qs: {\n      ...qs,\n      access_token: token\n    },\n    json: true,\n    returnFullResponse: true,\n    ignoreHttpStatusErrors: true\n  });\n\n  const statusCode = Number(\n    response?.statusCode\n    || response?.status\n    || 0\n  );\n\n  const body = bodyOf(response) || {};\n  const metaError = body?.error || null;\n\n  if (\n    metaError\n    || statusCode < 200\n    || statusCode >= 300\n  ) {\n    const error = new Error(\n      JSON.stringify(metaError || body)\n    );\n\n    error.graphStatusCode = statusCode;\n    error.graphBody = body;\n    throw error;\n  }\n\n  return body;\n}\n\nfunction normalizeError(error) {\n  const meta =\n    error?.graphBody?.error\n    || error?.graphBody\n    || null;\n\n  if (meta && typeof meta === 'object') {\n    return {\n      message: String(meta.message || ''),\n      type: String(meta.type || ''),\n      code: meta.code ?? null,\n      error_subcode: meta.error_subcode ?? null,\n      fbtrace_id: String(meta.fbtrace_id || '')\n    };\n  }\n\n  return {\n    message: String(error?.message || 'Không có chi tiết'),\n    type: '',\n    code: null,\n    error_subcode: null,\n    fbtrace_id: ''\n  };\n}\n\nfor (const item of items) {\n  const commentId = String(\n    item.json.comment_id || ''\n  ).trim();\n\n  const postId = String(\n    item.json.post_id || ''\n  ).trim();\n\n  const expectedPageId = String(\n    item.json.expected_page_id\n    || (\n      postId.includes('_')\n        ? postId.split('_')[0]\n        : ''\n    )\n  ).trim();\n\n  item.json.facebook_hide_status = 'failed';\n  item.json.facebook_hidden = false;\n  item.json.facebook_can_hide = null;\n  item.json.facebook_hide_error = '';\n  item.json.facebook_hide_attempted_at =\n    new Date().toISOString();\n\n  if (!token) {\n    item.json.facebook_hide_error = JSON.stringify({\n      stage: 'configuration',\n      message:\n        'Thiếu FB_PAGE_ACCESS_TOKEN trong môi trường n8n.'\n    });\n    continue;\n  }\n\n  if (!commentId) {\n    item.json.facebook_hide_error = JSON.stringify({\n      stage: 'input',\n      message:\n        'Webhook thiếu comment_id nên không thể ẩn comment.'\n    });\n    continue;\n  }\n\n  let stage = 'xác định Page của token';\n  let tokenPageId = '';\n  let tokenPageName = '';\n\n  try {\n    const page = await graphRequest(\n      'GET',\n      'me',\n      {\n        fields: 'id,name'\n      }\n    );\n\n    tokenPageId = String(page?.id || '');\n    tokenPageName = String(page?.name || '');\n\n    item.json.token_page_id = tokenPageId;\n    item.json.token_page_name = tokenPageName;\n\n    if (!tokenPageId) {\n      throw new Error(\n        'Token hợp lệ nhưng /me không trả về Page ID.'\n      );\n    }\n\n    if (\n      expectedPageId\n      && tokenPageId !== expectedPageId\n    ) {\n      throw new Error(\n        'Token thuộc Page '\n        + tokenPageId\n        + ' (' + tokenPageName + ')'\n        + ', nhưng bài viết thuộc Page '\n        + expectedPageId + '.'\n      );\n    }\n\n    stage = 'đọc quyền thao tác trên comment';\n\n    const comment = await graphRequest(\n      'GET',\n      encodeURIComponent(commentId),\n      {\n        fields:\n          'id,message,permalink_url,is_hidden,'\n          + 'can_hide,can_remove,from'\n      }\n    );\n\n    item.json.facebook_can_hide =\n      comment?.can_hide ?? null;\n    item.json.facebook_is_hidden =\n      comment?.is_hidden ?? null;\n    item.json.facebook_can_remove =\n      comment?.can_remove ?? null;\n    item.json.facebook_comment_url =\n      String(comment?.permalink_url || '');\n\n    if (comment?.is_hidden === true) {\n      item.json.facebook_hide_status = 'hidden';\n      item.json.facebook_hidden = true;\n      item.json.facebook_hide_error = '';\n      item.json.facebook_hide_response = {\n        success: true,\n        already_hidden: true\n      };\n      continue;\n    }\n\n    if (comment?.can_hide === false) {\n      throw new Error(\n        'Facebook trả can_hide=false.'\n      );\n    }\n\n    stage = 'ẩn comment';\n\n    const result = await graphRequest(\n      'POST',\n      encodeURIComponent(commentId),\n      {\n        is_hidden: 'true'\n      }\n    );\n\n    if (result?.success !== true) {\n      throw new Error(\n        'Meta không trả success=true: '\n        + JSON.stringify(result)\n      );\n    }\n\n    item.json.facebook_hide_status = 'hidden';\n    item.json.facebook_hidden = true;\n    item.json.facebook_hide_error = '';\n    item.json.facebook_hide_response = result;\n  } catch (error) {\n    const detail = normalizeError(error);\n\n    item.json.facebook_hide_status = 'failed';\n    item.json.facebook_hidden = false;\n    item.json.facebook_hide_error = JSON.stringify({\n      stage,\n      comment_id: commentId,\n      post_id: postId,\n      expected_page_id: expectedPageId,\n      token_page_id: tokenPageId,\n      token_page_name: tokenPageName,\n      ...detail\n    });\n\n    /*\n     * Không throw.\n     * Comment vẫn phải đi tiếp sang Laravel để Admin biết:\n     * - nội dung độc hại;\n     * - Facebook chưa ẩn được;\n     * - nguyên nhân cụ thể từ Meta.\n     */\n  }\n}\n\nreturn items;"
+      },
+      "id": "75145ba5-b868-412d-a580-b4cd0aced813",
+      "name": "Ẩn Comment Toxic Trên Facebook",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        688,
+        3152
+      ],
+      "notes": "Không dừng workflow khi Facebook ẩn thất bại. Luôn chuyển comment sang Laravel kèm trạng thái và lỗi Meta."
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst token = String($env.FB_PAGE_ACCESS_TOKEN || '').trim();\n\nfunction errorDetail(error) {\n  const candidates = [\n    error?.response?.data,\n    error?.response?.body,\n    error?.context?.data,\n    error?.cause?.response?.data,\n    error?.cause?.response?.body,\n    error?.body,\n    typeof error?.toJSON === 'function'\n      ? error.toJSON()\n      : null,\n    error?.message\n  ];\n\n  const value = candidates.find(\n    (candidate) =>\n      candidate !== undefined\n      && candidate !== null\n      && candidate !== ''\n  );\n\n  return typeof value === 'string'\n    ? value\n    : JSON.stringify(value || {});\n}\n\nfor (const item of items) {\n  const postId = String(item.json.post_id || '').trim();\n  const expectedPageId = postId.includes('_')\n    ? postId.split('_')[0]\n    : '';\n\n  item.json.post_message = '';\n  item.json.post_url = '';\n  item.json.post_created_time = '';\n  item.json.expected_page_id = expectedPageId;\n  item.json.token_page_id = '';\n  item.json.token_page_name = '';\n  item.json.facebook_token_mismatch = false;\n  item.json.facebook_post_error = '';\n\n  if (!token) {\n    item.json.facebook_post_error =\n      'n8n chưa có FB_PAGE_ACCESS_TOKEN.';\n    continue;\n  }\n\n  if (!postId) {\n    item.json.facebook_post_error =\n      'Webhook Facebook không trả post_id.';\n    continue;\n  }\n\n  try {\n    const page = await this.helpers.httpRequest({\n      method: 'GET',\n      url: 'https://graph.facebook.com/v26.0/me',\n      qs: {\n        fields: 'id,name',\n        access_token: token\n      },\n      json: true\n    });\n\n    item.json.token_page_id = String(page?.id || '');\n    item.json.token_page_name = String(page?.name || '');\n\n    if (\n      expectedPageId\n      && item.json.token_page_id\n      && expectedPageId !== item.json.token_page_id\n    ) {\n      item.json.facebook_token_mismatch = true;\n      item.json.facebook_post_error =\n        'FB_PAGE_ACCESS_TOKEN thuộc Page '\n        + item.json.token_page_id\n        + ' (' + item.json.token_page_name + ')'\n        + ', nhưng bài viết thuộc Page '\n        + expectedPageId + '.';\n      continue;\n    }\n\n    const post = await this.helpers.httpRequest({\n      method: 'GET',\n      url:\n        'https://graph.facebook.com/v26.0/'\n        + encodeURIComponent(postId),\n      qs: {\n        fields: 'id,message,permalink_url,created_time',\n        access_token: token\n      },\n      json: true\n    });\n\n    item.json.post_message = String(post?.message || '');\n    item.json.post_url = String(post?.permalink_url || '');\n    item.json.post_created_time =\n      String(post?.created_time || '');\n\n    if (!item.json.post_url && postId.includes('_')) {\n      const parts = postId.split('_');\n      item.json.post_url =\n        'https://www.facebook.com/'\n        + parts[0]\n        + '/posts/'\n        + parts.slice(1).join('_');\n    }\n  } catch (error) {\n    item.json.facebook_post_error =\n      'Không lấy được thông tin bài viết: '\n      + errorDetail(error);\n  }\n}\n\nreturn items;"
+      },
+      "id": "59af0a11-790d-4c45-959f-d13801a40cc5",
+      "name": "Lấy Thông Tin Bài Viết Facebook",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        416,
+        3152
+      ],
+      "notes": "Lấy mô tả và permalink bài viết; đồng thời đối chiếu Page ID của token với Page ID trong post_id."
     }
   ],
   "connections": {
@@ -1422,101 +1432,6 @@
         [
           {
             "node": "Format Error Message",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Chưa ai gọi?": {
-      "main": [
-        [
-          {
-            "node": "Gửi Nurture Email",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Check Trạng Thái": {
-      "main": [
-        [
-          {
-            "node": "Chưa ai gọi?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Đợi 24 giờ": {
-      "main": [
-        [
-          {
-            "node": "Check Trạng Thái",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Lưu Google Sheets": {
-      "main": [
-        [
-          {
-            "node": "Đợi 24 giờ",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Báo động Sales": {
-      "main": [
-        [
-          {
-            "node": "Lưu Google Sheets",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Check Lead Score": {
-      "main": [
-        [
-          {
-            "node": "Báo động Sales",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Đợi 24 giờ",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Format Lead Data": {
-      "main": [
-        [
-          {
-            "node": "Check Lead Score",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Lọc Trùng Lead": {
-      "main": [
-        [
-          {
-            "node": "Format Lead Data",
             "type": "main",
             "index": 0
           }
@@ -1853,11 +1768,6 @@
         ],
         [
           {
-            "node": "Lọc Trùng Lead",
-            "type": "main",
-            "index": 0
-          },
-          {
             "node": "HTTP Request",
             "type": "main",
             "index": 0
@@ -1865,7 +1775,7 @@
         ],
         [
           {
-            "node": "Send FB Message (Hot Lead)",
+            "node": "Chuẩn hóa người nhận chiến dịch",
             "type": "main",
             "index": 0
           }
@@ -1898,7 +1808,7 @@
       "main": [
         [
           {
-            "node": "Data Validator",
+            "node": "Là lệnh Toxic từ Admin?",
             "type": "main",
             "index": 0
           }
@@ -1949,33 +1859,11 @@
         ]
       ]
     },
-    "Webhook Nurture Laravel": {
-      "main": [
-        [
-          {
-            "node": "Tách danh sách khách hàng",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Tách danh sách khách hàng": {
-      "main": [
-        [
-          {
-            "node": "Basic LLM Chain Nurture",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Basic LLM Chain Nurture": {
       "main": [
         [
           {
-            "node": "Gửi Email (Gmail/SMTP)",
+            "node": "Gửi Email Chiến Dịch",
             "type": "main",
             "index": 0
           }
@@ -2092,7 +1980,7 @@
       "main": [
         [
           {
-            "node": "Báo cáo lên Laravel",
+            "node": "Lấy Thông Tin Bài Viết Facebook",
             "type": "main",
             "index": 0
           }
@@ -2129,6 +2017,120 @@
         [
           {
             "node": "Router (Switch)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chuẩn hóa người nhận chiến dịch": {
+      "main": [
+        [
+          {
+            "node": "Router Kênh Chiến Dịch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Router Kênh Chiến Dịch": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain Nurture",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Gửi Messenger Chiến Dịch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Là lệnh Toxic từ Admin?": {
+      "main": [
+        [
+          {
+            "node": "Router Hành động Toxic",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Master Accepted",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Data Validator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Router Hành động Toxic": {
+      "main": [
+        [
+          {
+            "node": "FB Bỏ Ẩn Comment",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "FB Xóa Comment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FB Bỏ Ẩn Comment": {
+      "main": [
+        [
+          {
+            "node": "Respond Toxic Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FB Xóa Comment": {
+      "main": [
+        [
+          {
+            "node": "Respond Toxic Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ẩn Comment Toxic Trên Facebook": {
+      "main": [
+        [
+          {
+            "node": "Báo cáo lên Laravel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lấy Thông Tin Bài Viết Facebook": {
+      "main": [
+        [
+          {
+            "node": "Ẩn Comment Toxic Trên Facebook",
             "type": "main",
             "index": 0
           }

@@ -932,6 +932,7 @@
     ) ?: '1';
 @endphp
 
+<script src="{{ asset('js/trangchu.js') }}?v={{ filemtime(public_path('js/trangchu.js')) }}"></script>
 <script
     src="{{ asset('js/admission-lead-form.js') }}?v={{ $leadFormJsVersion }}"
 ></script>

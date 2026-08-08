@@ -2514,111 +2514,454 @@ class AdminController extends Controller
     // mới
 
     public function suggest(Request $request)
-    {
-        $request->validate([
-            'content' => 'required|string'
-        ]);
-
-        $content = trim($request->input('content'));
-        $content = Str::limit($content, 6000, '');
-
-        $apiKey = env('GEMINI_API_KEY');
-
-        if (empty($apiKey)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Gemini API key not configured.'
-            ], 500);
-        }
-
-        $prompt = "
-Bạn là trợ lý viết tiêu đề và tóm tắt bài viết.
-
-Chỉ trả về JSON hợp lệ:
-
 {
-\"title\": \"...\",
-\"summary\": \"...\"
-}
+    $request->validate([
+        'content' => [
+            'required',
+            'string',
+        ],
+    ]);
 
-Quy tắc:
-- title tối đa 20 từ
-- summary 1-2 câu
-- không thêm chữ nào ngoài JSON
+    /*
+     * Chuẩn hóa và giới hạn nội dung đầu vào.
+     */
+    $content = trim((string) $request->input('content'));
+    $content = Str::limit($content, 6000, '');
 
-Nội dung:
-{$content}
-";
+    /*
+     * Giữ nguyên cấu hình OpenAI hiện tại.
+     */
+    $apiKey = config('services.openai.key');
+    $model = config(
+        'services.openai.model',
+        'gpt-4o-mini'
+    );
 
-        try {
+    if (empty($apiKey)) {
+        return response()->json([
+            'success' => false,
+            'message' => 'OpenAI API key chưa được cấu hình.',
+        ], 500);
+    }
 
-            $response = Http::timeout(60)->post(
-                "https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key={$apiKey}",
+    if (empty($model)) {
+        return response()->json([
+            'success' => false,
+            'message' => 'OpenAI model chưa được cấu hình.',
+        ], 500);
+    }
+
+    try {
+        $response = Http::withToken($apiKey)
+            ->acceptJson()
+            ->asJson()
+            ->timeout(60)
+            ->retry(2, 500)
+            ->post(
+                'https://api.openai.com/v1/responses',
                 [
-                    "contents" => [
+                    'model' => $model,
+
+                    /*
+                     * Không lưu trạng thái Response trên OpenAI.
+                     */
+                    'store' => false,
+
+                    /*
+                     * Hướng dẫn chung cho mô hình.
+                     */
+                    'instructions' =>
+                        'Bạn là trợ lý biên tập nội dung cho Website '
+                        . 'tuyển sinh của Trường Đại học Kỹ thuật - '
+                        . 'Công nghệ Cần Thơ. '
+                        . 'Hãy đọc kỹ nội dung được cung cấp và tạo '
+                        . 'một tiêu đề ngắn gọn cùng một đoạn tóm tắt '
+                        . 'chính xác. '
+                        . 'Tiêu đề không được vượt quá 40 từ. '
+                        . 'Tóm tắt phải có từ 1 đến 3 câu. '
+                        . 'Không sử dụng ký tự đặc biệt không cần thiết. '
+                        . 'Không thêm dữ kiện, nhận xét hoặc thông tin '
+                        . 'không xuất hiện trong nội dung đầu vào.',
+
+                    /*
+                     * Nội dung bài viết gửi cho mô hình.
+                     */
+                    'input' => [
                         [
-                            "parts" => [
-                                ["text" => $prompt]
-                            ]
-                        ]
+                            'role' => 'user',
+                            'content' => [
+                                [
+                                    'type' => 'input_text',
+                                    'text' =>
+                                        "Hãy tạo tiêu đề và tóm tắt "
+                                        . "cho nội dung bài viết sau.\n\n"
+                                        . "Yêu cầu:\n"
+                                        . "- Tiêu đề tối đa 40 từ.\n"
+. "- Tóm tắt từ 1 đến 3 câu.\n"
+                                        . "- Bám sát nội dung đầu vào.\n"
+                                        . "- Không tự bổ sung thông tin.\n\n"
+                                        . "Nội dung bài viết:\n"
+                                        . $content,
+                                ],
+                            ],
+                        ],
                     ],
-                    "generationConfig" => [
-                        "temperature" => 0.3
-                    ]
+
+                    /*
+                     * Giá trị thấp để đầu ra ổn định,
+                     * ít biến đổi và bám sát nội dung.
+                     */
+                    'temperature' => 0.3,
+
+                    /*
+                     * Giới hạn đầu ra vì chỉ cần tiêu đề
+                     * và đoạn tóm tắt ngắn.
+                     */
+                    'max_output_tokens' => 500,
+
+                    /*
+                     * Structured Outputs:
+                     * bắt buộc trả đúng cấu trúc JSON.
+                     */
+                    'text' => [
+                        'format' => [
+                            'type' => 'json_schema',
+                            'name' => 'article_suggestion',
+                            'description' =>
+                                'Tiêu đề và tóm tắt của bài viết.',
+                            'strict' => true,
+
+                            'schema' => [
+                                'type' => 'object',
+
+                                'properties' => [
+                                    'title' => [
+                                        'type' => 'string',
+                                        'description' =>
+                                            'Tiêu đề bài viết, tối đa 40 từ.',
+                                    ],
+
+                                    'summary' => [
+                                        'type' => 'string',
+                                        'description' =>
+                                            'Tóm tắt chính xác nội dung bài viết, '
+                                            . 'gồm từ 1 đến 3 câu.',
+                                    ],
+                                ],
+
+                                'required' => [
+                                    'title',
+                                    'summary',
+                                ],
+
+                                'additionalProperties' => false,
+                            ],
+                        ],
+                    ],
                 ]
             );
 
-            if (!$response->successful()) {
+        /*
+         * Xử lý lỗi HTTP từ OpenAI.
+         */
+        if (!$response->successful()) {
+            Log::error(
+                'OpenAI Responses API error',
+                [
+                    'status' => $response->status(),
+                    'model' => $model,
+                    'body' => $response->body(),
+                ]
+            );
+return response()->json([
+                'success' => false,
+                'message' =>
+                    'Không thể kết nối dịch vụ AI lúc này.',
+            ], 502);
+        }
 
-                Log::error('Gemini API error: ' . $response->body());
+        $responseData = $response->json();
 
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Gemini API error',
-                    'detail' => $response->body()
-                ], 500);
-            }
+        /*
+         * Kiểm tra trạng thái phản hồi.
+         */
+        $responseStatus = data_get(
+            $responseData,
+            'status'
+        );
 
-            $json = $response->json();
-
-            $raw = data_get($json, 'candidates.0.content.parts.0.text', '');
-
-            $parsed = json_decode($raw, true);
-
-            if (json_last_error() !== JSON_ERROR_NONE) {
-
-                if (preg_match('/\{.*\}/s', $raw, $matches)) {
-                    $parsed = json_decode($matches[0], true);
-                } else {
-
-                    Log::warning('Gemini raw response: ' . $raw);
-
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Không parse được JSON từ Gemini',
-                        'raw' => $raw
-                    ], 500);
-                }
-            }
-
-            $title = mb_substr(trim($parsed['title'] ?? ''), 0, 500);
-            $summary = mb_substr(trim($parsed['summary'] ?? ''), 0, 1000);
-
-            return response()->json([
-                'success' => true,
-                'title' => $title,
-                'summary' => $summary
-            ]);
-        } catch (\Exception $e) {
-
-            Log::error('Gemini exception: ' . $e->getMessage());
+        if (
+            $responseStatus !== null
+            && $responseStatus !== 'completed'
+        ) {
+            Log::warning(
+                'OpenAI response chưa hoàn thành',
+                [
+                    'status' => $responseStatus,
+                    'model' => $model,
+                    'response_id' =>
+                        data_get($responseData, 'id'),
+                    'incomplete_details' =>
+                        data_get(
+                            $responseData,
+                            'incomplete_details'
+                        ),
+                ]
+            );
 
             return response()->json([
                 'success' => false,
-                'message' => 'Lỗi khi gọi Gemini: ' . $e->getMessage()
-            ], 500);
+                'message' =>
+                    'AI chưa hoàn thành việc tạo nội dung.',
+            ], 502);
         }
+
+        /*
+         * Responses API trả nội dung tại:
+         * output[].content[].text
+         */
+        $rawText = '';
+        $refusal = '';
+
+        foreach (
+            ($responseData['output'] ?? [])
+            as $outputItem
+        ) {
+            if (
+                ($outputItem['type'] ?? null)
+                !== 'message'
+            ) {
+                continue;
+            }
+
+            foreach (
+                ($outputItem['content'] ?? [])
+                as $contentItem
+            ) {
+                $contentType =
+                    $contentItem['type'] ?? null;
+
+                if ($contentType === 'output_text') {
+                    $rawText .= (string) (
+                        $contentItem['text'] ?? ''
+                    );
+                }
+
+                if ($contentType === 'refusal') {
+                    $refusal .= (string) (
+                        $contentItem['refusal'] ?? ''
+                    );
+                }
+            }
+        }
+
+        /*
+         * Mô hình từ chối xử lý nội dung.
+         */
+        if ($refusal !== '') {
+            Log::warning(
+                'OpenAI từ chối tạo nội dung',
+                [
+                    'model' => $model,
+                    'refusal' => $refusal,
+                ]
+            );
+
+            return response()->json([
+                'success' => false,
+                'message' =>
+                    'AI không thể xử lý nội dung này.',
+            ], 422);
+        }
+
+        /*
+         * Không có phần nội dung đầu ra.
+         */
+        if ($rawText === '') {
+            Log::warning(
+                'OpenAI không trả về output_text',
+                [
+'model' => $model,
+                    'response_id' =>
+                        data_get($responseData, 'id'),
+                    'response' => $responseData,
+                ]
+            );
+
+            return response()->json([
+                'success' => false,
+                'message' =>
+                    'AI không trả về nội dung hợp lệ.',
+            ], 502);
+        }
+
+        /*
+         * Chuyển chuỗi JSON thành mảng PHP.
+         */
+        $parsed = json_decode($rawText, true);
+
+        if (
+            json_last_error() !== JSON_ERROR_NONE
+            || !is_array($parsed)
+        ) {
+            Log::warning(
+                'Không parse được JSON từ OpenAI',
+                [
+                    'model' => $model,
+                    'raw' => $rawText,
+                    'json_error' =>
+                        json_last_error_msg(),
+                ]
+            );
+
+            return response()->json([
+                'success' => false,
+                'message' =>
+                    'Kết quả AI không đúng định dạng.',
+            ], 502);
+        }
+
+        /*
+         * Lấy tiêu đề và tóm tắt.
+         */
+        $title = trim(
+            (string) ($parsed['title'] ?? '')
+        );
+
+        $summary = trim(
+            (string) ($parsed['summary'] ?? '')
+        );
+
+        /*
+         * Chuẩn hóa khoảng trắng.
+         */
+        $title = preg_replace(
+            '/\s+/u',
+            ' ',
+            $title
+        );
+
+        $summary = preg_replace(
+            '/\s+/u',
+            ' ',
+            $summary
+        );
+
+        $title = trim((string) $title);
+        $summary = trim((string) $summary);
+
+        /*
+         * Bảo vệ tại Backend:
+         * tiêu đề tối đa 40 từ.
+         */
+        $titleWords = preg_split(
+            '/\s+/u',
+            $title,
+            -1,
+            PREG_SPLIT_NO_EMPTY
+        );
+
+        if (
+            is_array($titleWords)
+            && count($titleWords) > 40
+        ) {
+            $title = implode(
+                ' ',
+                array_slice($titleWords, 0, 40)
+            );
+        }
+
+        /*
+         * Tách câu dựa trên dấu kết thúc câu.
+         */
+        $summarySentences = preg_split(
+            '/(?<=[.!?])\s+/u',
+            $summary,
+            -1,
+            PREG_SPLIT_NO_EMPTY
+        );
+
+        /*
+         * Nếu mô hình trả quá 3 câu,
+         * chỉ giữ lại 3 câu đầu tiên.
+         */
+        if (
+            is_array($summarySentences)
+            && count($summarySentences) > 3
+        ) {
+            $summary = implode(
+                ' ',
+                array_slice(
+                    $summarySentences,
+                    0,
+                    3
+                )
+            );
+        }
+
+        /*
+         * Giới hạn độ dài tuyệt đối để bảo vệ dữ liệu.
+         */
+        $title = mb_substr(
+            $title,
+0,
+            500,
+            'UTF-8'
+        );
+
+        $summary = mb_substr(
+            $summary,
+            0,
+            1500,
+            'UTF-8'
+        );
+
+        /*
+         * Kiểm tra dữ liệu đầu ra bắt buộc.
+         */
+        if ($title === '' || $summary === '') {
+            Log::warning(
+                'OpenAI trả về thiếu title hoặc summary',
+                [
+                    'model' => $model,
+                    'parsed' => $parsed,
+                ]
+            );
+
+            return response()->json([
+                'success' => false,
+                'message' =>
+                    'AI chưa tạo đủ tiêu đề và tóm tắt.',
+            ], 502);
+        }
+
+        /*
+         * Trả dữ liệu cho JavaScript.
+         */
+        return response()->json([
+            'success' => true,
+            'title' => $title,
+            'summary' => $summary,
+            'model' => $model,
+        ]);
+    } catch (\Throwable $e) {
+        Log::error(
+            'OpenAI suggest exception',
+            [
+                'model' => $model,
+                'error' => $e->getMessage(),
+                'exception' => $e,
+            ]
+        );
+
+        return response()->json([
+            'success' => false,
+            'message' =>
+                'Có lỗi khi gọi OpenAI. '
+                . 'Vui lòng thử lại sau.',
+        ], 500);
     }
+}
 
 
     // ─── HIGHLIGHT STATS ─────────────────────────────────────────────────

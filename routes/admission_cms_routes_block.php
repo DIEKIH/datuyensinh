@@ -1,5 +1,23 @@
 <?php
+use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\DB;
 
+use App\Http\Controllers\Admin\DashboardController;
+// use App\Http\Controllers\Admin\MenuController;
+use App\Http\Controllers\Admin\HomepageController;
+use App\Http\Controllers\Admin\PostsController;
+use App\Http\Controllers\Admin\UsersController;
+// use App\Http\Controllers\Admin\LoginController;
+
+use App\Http\Controllers\MenuController;
+use App\Http\Controllers\Trangchu;
+use App\Http\Controllers\AdminController;
+use App\Http\Controllers\PostController;
+use App\Http\Controllers\LoginController;
+use App\Http\Controllers\AdviseController;
+use App\Http\Controllers\AdmissionAdminController;
+use App\Http\Controllers\AdmissionLeadController;
+use App\Http\Controllers\FacebookAuthController;
 /*
      * ==========================================================
      * CMS TUYỂN SINH - CÁC TRANG GIAO DIỆN

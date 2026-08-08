@@ -478,7 +478,7 @@ class AdviseController extends Controller
                     ],
                     'max_num_results' => $settings['max_num_results'],
                 ]],
-                'tool_choice' => 'auto',
+                'tool_choice' => 'required',
                 'stream'      => true,
                 'store'       => true,
             ];
