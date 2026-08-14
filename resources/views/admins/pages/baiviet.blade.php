@@ -103,6 +103,7 @@
                                         class="form-select form-select-sm short-dropdown">
                                         <option value="1">Tự động đăng FB/Zalo</option>
                                         <option value="0">Chờ duyệt (Telegram)</option>
+                                        <option value="2">Không đăng FB (Chỉ đăng Web)</option>
                                     </select>
                                 </div>
                                 <div class="mb-3">

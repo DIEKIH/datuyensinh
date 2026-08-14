@@ -15,8 +15,10 @@ class BaivietObserver
      */
     public function created(Baiviet $baiviet)
     {
-        // Dispatch job to send article to n8n
-        SendArticleToN8n::dispatch($baiviet);
+        // Dispatch job to send article to n8n (unless auto_publish is set to 2 = Do not post to FB)
+        if ((int) $baiviet->auto_publish !== 2) {
+            SendArticleToN8n::dispatch($baiviet);
+        }
     }
 
     /**

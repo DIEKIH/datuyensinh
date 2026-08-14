@@ -338,26 +338,43 @@ class AdmissionWebhookController extends Controller
             $ragResult = null;
 
             if (
-                !in_array($interactionType, ['like', 'share'], true)
+                $interactionType === 'chat'
                 && ($content !== '' || !empty($mediaUrl))
             ) {
-                $sessionId = DB::table('chatbot_sessions')
-                    ->where('session_key', $senderId)
-                    ->value('id');
+                /*
+                 * Chỉ Messenger chat mới dùng cơ chế trả lời tự động bằng AI
+                 * và chuyển ticket khi gặp câu hỏi khó. Bình luận (comment)
+                 * sẽ bị bỏ qua và không nhận phản hồi từ AI.
+                 */
+                $isMessengerChat =
+                    $channel === 'facebook'
+                    && $interactionType === 'chat';
+
+                $sessionId = null;
                 $isPending = false;
 
-                if ($sessionId) {
-                    $isPending = DB::table('chatbot_tickets')
-                        ->where('session_id', $sessionId)
-                        ->where('status', 'pending')
-                        ->exists();
+                if ($isMessengerChat) {
+                    $sessionId = DB::table('chatbot_sessions')
+                        ->where('session_key', $senderId)
+                        ->value('id');
+
+                    if ($sessionId) {
+                        $isPending = DB::table('chatbot_tickets')
+                            ->where('session_id', $sessionId)
+                            ->where('status', 'pending')
+                            ->exists();
+                    }
                 }
 
-                if ($isPending) {
+                if ($isMessengerChat && $isPending) {
                     $ragResult = [
-                        'answer' => 'Tin nhắn của bạn đã được chuyển đến Thầy/Cô tư vấn viên. Thầy/Cô sẽ phản hồi bạn ngay, bạn đợi một chút nhé!',
+                        'answer' =>
+                            'Câu hỏi của bạn đã được chuyển đến nhân viên '
+                            . 'tư vấn. Khi có phản hồi, tôi sẽ gửi lại ngay '
+                            . 'tại cuộc trò chuyện Messenger này.',
                         'sources' => [],
                         'generated' => false,
+                        'handoff' => true,
                     ];
 
                     DB::table('chatbot_tickets')
@@ -378,58 +395,94 @@ class AdmissionWebhookController extends Controller
                         $mediaUrl
                     );
 
-                    if (
-                        isset($ragResult['answer'])
-                        && $ragResult['answer'] !== ''
-                    ) {
+                    $answerText = trim(
+                        (string) ($ragResult['answer'] ?? '')
+                    );
+
+                    $needsHandoff =
+                        $isMessengerChat
+                        && $this->messengerAnswerNeedsHandoff(
+                            $answerText
+                        );
+
+                    if ($needsHandoff) {
+                        /*
+                         * Messenger không yêu cầu người dùng xác nhận tạo ticket
+                         * và cũng không bắt tra cứu mã ticket như Website.
+                         */
+                        $answerText =
+                            'Tôi chưa có đủ dữ liệu cụ thể để trả lời chính '
+                            . 'xác câu hỏi này. Tôi đã chuyển câu hỏi của bạn '
+                            . 'đến nhân viên tư vấn. Khi có phản hồi, tôi sẽ '
+                            . 'gửi lại ngay tại cuộc trò chuyện Messenger này.';
+
+                        $ragResult['answer'] = $answerText;
+                        $ragResult['generated'] = false;
+                        $ragResult['handoff'] = true;
+
+                        if (!$sessionId) {
+                            $sessionId = DB::table('chatbot_sessions')
+                                ->insertGetId([
+                                    'session_key' => $senderId,
+                                    'ip_address' => 'webhook',
+                                    'user_agent' => $channel,
+                                    'started_at' => now(),
+                                    'last_active_at' => now(),
+                                ]);
+                        } else {
+                            DB::table('chatbot_sessions')
+                                ->where('id', $sessionId)
+                                ->update([
+                                    'last_active_at' => now(),
+                                ]);
+                        }
+
+                        $ticketCode =
+                            strtoupper(substr($channel, 0, 2))
+                            . now()->format('Ymd')
+                            . '-'
+                            . strtoupper(
+                                \Illuminate\Support\Str::random(4)
+                            );
+
+                        DB::table('chatbot_tickets')->insert([
+                            'session_id' => $sessionId,
+                            'ticket_code' => $ticketCode,
+                            'question' => "[$channel] {$content}",
+                            'bot_note' =>
+                                'Messenger tự động chuyển nhân viên tư vấn '
+                                . 'do câu trả lời không đủ căn cứ từ dữ liệu.',
+                            'status' => 'pending',
+                            'staff_answer' => null,
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ]);
+
+                        $ragResult['ticket_code'] = $ticketCode;
+                    }
+
+                    /*
+                     * Lưu đúng nội dung thực tế đã gửi ra kênh.
+                     * Nếu handoff thì lưu câu thông báo chuyển tư vấn viên,
+                     * không lưu câu fallback ban đầu của AI.
+                     */
+                    if ($answerText !== '') {
                         DB::table('admission_lead_activities')->insert([
                             'lead_id' => $leadId,
                             'channel' => $channel,
                             'type' => 'chat',
                             'direction' => 'outbound',
-                            'content' => $ragResult['answer'],
+                            'content' => $answerText,
                             'occurred_at' => now(),
                             'created_at' => now(),
                             'updated_at' => now(),
                         ]);
                     }
 
-                    $answerText = $ragResult['answer'] ?? '';
-                    $isFallback =
-                        strpos($answerText, 'nằm ngoài thông tin') !== false
-                        || strpos($answerText, 'để lại Tên và') !== false;
-
-                    if (!$sessionId) {
-                        $sessionId = DB::table('chatbot_sessions')
-                            ->insertGetId([
-                                'session_key' => $senderId,
-                                'ip_address' => 'webhook',
-                                'user_agent' => $channel,
-                                'started_at' => now(),
-                                'last_active_at' => now(),
-                            ]);
-                    } else {
-                        DB::table('chatbot_sessions')
-                            ->where('id', $sessionId)
-                            ->update([
-                                'last_active_at' => now(),
-                            ]);
-                    }
-
-                    $ticketCode = strtoupper(substr($channel, 0, 2))
-                        . now()->format('Ymd')
-                        . '-'
-                        . strtoupper(\Illuminate\Support\Str::random(4));
-
-                    DB::table('chatbot_tickets')->insert([
-                        'session_id' => $sessionId,
-                        'ticket_code' => $ticketCode,
-                        'question' => "[$channel] {$content}",
-                        'status' => $isFallback ? 'pending' : 'answered',
-                        'staff_answer' => $isFallback ? null : $answerText,
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ]);
+                    /*
+                     * Nếu RAG trả lời được thì không tạo chatbot_tickets.
+                     * Ticket chỉ đại diện cho trường hợp cần nhân viên xử lý.
+                     */
                 }
             }
 
@@ -454,6 +507,47 @@ class AdmissionWebhookController extends Controller
                 'error' => $e->getMessage(),
             ], 500);
         }
+    }
+
+    private function messengerAnswerNeedsHandoff($answerText)
+    {
+        $text = mb_strtolower(
+            trim(strip_tags((string) $answerText)),
+            'UTF-8'
+        );
+
+        if ($text === '') {
+            return false;
+        }
+
+        /*
+         * Các mẫu này bám đúng kiểu fallback đang xuất hiện trong dữ liệu
+         * Messenger hiện tại. Không bắt các câu chỉ yêu cầu làm rõ như
+         * "câu hỏi chưa rõ" để tránh tạo ticket không cần thiết.
+         */
+        $markers = [
+            'nằm ngoài thông tin',
+            'không nằm trong thông tin',
+            'không tìm thấy thông tin',
+            'không tìm thấy dữ liệu',
+            'không có thông tin cụ thể',
+            'không có dữ liệu cụ thể',
+            'tài liệu không nêu',
+            'tài liệu chưa nêu',
+            'không nêu rõ',
+            'không đề cập',
+            'bạn có muốn tôi chuyển',
+            'chuyển câu hỏi này đến nhân viên tư vấn',
+            'chuyển đến nhân viên tư vấn',
+        ];
+
+        foreach ($markers as $marker) {
+            if (mb_strpos($text, $marker, 0, 'UTF-8') !== false) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function ragAnswer(Request $request)

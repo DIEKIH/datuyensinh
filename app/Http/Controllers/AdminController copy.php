@@ -2015,20 +2015,8 @@ class AdminController extends Controller
             ], 403);
         }
 
-        $ticket = DB::table('chatbot_tickets as t')
-            ->leftJoin(
-                'chatbot_sessions as s',
-                's.id',
-                '=',
-                't.session_id'
-            )
-            ->where('t.id', $id)
-            ->select(
-                't.*',
-                's.session_key',
-                's.ip_address as session_ip_address',
-                's.user_agent as session_user_agent'
-            )
+        $ticket = DB::table('chatbot_tickets')
+            ->where('id', $id)
             ->first();
 
         if (!$ticket) {
@@ -2041,92 +2029,6 @@ class AdminController extends Controller
         $answer = trim((string) $request->staff_answer);
         $useAsSample = (int) $request->input('use_as_sample', 0);
 
-        /*
-         * Ticket Messenger được tạo từ AdmissionWebhookController với:
-         * - chatbot_sessions.ip_address = webhook
-         * - chatbot_sessions.user_agent = facebook
-         * - chatbot_sessions.session_key = PSID Messenger
-         *
-         * Ticket Website không đi qua n8n ở bước này.
-         */
-        $isMessengerTicket =
-            strtolower(
-                trim((string) ($ticket->session_user_agent ?? ''))
-            ) === 'facebook'
-            && trim(
-                (string) ($ticket->session_ip_address ?? '')
-            ) === 'webhook'
-            && trim((string) ($ticket->session_key ?? '')) !== '';
-
-        $deliveredAt = null;
-
-        if ($isMessengerTicket) {
-            $n8nUrl = env(
-                'N8N_MASTER_WEBHOOK_URL',
-                'http://localhost:5678/webhook/master-receiver'
-            );
-
-            $payload = [
-                'event_type' => 'ticket_reply_messenger',
-                'data' => [
-                    'ticket_id' => (int) $ticket->id,
-                    'ticket_code' => (string) $ticket->ticket_code,
-                    'channel' => 'messenger',
-                    'sender_id' => trim(
-                        (string) $ticket->session_key
-                    ),
-                    'message' => $answer,
-                ],
-            ];
-
-            try {
-                $response = Http::withoutVerifying()
-                    ->acceptJson()
-                    ->timeout(30)
-                    ->post($n8nUrl, $payload);
-
-                if (!$response->successful()) {
-                    Log::error(
-                        '[Ticket Messenger] n8n HTTP error',
-                        [
-                            'ticket_id' => $ticket->id,
-                            'status' => $response->status(),
-                            'response' => $response->body(),
-                        ]
-                    );
-
-                    return response()->json([
-                        'success' => false,
-                        'message' =>
-                            'Chưa gửi được phản hồi sang Messenger. '
-                            . 'Ticket vẫn giữ trạng thái chờ để có thể gửi lại.',
-                    ], 502);
-                }
-
-                /*
-                 * Master n8n đã nhận yêu cầu và tiếp tục gửi Graph API.
-                 * Dùng delivered_at cho ticket Messenger để ghi nhận
-                 * thời điểm Laravel đã chuyển phản hồi sang n8n.
-                 */
-                $deliveredAt = now();
-            } catch (\Throwable $e) {
-                Log::error(
-                    '[Ticket Messenger] Không kết nối được n8n',
-                    [
-                        'ticket_id' => $ticket->id,
-                        'message' => $e->getMessage(),
-                    ]
-                );
-
-                return response()->json([
-                    'success' => false,
-                    'message' =>
-                        'Không kết nối được n8n để gửi Messenger. '
-                        . 'Ticket vẫn giữ trạng thái chờ.',
-                ], 502);
-            }
-        }
-
         DB::table('chatbot_tickets')
             ->where('id', $id)
             ->update([
@@ -2134,7 +2036,7 @@ class AdminController extends Controller
                 'staff_answer' => $answer,
                 'answered_by'  => $adminId,
                 'answered_at'  => now(),
-                'delivered_at' => $deliveredAt,
+                'delivered_at' => null,
                 'updated_at'   => now(),
             ]);
 
@@ -2150,10 +2052,8 @@ class AdminController extends Controller
             $adminId
         );
 
-        $message = $isMessengerTicket
-            ? 'Đã trả lời và chuyển phản hồi đến Messenger của người hỏi.'
-            : 'Đã trả lời yêu cầu tư vấn. '
-                . 'Nếu người hỏi còn mở khung chat, phản hồi sẽ tự hiển thị.';
+        $message = 'Đã trả lời yêu cầu tư vấn. '
+            . 'Nếu người hỏi còn mở khung chat, phản hồi sẽ tự hiển thị.';
 
         if ($libraryResult['approval_blocked']) {
             $message .= ' Câu hỏi có dấu hiệu chứa dữ liệu cá nhân nên '
@@ -3160,3 +3060,13 @@ return response()->json([
         return response()->json(['error' => 'Không có file'], 400);
     }
 }
+
+
+
+
+
+
+
+
+
+/////////////////////////////////ngành
