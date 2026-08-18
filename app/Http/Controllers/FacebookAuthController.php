@@ -10,12 +10,17 @@ class FacebookAuthController extends Controller
 {
     public function login()
     {
-        $url = 'https://www.facebook.com/v20.0/dialog/oauth?' . http_build_query([
-            'client_id'     => env('FB_APP_ID'),
-            'redirect_uri'  => route('facebook.callback'),
-            'scope'         => 'pages_show_list,pages_manage_posts,pages_read_engagement',
+        $url = 'https://www.facebook.com/v26.0/dialog/oauth?' . http_build_query([
+            'client_id'    => env('FB_APP_ID'),
+            'redirect_uri' => route('facebook.callback'),
+            'scope' => implode(',', [
+                'pages_show_list',
+                'pages_manage_posts',
+                'pages_read_engagement',
+                'pages_messaging',
+            ]),
         ]);
-        
+
         return redirect()->away($url);
     }
 
@@ -28,7 +33,7 @@ class FacebookAuthController extends Controller
         }
 
         // Đổi code lấy User Access Token
-        $response = Http::get('https://graph.facebook.com/v20.0/oauth/access_token', [
+        $response = Http::get('https://graph.facebook.com/v26.0/oauth/access_token', [
             'client_id'     => env('FB_APP_ID'),
             'client_secret' => env('FB_APP_SECRET'),
             'redirect_uri'  => route('facebook.callback'),
@@ -42,7 +47,7 @@ class FacebookAuthController extends Controller
         }
 
         // Dùng User Access Token để lấy Page Access Token
-        $pagesResponse = Http::get('https://graph.facebook.com/v20.0/me/accounts', [
+        $pagesResponse = Http::get('https://graph.facebook.com/v26.0/me/accounts', [
             'access_token' => $userAccessToken,
         ]);
 
@@ -58,8 +63,19 @@ class FacebookAuthController extends Controller
         $pageName = $pages[0]['name'];
 
         // Lưu thông tin Page vào DB của user hiện tại
+        // if (Auth::check()) {
+        //     Auth::user()->update([
+        //         'fb_page_id' => $pageId,
+        //         'fb_page_access_token' => $pageAccessToken,
+        //     ]);
+        // }
+
+        // Lưu thông tin Page vào DB của user hiện tại
         if (Auth::check()) {
-            Auth::user()->update([
+            /** @var \App\Models\User $user */
+            $user = Auth::user();
+
+            $user->update([
                 'fb_page_id' => $pageId,
                 'fb_page_access_token' => $pageAccessToken,
             ]);
@@ -84,7 +100,7 @@ class FacebookAuthController extends Controller
         $imageUrl = $request->input('image_url');
         
         if ($imageUrl || $request->hasFile('image')) {
-            $endpoint = "https://graph.facebook.com/v20.0/{$user->fb_page_id}/photos";
+            $endpoint = "https://graph.facebook.com/v26.0/{$user->fb_page_id}/photos";
             
             if ($request->hasFile('image')) {
                 $file = $request->file('image');
@@ -107,7 +123,7 @@ class FacebookAuthController extends Controller
                 ]);
             }
         } else {
-            $response = Http::post("https://graph.facebook.com/v20.0/{$user->fb_page_id}/feed", [
+            $response = Http::post("https://graph.facebook.com/v26.0/{$user->fb_page_id}/feed", [
                 'message'      => $content,
                 'access_token' => $user->fb_page_access_token,
             ]);

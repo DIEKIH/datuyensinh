@@ -195,7 +195,7 @@ $(function () {
 
     let provincesData = [];
 
-    $.get('https://provinces.open-api.vn/api/?depth=2')
+    $.get('/provinces.json')
         .done(function (response) {
             provincesData = Array.isArray(response) ? response : [];
 

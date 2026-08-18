@@ -334,6 +334,11 @@
                                 <i class="bi bi-chevron-right"></i>Sự kiện
                             </a>
                         </li>
+                        <li>
+                            <a href="{{ url('/dang-ky-tu-van') }}">
+                                <i class="bi bi-chevron-right"></i>Đăng ký tư vấn
+                            </a>
+                        </li>
                     </ul>
                 </div>
 

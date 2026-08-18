@@ -770,6 +770,7 @@
                             <div class="form-group">
                                 <label class="form-label" for="leadEmail">
                                     Email
+                                    <span class="required-mark">*</span>
                                 </label>
                                 <input
                                     id="leadEmail"
@@ -778,6 +779,7 @@
                                     type="email"
                                     autocomplete="email"
                                     placeholder="email@example.com"
+                                    required
                                 >
                             </div>
                         </div>

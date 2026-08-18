@@ -53,6 +53,7 @@ class AdmissionWebhookController extends Controller
             $account = null;
             $scoreData = null;
             $messengerPsid = null;
+            $leadWasExisting = false;
 
             if ($senderId !== '') {
                 $account = DB::table('admission_lead_channel_accounts')
@@ -76,6 +77,8 @@ class AdmissionWebhookController extends Controller
                 }
             }
 
+            $leadWasExisting = $lead !== null;
+
             if (!$lead && $senderId !== '') {
                 $profile = [
                     'sender_id' => $senderId,
@@ -86,7 +89,8 @@ class AdmissionWebhookController extends Controller
                 }
 
                 // Chỉ sender_id nhận từ sự kiện chat Messenger mới được xem là PSID.
-                if ($channel === 'facebook' && $interactionType === 'chat') {
+                if ($channel === 'facebook'
+                    && in_array($interactionType, ['chat', 'get_started'], true)) {
                     $profile['messenger_psid'] = $senderId;
                 }
 
@@ -141,7 +145,7 @@ class AdmissionWebhookController extends Controller
 
             if (
                 $channel === 'facebook'
-                && $interactionType === 'chat'
+                && in_array($interactionType, ['chat', 'get_started'], true)
                 && $senderId !== ''
             ) {
                 $profile['messenger_psid'] = $senderId;
@@ -176,6 +180,49 @@ class AdmissionWebhookController extends Controller
                 ],
                 $accountData
             );
+
+            if (
+                $channel === 'facebook'
+                && in_array($interactionType, ['chat', 'get_started'], true)
+                && $senderId !== ''
+            ) {
+                $messengerPsid = $senderId;
+            }
+
+            /*
+             * Messenger onboarding:
+             * - Get Started dùng PSID để nhận diện người mới/cũ.
+             * - Chỉ Lead mới mới bị hỏi thông tin thí sinh.
+             * - Trạng thái lưu trong admission_leads.profile, không cần bảng mới.
+             */
+            $onboardingResult = $this->handleMessengerOnboarding(
+                $leadId,
+                $leadWasExisting,
+                $channel,
+                $interactionType,
+                $content
+            );
+
+            /*
+             * Nếu SĐT/Email cho thấy đây là Lead đã có từ Website/Chatbot,
+             * onboarding sẽ hợp nhất hồ sơ Messenger vào Lead trung tâm đó.
+             */
+            if (
+                is_array($onboardingResult)
+                && !empty($onboardingResult['resolved_lead_id'])
+            ) {
+                $leadId = (int) $onboardingResult['resolved_lead_id'];
+                unset($onboardingResult['resolved_lead_id']);
+
+                $lead = DB::table('admission_leads')
+                    ->where('id', $leadId)
+                    ->first();
+
+                $account = DB::table('admission_lead_channel_accounts')
+                    ->where('channel', $channel)
+                    ->where('account_id', $senderId)
+                    ->first();
+            }
 
             if (
                 $content !== ''
@@ -336,10 +383,20 @@ class AdmissionWebhookController extends Controller
             }
 
             $ragResult = null;
+            $resumePendingQuestion = trim((string) (
+                $onboardingResult['resume_question'] ?? ''
+            ));
+            $ragQuestion = $resumePendingQuestion !== ''
+                ? $resumePendingQuestion
+                : $content;
 
             if (
-                $interactionType === 'chat'
-                && ($content !== '' || !empty($mediaUrl))
+                (
+                    $onboardingResult === null
+                    || $resumePendingQuestion !== ''
+                )
+                && $interactionType === 'chat'
+                && ($ragQuestion !== '' || !empty($mediaUrl))
             ) {
                 /*
                  * Chỉ Messenger chat mới dùng cơ chế trả lời tự động bằng AI
@@ -383,14 +440,14 @@ class AdmissionWebhookController extends Controller
                         ->update([
                             'question' => DB::raw(
                                 "CONCAT(question, '\n\n[Tin nhắn mới]: ', "
-                                . DB::getPdo()->quote($content)
+                                . DB::getPdo()->quote($ragQuestion)
                                 . ')'
                             ),
                             'updated_at' => now(),
                         ]);
                 } else {
                     $ragResult = $this->rag->answer(
-                        $content,
+                        $ragQuestion,
                         $senderId,
                         $mediaUrl
                     );
@@ -398,6 +455,17 @@ class AdmissionWebhookController extends Controller
                     $answerText = trim(
                         (string) ($ragResult['answer'] ?? '')
                     );
+
+                    if (
+                        $resumePendingQuestion !== ''
+                        && $answerText !== ''
+                    ) {
+                        $answerText =
+                            'Cảm ơn bạn, mình đã ghi nhận thông tin. '
+                            . "\n\n"
+                            . $answerText;
+                        $ragResult['answer'] = $answerText;
+                    }
 
                     $needsHandoff =
                         $isMessengerChat
@@ -448,7 +516,7 @@ class AdmissionWebhookController extends Controller
                         DB::table('chatbot_tickets')->insert([
                             'session_id' => $sessionId,
                             'ticket_code' => $ticketCode,
-                            'question' => "[$channel] {$content}",
+                            'question' => "[$channel] {$ragQuestion}",
                             'bot_note' =>
                                 'Messenger tự động chuyển nhân viên tư vấn '
                                 . 'do câu trả lời không đủ căn cứ từ dữ liệu.',
@@ -459,6 +527,79 @@ class AdmissionWebhookController extends Controller
                         ]);
 
                         $ragResult['ticket_code'] = $ticketCode;
+                    }
+
+                    /*
+                     * Hỏi khéo léo thông tin liên hệ sau khi đã tư vấn một lúc:
+                     * - chỉ Messenger;
+                     * - RAG đã trả lời bình thường, không handoff;
+                     * - Lead chưa có cả SĐT lẫn Email;
+                     * - đã có ít nhất 2 tin nhắn inbound;
+                     * - chỉ hỏi đúng một lần.
+                     *
+                     * Nếu thí sinh gửi SĐT/Email ở tin nhắn sau thì
+                     * extractLeadInfo() hiện có sẽ tự cập nhật admission_leads.
+                     */
+                    if (
+                        $isMessengerChat
+                        && !$needsHandoff
+                        && $answerText !== ''
+                    ) {
+                        $contactLead = DB::table('admission_leads')
+                            ->where('id', $leadId)
+                            ->first();
+
+                        if ($contactLead) {
+                            $contactProfile = json_decode(
+                                $contactLead->profile ?? '{}',
+                                true
+                            );
+
+                            if (!is_array($contactProfile)) {
+                                $contactProfile = [];
+                            }
+
+                            $chatCount = DB::table('admission_lead_activities')
+                                ->where('lead_id', $leadId)
+                                ->where('channel', 'facebook')
+                                ->where('type', 'chat')
+                                ->where('direction', 'inbound')
+                                ->count();
+
+                            $missingContact =
+                                trim((string) ($contactLead->phone ?? '')) === ''
+                                && trim((string) ($contactLead->email ?? '')) === '';
+
+                            $contactPromptShown =
+                                !empty($contactProfile['contact_prompt_shown']);
+
+                            if (
+                                $missingContact
+                                && !$contactPromptShown
+                                && $chatCount >= 2
+                            ) {
+                                $answerText .= "\n\n"
+                                    . 'Nếu bạn muốn cán bộ tuyển sinh hỗ trợ thêm '
+                                    . 'khi cần, bạn có thể để lại số điện thoại '
+                                    . 'hoặc Email nhé. Thông tin này là tùy chọn.';
+
+                                $ragResult['answer'] = $answerText;
+
+                                $contactProfile['contact_prompt_shown'] = true;
+                                $contactProfile['contact_prompt_shown_at'] =
+                                    now()->toIso8601String();
+
+                                DB::table('admission_leads')
+                                    ->where('id', $leadId)
+                                    ->update([
+                                        'profile' => json_encode(
+                                            $contactProfile,
+                                            JSON_UNESCAPED_UNICODE
+                                        ),
+                                        'updated_at' => now(),
+                                    ]);
+                            }
+                        }
                     }
 
                     /*
@@ -494,7 +635,9 @@ class AdmissionWebhookController extends Controller
                     ? strtolower((string) $scoreData['lead_level'])
                     : null,
                 'messenger_ready' => !empty($messengerPsid),
-                'data' => $ragResult,
+                'data' => $resumePendingQuestion !== ''
+                    ? $ragResult
+                    : ($onboardingResult ?? $ragResult),
             ]);
         } catch (\Throwable $e) {
             Log::error(
@@ -507,6 +650,389 @@ class AdmissionWebhookController extends Controller
                 'error' => $e->getMessage(),
             ], 500);
         }
+    }
+
+    /**
+     * Messenger chỉ dùng Get Started để chào và mở phiên tư vấn.
+     *
+     * Không ép thí sinh khai SĐT/Email/Họ tên/Ngành/Tỉnh ngay từ đầu.
+     * Các thông tin xuất hiện tự nhiên trong hội thoại vẫn được
+     * extractLeadInfo() phía trên tự động trích xuất và cập nhật Lead.
+     *
+     * Sau một vài lượt chat, nếu Lead vẫn chưa có SĐT/Email thì phần RAG
+     * phía trên sẽ khéo léo mời thí sinh để lại thông tin liên hệ một lần.
+     */
+    private function handleMessengerOnboarding(
+        $leadId,
+        $leadWasExisting,
+        $channel,
+        $interactionType,
+        $content
+    ) {
+        if ($channel !== 'facebook') {
+            return null;
+        }
+
+        if ($interactionType === 'get_started') {
+            $this->logMessengerOnboardingActivity(
+                $leadId,
+                'get_started',
+                $leadWasExisting
+                    ? 'Người dùng mở lại tư vấn Messenger.'
+                    : 'Người dùng bắt đầu tư vấn trên Messenger.'
+            );
+
+            return [
+                'answer' =>
+                    'Xin chào 👋 Mình là Trợ lý tư vấn tuyển sinh CTUT. '
+                    . 'Bạn có thể hỏi mình về ngành học, phương thức xét tuyển, '
+                    . 'học phí, hồ sơ hoặc các thông tin tuyển sinh khác nhé. '
+                    . 'Bạn đang quan tâm nội dung nào?',
+                'sources' => [],
+                'generated' => false,
+                'handoff' => false,
+                'onboarding' => false,
+                'onboarding_status' => 'completed',
+                'onboarding_step' => null,
+            ];
+        }
+
+        /*
+         * Tin nhắn chat bình thường đi thẳng xuống luồng hiện có:
+         * lưu activity -> extractLeadInfo() -> scoring -> RAG.
+         */
+        return null;
+    }
+
+    private function advanceMessengerOnboarding(
+        $leadId,
+        array $profile,
+        array $state,
+        $nextStep,
+        $prefix = ''
+    ) {
+        if ($nextStep !== null) {
+            $state['step'] = $nextStep;
+            $profile['messenger_onboarding'] = $state;
+            $this->saveMessengerProfile($leadId, $profile);
+
+            return $this->messengerOnboardingPayload(
+                $prefix . $this->messengerOnboardingQuestion($nextStep),
+                'in_progress',
+                $nextStep
+            );
+        }
+
+        $resumeQuestion = trim((string) ($state['first_message'] ?? ''));
+        unset($state['first_message']);
+
+        $state['status'] = 'completed';
+        $state['step'] = null;
+        $state['completed_at'] = now()->toIso8601String();
+        $profile['messenger_onboarding'] = $state;
+        $this->saveMessengerProfile($leadId, $profile);
+
+        $this->logMessengerOnboardingActivity(
+            $leadId,
+            'onboarding_completed',
+            'Hoàn tất thu thập thông tin thí sinh trên Messenger.'
+        );
+
+        return $this->messengerOnboardingPayload(
+            'Cảm ơn bạn 😊 Mình đã ghi nhận những thông tin cần thiết để '
+            . 'hỗ trợ tư vấn phù hợp hơn. Bạn có thể tiếp tục hỏi mình về '
+            . 'ngành học, phương thức xét tuyển, học phí, hồ sơ hoặc các '
+            . 'thông tin tuyển sinh khác của CTUT nhé.',
+            'completed',
+            null,
+            $resumeQuestion !== ''
+                ? ['resume_question' => $resumeQuestion]
+                : []
+        );
+    }
+
+    private function nextMessengerOnboardingStep($lead, array $state = [])
+    {
+        if (!$lead) {
+            return 'ask_name';
+        }
+
+        if (trim((string) ($lead->full_name ?? '')) === '') {
+            return 'ask_name';
+        }
+
+        if (
+            trim((string) ($lead->intended_major ?? '')) === ''
+            && empty($state['skipped']['intended_major'])
+        ) {
+            return 'ask_major';
+        }
+
+        if (
+            trim((string) ($lead->province ?? '')) === ''
+            && empty($state['skipped']['province'])
+        ) {
+            return 'ask_province';
+        }
+
+        return null;
+    }
+
+    private function findLeadByContact($phone, $email, $excludeLeadId = null)
+    {
+        if ($phone) {
+            $query = DB::table('admission_leads')->where('phone', $phone);
+            if ($excludeLeadId) {
+                $query->where('id', '<>', $excludeLeadId);
+            }
+            $lead = $query->first();
+            if ($lead) {
+                return $lead;
+            }
+        }
+
+        if ($email) {
+            $query = DB::table('admission_leads')->whereRaw(
+                'LOWER(email) = ?',
+                [mb_strtolower($email, 'UTF-8')]
+            );
+            if ($excludeLeadId) {
+                $query->where('id', '<>', $excludeLeadId);
+            }
+            $lead = $query->first();
+            if ($lead) {
+                return $lead;
+            }
+        }
+
+        return null;
+    }
+
+    private function mergeMessengerLeadIntoExistingLead(
+        $sourceLeadId,
+        $targetLeadId,
+        $phone = null,
+        $email = null
+    ) {
+        if ($sourceLeadId === $targetLeadId) {
+            return $targetLeadId;
+        }
+
+        return DB::transaction(function () use (
+            $sourceLeadId,
+            $targetLeadId,
+            $phone,
+            $email
+        ) {
+            $source = DB::table('admission_leads')
+                ->where('id', $sourceLeadId)
+                ->lockForUpdate()
+                ->first();
+            $target = DB::table('admission_leads')
+                ->where('id', $targetLeadId)
+                ->lockForUpdate()
+                ->first();
+
+            if (!$source || !$target) {
+                return $targetLeadId;
+            }
+
+            $sourceProfile = json_decode($source->profile ?? '{}', true);
+            $targetProfile = json_decode($target->profile ?? '{}', true);
+            if (!is_array($sourceProfile)) {
+                $sourceProfile = [];
+            }
+            if (!is_array($targetProfile)) {
+                $targetProfile = [];
+            }
+
+            /*
+             * Giữ dữ liệu Website/Chatbot làm nền, bổ sung định danh và state
+             * Messenger từ hồ sơ tạm. Không làm mất custom/scoring metadata cũ.
+             */
+            $mergedProfile = array_replace_recursive(
+                $targetProfile,
+                $sourceProfile
+            );
+            $mergedProfile['merged_channels']['facebook'] = true;
+            $mergedProfile['merged_at'] = now()->toIso8601String();
+
+            $updates = [
+                'full_name' => $target->full_name ?: $source->full_name,
+                'phone' => $target->phone ?: ($phone ?: $source->phone),
+                'email' => $target->email ?: ($email ?: $source->email),
+                'intended_major' => $target->intended_major
+                    ?: $source->intended_major,
+                'province' => $target->province ?: $source->province,
+                'profile' => json_encode(
+                    $mergedProfile,
+                    JSON_UNESCAPED_UNICODE
+                ),
+                'last_interaction_at' => now(),
+                'updated_at' => now(),
+            ];
+
+            DB::table('admission_leads')
+                ->where('id', $targetLeadId)
+                ->update($updates);
+
+            DB::table('admission_lead_channel_accounts')
+                ->where('lead_id', $sourceLeadId)
+                ->update([
+                    'lead_id' => $targetLeadId,
+                    'updated_at' => now(),
+                ]);
+
+            DB::table('admission_lead_activities')
+                ->where('lead_id', $sourceLeadId)
+                ->update(['lead_id' => $targetLeadId]);
+
+            if (DB::getSchemaBuilder()->hasTable('admission_lead_score_logs')) {
+                DB::table('admission_lead_score_logs')
+                    ->where('lead_id', $sourceLeadId)
+                    ->update(['lead_id' => $targetLeadId]);
+            }
+
+            DB::table('admission_leads')
+                ->where('id', $sourceLeadId)
+                ->delete();
+
+            return $targetLeadId;
+        });
+    }
+
+    private function normalizeMessengerPhone($value)
+    {
+        $value = (string) $value;
+
+        if (!preg_match('/(?:\+?84|0)[0-9 .\-]{8,13}/', $value, $matches)) {
+            return null;
+        }
+
+        $digits = preg_replace('/\D+/', '', $matches[0]);
+
+        /* Cho phép +84xxxxxxxxx và chuẩn hóa về 0xxxxxxxxx. */
+        if (strpos($digits, '84') === 0 && strlen($digits) === 11) {
+            $digits = '0' . substr($digits, 2);
+        }
+
+        return preg_match('/^0[0-9]{9}$/', $digits)
+            ? $digits
+            : null;
+    }
+
+    private function normalizeMessengerEmail($value)
+    {
+        if (
+            preg_match(
+                '/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/',
+                (string) $value,
+                $matches
+            )
+        ) {
+            $email = mb_strtolower(trim($matches[0]), 'UTF-8');
+            return filter_var($email, FILTER_VALIDATE_EMAIL)
+                ? $email
+                : null;
+        }
+
+        return null;
+    }
+
+    private function messengerOnboardingQuestion($step)
+    {
+        switch ($step) {
+            case 'ask_name':
+                return 'Mình nên xưng hô với bạn như thế nào? Bạn cho mình xin '
+                    . 'họ tên nhé.';
+
+            case 'ask_major':
+                return 'Để mình ưu tiên đúng nội dung bạn quan tâm, bạn đang tìm '
+                    . 'hiểu ngành hoặc lĩnh vực nào của CTUT?';
+
+            case 'ask_province':
+                return 'Bạn đang học hoặc sinh sống tại tỉnh/thành nào? Thông tin '
+                    . 'này giúp bộ phận tuyển sinh hỗ trợ phù hợp hơn; nếu chưa '
+                    . 'tiện, bạn có thể nhắn “Bỏ qua”.';
+
+            case 'ask_contact':
+            default:
+                return 'Để tránh tạo trùng hồ sơ và giúp mình nhận ra nếu bạn đã '
+                    . 'từng đăng ký tư vấn trước đây, bạn cho mình xin số điện '
+                    . 'thoại hoặc Email đã dùng nhé. Nếu chưa tiện chia sẻ, bạn '
+                    . 'có thể nhắn “Bỏ qua”.';
+        }
+    }
+
+    private function messengerOnboardingPayload(
+        $answer,
+        $status,
+        $step = null,
+        array $extra = []
+    ) {
+        return array_merge([
+            'answer' => $answer,
+            'sources' => [],
+            'generated' => false,
+            'handoff' => false,
+            'onboarding' => true,
+            'onboarding_status' => $status,
+            'onboarding_step' => $step,
+        ], $extra);
+    }
+
+    private function saveMessengerProfile($leadId, array $profile)
+    {
+        DB::table('admission_leads')
+            ->where('id', $leadId)
+            ->update([
+                'profile' => json_encode(
+                    $profile,
+                    JSON_UNESCAPED_UNICODE
+                ),
+                'updated_at' => now(),
+            ]);
+    }
+
+    private function logMessengerOnboardingActivity(
+        $leadId,
+        $type,
+        $content
+    ) {
+        DB::table('admission_lead_activities')->insert([
+            'lead_id' => $leadId,
+            'channel' => 'facebook',
+            'type' => $type,
+            'external_id' => null,
+            'direction' => 'inbound',
+            'content' => $content,
+            'payload' => json_encode([
+                'source' => 'messenger_onboarding',
+            ]),
+            'occurred_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    }
+
+    private function isMessengerSkipAnswer($value)
+    {
+        $value = mb_strtolower(
+            trim((string) $value),
+            'UTF-8'
+        );
+
+        return in_array($value, [
+            'bỏ qua',
+            'bo qua',
+            'skip',
+            'không',
+            'khong',
+            'chưa biết',
+            'chua biet',
+            'chưa xác định',
+            'chua xac dinh',
+        ], true);
     }
 
     private function messengerAnswerNeedsHandoff($answerText)
@@ -789,11 +1315,68 @@ class AdmissionWebhookController extends Controller
     }
 
     public function log(Request $request)
-    {
-        Log::info('[AdmissionWebhookController] n8n log:', $request->all());
+{
+    try {
+        $workflow = trim(
+            (string) $request->input(
+                'workflow',
+                'Unknown Workflow'
+            )
+        );
+
+        $eventType = trim(
+            (string) $request->input(
+                'event_type',
+                'system_log'
+            )
+        );
+
+        $status = strtolower(
+            trim(
+                (string) $request->input(
+                    'status',
+                    'received'
+                )
+            )
+        );
+
+        $message = trim(
+            (string) $request->input(
+                'message',
+                'Không có nội dung.'
+            )
+        );
+
+        DB::table('admission_n8n_logs')->insert([
+            'workflow' => $workflow,
+            'event_type' => $eventType,
+            'status' => $status,
+            'message' => $message,
+
+            'payload' => json_encode(
+                $request->all(),
+                JSON_UNESCAPED_UNICODE
+            ),
+
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
         return response()->json([
             'success' => true,
-            'message' => 'Log processed',
+            'message' => 'Đã ghi nhận log n8n.',
         ]);
+    } catch (\Throwable $e) {
+        Log::error(
+            '[AdmissionWebhookController] n8n log error: '
+            . $e->getMessage()
+        );
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Không ghi được log n8n.',
+            'error' => $e->getMessage(),
+        ], 500);
     }
+}
 }

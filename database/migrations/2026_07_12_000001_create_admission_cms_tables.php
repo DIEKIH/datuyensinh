@@ -39,25 +39,25 @@ class CreateAdmissionCmsTables extends Migration
             $table->timestamps();
         });
 
-        Schema::create('admission_rag_documents', function (Blueprint $table) {
-            $table->id();
-            $table->string('title');
-            $table->string('category', 80)->default('quy_che')->index();
-            $table->string('status', 30)->default('active')->index();
-            $table->string('source_url')->nullable();
-            $table->longText('content');
-            $table->timestamps();
-        });
+        // Schema::create('admission_rag_documents', function (Blueprint $table) {
+        //     $table->id();
+        //     $table->string('title');
+        //     $table->string('category', 80)->default('quy_che')->index();
+        //     $table->string('status', 30)->default('active')->index();
+        //     $table->string('source_url')->nullable();
+        //     $table->longText('content');
+        //     $table->timestamps();
+        // });
 
-        Schema::create('admission_rag_chunks', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('document_id')->constrained('admission_rag_documents')->cascadeOnDelete();
-            $table->unsignedInteger('chunk_index')->default(0);
-            $table->string('title')->nullable();
-            $table->text('content');
-            $table->timestamps();
-            $table->index(['document_id', 'chunk_index']);
-        });
+        // Schema::create('admission_rag_chunks', function (Blueprint $table) {
+        //     $table->id();
+        //     $table->foreignId('document_id')->constrained('admission_rag_documents')->cascadeOnDelete();
+        //     $table->unsignedInteger('chunk_index')->default(0);
+        //     $table->string('title')->nullable();
+        //     $table->text('content');
+        //     $table->timestamps();
+        //     $table->index(['document_id', 'chunk_index']);
+        // });
 
         Schema::create('admission_n8n_logs', function (Blueprint $table) {
             $table->id();

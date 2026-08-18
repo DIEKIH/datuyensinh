@@ -38,7 +38,7 @@ return new class extends Migration
             'is_active' => true,
             'created_at' => now(),
             'updated_at' => now(),
-        ]);
+        ]);        
     }
 
     public function down(): void

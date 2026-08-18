@@ -1,4 +1,3 @@
-
 <div class="backlink-v2 content">
     <a href="/">Trang chủ</a>
     <span>/</span>
@@ -10,23 +9,49 @@
 <section class="ts-section">
     <div class="ts-wrap container">
 
-        {{-- ── HERO ── --}}
-        <div class="ts-hero-stats">
-    @forelse ($highlight_stats as $stat)
-        <div class="ts-stat">
-            @if (!empty($stat->icon))
-                <span class="ts-stat-ic">
-                    <i class="{{ $stat->icon }}"></i>
-                </span>
-            @endif
+        {{-- ── HERO BANNER ── --}}
+        <div class="ts-hero-banner">
+            @if (!empty($banners) && count($banners) > 0)
+                <div class="ts-banner-slider" id="ts-banner-slider">
+                    <div class="ts-banner-track">
+                        @foreach ($banners as $index => $banner)
+                            <div class="ts-banner-slide {{ $index === 0 ? 'active' : '' }}">
+                                <img
+                                    src="{{ asset(ltrim($banner->image_url, '/')) }}"
+                                    alt="Banner tuyển sinh {{ $index + 1 }}"
+                                    class="ts-banner-img"
+                                    loading="{{ $index === 0 ? 'eager' : 'lazy' }}"
+                                    decoding="async"
+                                >
+                            </div>
+                        @endforeach
+                    </div>
 
-            <span class="ts-stat-n">{{ $stat->so_luong }}</span>
-            <span class="ts-stat-l">{{ $stat->title }}</span>
+                    @if (count($banners) > 1)
+                        <button type="button" class="ts-banner-nav ts-banner-prev" aria-label="Banner trước">
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+
+                        <button type="button" class="ts-banner-nav ts-banner-next" aria-label="Banner tiếp theo">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+
+                        <div class="ts-banner-dots" aria-label="Chọn banner">
+                            @foreach ($banners as $index => $banner)
+                                <button
+                                    type="button"
+                                    class="ts-banner-dot {{ $index === 0 ? 'active' : '' }}"
+                                    data-slide="{{ $index }}"
+                                    aria-label="Chuyển đến banner {{ $index + 1 }}"
+                                ></button>
+                            @endforeach
+                        </div>
+                    @endif
+                </div>
+            @else
+                <div class="ts-banner-empty">Chưa có banner tuyển sinh.</div>
+            @endif
         </div>
-    @empty
-        
-    @endforelse
-</div>
 
         {{-- ── TABS ── --}}
         <div class="ts-tabbar" role="tablist">
@@ -249,11 +274,10 @@
                         <h3 class="ts-sb-head-title">Đăng ký nhanh</h3>
                     </div>
                     <div class="ts-ql-list">
-                        <a href="https://xettuyen.ctut.edu.vn" class="ts-ql-item" target="_blank" rel="noopener">
+                        <a href="/dang-ky-tu-van" class="ts-ql-item" target="_blank" rel="noopener">
                             <div class="ts-ql-ic ts-ql-ic--blue"><i class="fas fa-globe"></i></div>
                             <div class="ts-ql-body">
-                                <span class="ts-ql-name">Cổng xét tuyển trực tuyến</span>
-                                <span class="ts-ql-sub">xettuyen.ctut.edu.vn</span>
+                                <span class="ts-ql-name">Đăng ký tư vấn</span>
                             </div>
                             <i class="fas fa-arrow-right ts-ql-arr"></i>
                         </a>
@@ -318,19 +342,6 @@
    THÔNG TIN TUYỂN SINH
 ============================================================ */
 
-.ts-stat-ic{
-  width:30px;
-  height:30px;
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  margin-bottom:6px;
-  border-radius:10px;
-  background:#f1f6ff;
-  color:var(--ts-blue);
-  font-size:13px;
-}
-
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 
 :root{
@@ -359,39 +370,111 @@
 /* ── WRAP ── */
 .ts-wrap{padding-top:22px}
 
-/* ── HERO ── */
-.ts-hero{
-  background:#fff;border:1px solid var(--ts-line);border-radius:20px;
-  padding:28px 32px;margin-bottom:22px;
-  box-shadow:0 1px 8px rgba(0,0,0,.05);
+/* ── HERO BANNER ── */
+.ts-hero-banner{
+  width:83.333333%;
+  margin:0 auto 20px;
   animation:ts-fade-up .3s ease both;
 }
-.ts-eyebrow{
-  display:inline-flex;align-items:center;gap:8px;margin-bottom:12px;
-  padding:5px 13px;border:1px solid rgba(29,95,191,.14);border-radius:999px;
-  background:#f1f6ff;color:var(--ts-blue);font-size:11px;font-weight:800;
-  letter-spacing:.08em;text-transform:uppercase;
+.ts-banner-slider{
+  position:relative;
+  width:100%;
+  aspect-ratio:1920 / 720;
+  min-height:0;
+  overflow:hidden;
+  border:1px solid var(--ts-line);
+  border-radius:20px;
+  background:#e8eef7;
+  box-shadow:0 8px 28px rgba(15,42,86,.08);
 }
-.ts-eyebrow-dot{
-  width:7px;height:7px;border-radius:50%;background:var(--ts-gold);
-  box-shadow:0 0 0 4px rgba(201,146,43,.14);
+.ts-banner-track{
+  position:relative;
+  width:100%;
+  height:100%;
 }
-.ts-page-title{
-  font-size:clamp(24px,3vw,38px);font-weight:850;color:var(--ts-navy);
-  letter-spacing:-.03em;line-height:1.2;margin-bottom:8px;
+.ts-banner-slide{
+  position:absolute;
+  inset:0;
+  opacity:0;
+  visibility:hidden;
+  transition:opacity .65s ease,visibility .65s ease;
 }
-.ts-page-desc{color:var(--ts-muted);font-size:14px;line-height:1.75;max-width:620px;margin-bottom:20px}
-.ts-hero-stats{
-  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
-  border:1px solid var(--ts-line);border-radius:14px;overflow:hidden;
+.ts-banner-slide.active{
+  opacity:1;
+  visibility:visible;
+  z-index:1;
 }
-.ts-stat{
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  padding:14px 12px;border-right:1px solid var(--ts-line);text-align:center;
+.ts-banner-img{
+  width:100%;
+  height:100%;
+  display:block;
+  object-fit:contain;
+  object-position:center;
 }
-.ts-stat:last-child{border-right:none}
-.ts-stat-n{font-size:20px;font-weight:850;color:var(--ts-navy)}
-.ts-stat-l{font-size:11px;color:var(--ts-muted);font-weight:600;margin-top:4px}
+.ts-banner-nav{
+  position:absolute;
+  top:50%;
+  z-index:3;
+  width:42px;
+  height:42px;
+  border:1px solid rgba(255,255,255,.55);
+  border-radius:50%;
+  background:rgba(15,42,86,.55);
+  color:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  transform:translateY(-50%);
+  cursor:pointer;
+  backdrop-filter:blur(5px);
+  box-shadow:0 4px 16px rgba(0,0,0,.14);
+  transition:background .18s ease,transform .18s ease;
+}
+.ts-banner-nav:hover{
+  background:rgba(11,47,91,.88);
+  transform:translateY(-50%) scale(1.05);
+}
+.ts-banner-prev{left:14px}
+.ts-banner-next{right:14px}
+.ts-banner-dots{
+  position:absolute;
+  left:50%;
+  bottom:14px;
+  z-index:3;
+  display:flex;
+  align-items:center;
+  gap:7px;
+  padding:6px 9px;
+  border-radius:999px;
+  background:rgba(11,47,91,.34);
+  transform:translateX(-50%);
+  backdrop-filter:blur(5px);
+}
+.ts-banner-dot{
+  width:8px;
+  height:8px;
+  padding:0;
+  border:0;
+  border-radius:999px;
+  background:rgba(255,255,255,.62);
+  cursor:pointer;
+  transition:width .2s ease,background .2s ease;
+}
+.ts-banner-dot.active{
+  width:24px;
+  background:#fff;
+}
+.ts-banner-empty{
+  min-height:180px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border:1px dashed var(--ts-line);
+  border-radius:18px;
+  background:#fff;
+  color:#8a97aa;
+  font-size:13px;
+}
 
 /* ── TABS ── */
 .ts-tabbar{
@@ -677,6 +760,7 @@
 
 /* ── RESPONSIVE ── */
 @media(max-width:1024px){
+  .ts-hero-banner{width:100%}
   .ts-layout{grid-template-columns:1fr}
   .ts-sidebar{position:static;display:grid;grid-template-columns:1fr 1fr;gap:16px;flex-direction:unset}
   .ts-cta{grid-column:1/-1}
@@ -684,11 +768,22 @@
 @media(max-width:700px){
   .ts-sidebar{grid-template-columns:1fr}
   .ts-cta{grid-column:auto}
-  .ts-hero{padding:20px 18px;border-radius:16px}
-  .ts-page-title{font-size:22px}
-  .ts-hero-stats{grid-template-columns:1fr}
-  .ts-stat{border-right:none;border-bottom:1px solid var(--ts-line)}
-  .ts-stat:last-child{border-bottom:none}
+  .ts-banner-slider{
+    aspect-ratio:1920 / 720;
+    min-height:0;
+    border-radius:16px;
+  }
+
+  .ts-banner-img{
+    object-fit:contain;
+    object-position:center;
+  }
+  .ts-banner-nav{width:36px;height:36px}
+  .ts-banner-prev{left:9px}
+  .ts-banner-next{right:9px}
+  .ts-banner-dots{bottom:9px;padding:5px 8px}
+  .ts-banner-dot{width:7px;height:7px}
+  .ts-banner-dot.active{width:20px}
   .ts-tabbar{display:grid;grid-template-columns:1fr 1fr;width:100%}
   .ts-tab{justify-content:center}
   .ts-quiz-opts{grid-template-columns:1fr}
@@ -743,11 +838,85 @@ function switchTab(id, el) {
     document.getElementById('panel-' + id).classList.add('active');
 }
 
+function initTsBannerSlider() {
+    var slider = document.getElementById('ts-banner-slider');
+    if (!slider) return;
+
+    var slides = slider.querySelectorAll('.ts-banner-slide');
+    var dots = slider.querySelectorAll('.ts-banner-dot');
+    var prevBtn = slider.querySelector('.ts-banner-prev');
+    var nextBtn = slider.querySelector('.ts-banner-next');
+
+    if (!slides.length) return;
+
+    var current = 0;
+    var timer = null;
+    var delay = 4000;
+
+    function showSlide(index) {
+        if (index < 0) index = slides.length - 1;
+        if (index >= slides.length) index = 0;
+
+        current = index;
+
+        slides.forEach(function(slide, i) {
+            slide.classList.toggle('active', i === current);
+        });
+
+        dots.forEach(function(dot, i) {
+            dot.classList.toggle('active', i === current);
+        });
+    }
+
+    function stopAuto() {
+        if (timer) {
+            clearInterval(timer);
+            timer = null;
+        }
+    }
+
+    function startAuto() {
+        if (slides.length <= 1) return;
+        stopAuto();
+        timer = setInterval(function() {
+            showSlide(current + 1);
+        }, delay);
+    }
+
+    if (prevBtn) {
+        prevBtn.addEventListener('click', function() {
+            showSlide(current - 1);
+            startAuto();
+        });
+    }
+
+    if (nextBtn) {
+        nextBtn.addEventListener('click', function() {
+            showSlide(current + 1);
+            startAuto();
+        });
+    }
+
+    dots.forEach(function(dot, index) {
+        dot.addEventListener('click', function() {
+            showSlide(index);
+            startAuto();
+        });
+    });
+
+    slider.addEventListener('mouseenter', stopAuto);
+    slider.addEventListener('mouseleave', startAuto);
+
+    showSlide(0);
+    startAuto();
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     if (window.location.hash === '#vhvl') {
         switchTab('vhvl', document.querySelectorAll('.ts-tab')[1]);
     }
     quizRender();
+    initTsBannerSlider();
 });
 
 /* ======================================================

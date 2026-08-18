@@ -151,6 +151,7 @@ class AdmissionAdminController extends Controller
         $messengerSeen = [];
         $emailCount = 0;
         $messengerCount = 0;
+        $messengerSkippedWindowCount = 0;
 
         foreach ($leads as $lead) {
             $fullName = trim((string) ($lead->full_name ?? ''));
@@ -194,15 +195,52 @@ class AdmissionAdminController extends Controller
                 }
 
                 /*
-                 * Chỉ dùng messenger_psid đã được lưu từ sự kiện chat.
-                 * Không dùng sender_id của Like/Share/Comment để tránh gửi sai.
+                 * Chỉ dùng messenger_psid đã được lưu từ sự kiện chat/get_started.
+                 * Không dùng sender_id của Like/Share/Comment.
                  */
                 $messengerPsid = trim(
                     (string) ($profile['messenger_psid'] ?? '')
                 );
 
+                /*
+                 * Messenger Send API chuẩn chỉ gửi trong cửa sổ nhắn tin
+                 * sau tương tác gần nhất của người dùng. Vì vậy chiến dịch
+                 * chỉ đưa Lead vào nhánh Messenger nếu có tương tác inbound
+                 * Messenger gần đây. Lead ngoài cửa sổ vẫn có thể nhận Email.
+                 */
+                $lastMessengerInboundAt = DB::table(
+                    'admission_lead_activities'
+                )
+                    ->where('lead_id', $lead->id)
+                    ->whereIn('channel', ['facebook', 'messenger'])
+                    ->whereIn('type', ['chat', 'get_started'])
+                    ->where('direction', 'inbound')
+                    ->max('occurred_at');
+
+                $messengerWithinWindow = false;
+
+                if ($lastMessengerInboundAt) {
+                    try {
+                        $messengerWithinWindow =
+                            \Carbon\Carbon::parse($lastMessengerInboundAt)
+                                ->greaterThanOrEqualTo(
+                                    now()->subHours(24)
+                                );
+                    } catch (\Throwable $e) {
+                        $messengerWithinWindow = false;
+                    }
+                }
+
                 if (
                     $messengerPsid !== ''
+                    && !$messengerWithinWindow
+                ) {
+                    $messengerSkippedWindowCount++;
+                }
+
+                if (
+                    $messengerPsid !== ''
+                    && $messengerWithinWindow
                     && !isset($messengerSeen[$messengerPsid])
                 ) {
                     $messengerSeen[$messengerPsid] = true;
@@ -299,6 +337,8 @@ class AdmissionAdminController extends Controller
                     'recipient_count' => count($recipients),
                     'email_count' => $emailCount,
                     'messenger_count' => $messengerCount,
+                    'messenger_skipped_window_count' =>
+                        $messengerSkippedWindowCount,
                 ],
             ]);
         } catch (\Throwable $e) {
@@ -844,22 +884,94 @@ class AdmissionAdminController extends Controller
         return response()->json(['success' => (bool) $updated]);
     }
 
+    // public function n8nLogs(Request $request)
+    // {
+    //     $query = DB::table('admission_n8n_logs')
+    //         ->orderByDesc('created_at');
+
+    //     if ($request->filled('status')) {
+    //         $query->where('status', $request->input('status'));
+    //     }
+
+    //     if ($request->filled('keyword')) {
+    //         $keyword = $request->input('keyword');
+
+    //         $query->where(function ($subQuery) use ($keyword) {
+    //             $subQuery->where('workflow', 'like', '%' . $keyword . '%')
+    //                 ->orWhere('event_type', 'like', '%' . $keyword . '%')
+    //                 ->orWhere('message', 'like', '%' . $keyword . '%');
+    //         });
+    //     }
+
+    //     return response()->json([
+    //         'success' => true,
+    //         'data' => $query->paginate(30),
+    //     ]);
+    // }
+
     public function n8nLogs(Request $request)
     {
         $query = DB::table('admission_n8n_logs')
             ->orderByDesc('created_at');
 
         if ($request->filled('status')) {
-            $query->where('status', $request->input('status'));
+            $status = strtolower(
+                trim(
+                    (string) $request->input('status')
+                )
+            );
+
+            if ($status === 'ok') {
+                $query->whereIn(
+                    'status',
+                    [
+                        'received',
+                        'processing',
+                        'sent',
+                        'success',
+                        'completed',
+                    ]
+                );
+            }
+
+            if ($status === 'error') {
+                $query->whereIn(
+                    'status',
+                    [
+                        'failed',
+                        'error',
+                    ]
+                );
+            }
         }
 
         if ($request->filled('keyword')) {
-            $keyword = $request->input('keyword');
+            $keyword = trim(
+                (string) $request->input('keyword')
+            );
 
             $query->where(function ($subQuery) use ($keyword) {
-                $subQuery->where('workflow', 'like', '%' . $keyword . '%')
-                    ->orWhere('event_type', 'like', '%' . $keyword . '%')
-                    ->orWhere('message', 'like', '%' . $keyword . '%');
+                $subQuery
+                    ->where(
+                        'workflow',
+                        'like',
+                        '%' . $keyword . '%'
+                    )
+                    ->orWhere(
+                        'event_type',
+                        'like',
+                        '%' . $keyword . '%'
+                    )
+                    ->orWhere(
+                        'message',
+                        'like',
+                        '%' . $keyword . '%'
+                    )
+                    ->orWhere(
+                        'payload',
+                        'like',
+                        '%' . $keyword . '%'
+                    );
             });
         }
 

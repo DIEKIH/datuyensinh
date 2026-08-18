@@ -121,7 +121,11 @@ class MenuController extends Controller
 
                 Log::info('=== Rendering chitiet view ===');
 
-                return view('users.pages.chitiet', compact(
+                $detailView = in_array((int) $post->idmenu, [5, 6, 7, 8])
+                    ? 'users.pages.chitietthongtintuyensinh'
+                    : 'users.pages.chitiet';
+
+                return view($detailView, compact(
                     'menu',
                     'post',
                     'tacgia',
@@ -280,10 +284,9 @@ class MenuController extends Controller
                         ->select('baiviet.*', 'danhmuc.tendanhmuc')
                         ->limit(5)
                         ->get();
-                    $highlight_stats = DB::table('highlight_stats')
-                        ->orderBy('thutu', 'asc')
+                    $banners = DB::table('banners')
+                        ->orderBy('order', 'asc')
                         ->orderBy('id', 'asc')
-                        ->limit(3)
                         ->get();
 
                     $defaultVector = [
@@ -384,7 +387,7 @@ class MenuController extends Controller
                         'vhvl_posts',
                         'tintuc_posts',
                         'quiz_nganhs',
-                        'highlight_stats'
+                        'banners'
                     ));
                     break;
 
